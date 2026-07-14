@@ -1,0 +1,48 @@
+name: Authors
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  schedule:
+    - cron: "0 3 * * 1"
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  authors:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Conda (base)
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          auto-activate-base: true
+          activate-environment: base
+          python-version: "3.12"
+
+      - name: Generate AUTHORS.md
+        shell: bash -el {0}
+        run: |
+          conda activate base
+          python -m pip install --quiet pyyaml
+          python scripts/generate-authors.py
+
+      - name: Create or update PR for AUTHORS.md
+        if: github.event_name != 'pull_request'
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "chore: update AUTHORS.md"
+          title: "chore: update AUTHORS.md"
+          body: "Automated update of AUTHORS.md"
+          branch: "ci/update-authors"
+          delete-branch: true

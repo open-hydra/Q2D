@@ -1,0 +1,22 @@
+free(): invalid pointer
+
+Program received signal SIGABRT: Process abort signal.
+
+Backtrace for this error:
+#0  0x7fcfd130f640 in ???
+#1  0x7fcfd130e873 in ???
+#2  0x7fcfd0f39cff in ???
+#3  0x7fcfd0f39c6b in ???
+#4  0x7fcfd0f3b304 in ???
+#5  0x7fcfd0f7fa96 in ???
+#6  0x7fcfd0f87b19 in ???
+#7  0x7fcfd0f8bbd5 in ???
+#8  0x5b67ce in ???
+#9  0x41c466 in ???
+#10  0x40831e in ???
+#11  0x402b16 in ???
+#12  0x40297c in ???
+#13  0x7fcfd0f2424c in ???
+#14  0x4029e9 in _start
+	at ../sysdeps/x86_64/start.S:120
+#15  0xffffffffffffffff in ???

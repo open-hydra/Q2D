@@ -1,0 +1,12 @@
+# Rotating-channel 2D plane Coriolis equilibrium analytical reference
+# Mirror MOSE topology pattern: periodic in x (BC 201) + walls in y (BC 300)
+# Sess 15.B port BC 201 to Q2D Lib_Ghost.f90:63 + Mod_BC_Fluxes.f90:103
+# Coriolis analytical balance dp/dy = -2*omega*rho_0*U_inf
+#   omega = 10.0 rad/s about z-axis [0,0,1] origin=(0,0,0)
+#   U_inf = 100.0 m/s (Mach = 0.2880)
+#   rho_0 = 1.161440e+00 kg/m^3 (air @ T_0=300.0 K, p_0=1.0000e+05 Pa)
+#   R_gas = 287.0 J/kg/K, gamma = 1.4
+#   L_x = 0.4 m, L_y = 0.2 m (centered at origin)
+#   Cen/Cor ratio at corner = 1.118%
+# dpdy_Pa_per_m
+-2.322880e+03

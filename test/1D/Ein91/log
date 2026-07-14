@@ -1,0 +1,258 @@
+ Parallel execution
+ OpenMP:
+ -  Number of threads -->    1
+ 
+     ,----..          ,----,      ,---,     
+    /   /   \       .'   .' \   .'  .' `\   
+   /   .     :    ,----,'    |,---.'     \  
+  .   /   ;.  \   |    :  .  ;|   |  .`\  | 
+ .   ;   /  ` ;   ;    |.'  / :   : |  '  | 
+ ;   |  ; \ ; |   `----'/  ;  |   ' '  ;  : 
+ |   :  | ; | '     /  ;  /   '   | ;  .  | 
+ .   |  ' ' ' :    ;  /  /-,  |   | :  |  ' 
+ '   ;  \; /  |   /  /  /.`|  '   : | /  ;  
+  \   \  ',  . \./__;      :  |   | '` ,/   
+   ;   :      ; |   :    .'   ;   :  .'     
+    \   \ .'`--';   | .'      |   ,.'       
+     `---`      `---'         '---'         
+ 
+ =========================================================================================
+ Loading
+ =========================================================================================
+   Thermodynamics                 OK
+   Transport                      OK
+   Chemistry                      OK
+   Input file                     OK
+   Initial conditions             OK
+   Boundary conditions            OK
+ =========================================================================================
+ 
+ =========================================================================================
+ Set-up
+ =========================================================================================
+ Domain
+   Blocks                         1
+   Cells                          400
+   Boundary faces                 802
+ 
+ Boundary conditions
+   Extrapolation                  802
+ 
+ Input/Output
+   Initial conditions file        INPUT/ic.tec
+   Solution format                tecplot ascii
+   Probes number                  0          
+ =========================================================================================
+ 
+ =========================================================================================
+ Physical model
+ =========================================================================================
+ Gas model
+   Equations                      Euler
+   Equation of state              Ideal
+   Thermodynamics                 Thermally perfect gas
+   Species                        1
+ =========================================================================================
+ 
+ =========================================================================================
+ Numerical scheme
+ =========================================================================================
+ Space
+   Reconstruction                 MUSCL
+   Flux limiter                   Van Leer
+ 
+ Time
+   Scheme                         Third-order Runge-Kutta with time-accurate switch enabled
+   Integration variables          Conservative
+   Implicit residual smoothing    none
+ 
+ Fluxes
+   Riemann solver                 HLLE
+ =========================================================================================
+ 
+Q2D | Iter =        1 | Time = 0.818679E-03 | Delta t = 0.818679E-03
+Q2D | Iter =        2 | Time = 0.163736E-02 | Delta t = 0.818679E-03
+Q2D | Iter =        3 | Time = 0.245604E-02 | Delta t = 0.818679E-03
+Q2D | Iter =        4 | Time = 0.327471E-02 | Delta t = 0.818679E-03
+Q2D | Iter =        5 | Time = 0.409339E-02 | Delta t = 0.818679E-03
+Q2D | Iter =        6 | Time = 0.491207E-02 | Delta t = 0.818679E-03
+Q2D | Iter =        7 | Time = 0.573075E-02 | Delta t = 0.818679E-03
+Q2D | Iter =        8 | Time = 0.654943E-02 | Delta t = 0.818679E-03
+Q2D | Iter =        9 | Time = 0.736811E-02 | Delta t = 0.818679E-03
+Q2D | Iter =       10 | Time = 0.818679E-02 | Delta t = 0.818679E-03
+Q2D | Iter =       11 | Time = 0.900546E-02 | Delta t = 0.818679E-03
+Q2D | Iter =       12 | Time = 0.982414E-02 | Delta t = 0.818679E-03
+Q2D | Iter =       13 | Time = 0.106428E-01 | Delta t = 0.818679E-03
+Q2D | Iter =       14 | Time = 0.114615E-01 | Delta t = 0.818679E-03
+Q2D | Iter =       15 | Time = 0.122802E-01 | Delta t = 0.818679E-03
+Q2D | Iter =       16 | Time = 0.130989E-01 | Delta t = 0.818679E-03
+Q2D | Iter =       17 | Time = 0.139175E-01 | Delta t = 0.818679E-03
+Q2D | Iter =       18 | Time = 0.147362E-01 | Delta t = 0.818679E-03
+Q2D | Iter =       19 | Time = 0.155549E-01 | Delta t = 0.818679E-03
+Q2D | Iter =       20 | Time = 0.163736E-01 | Delta t = 0.818679E-03
+Q2D | Iter =       21 | Time = 0.171922E-01 | Delta t = 0.818679E-03
+Q2D | Iter =       22 | Time = 0.180109E-01 | Delta t = 0.818679E-03
+Q2D | Iter =       23 | Time = 0.188296E-01 | Delta t = 0.818679E-03
+Q2D | Iter =       24 | Time = 0.196483E-01 | Delta t = 0.818679E-03
+Q2D | Iter =       25 | Time = 0.204670E-01 | Delta t = 0.818679E-03
+Q2D | Iter =       26 | Time = 0.212856E-01 | Delta t = 0.818679E-03
+Q2D | Iter =       27 | Time = 0.221043E-01 | Delta t = 0.818679E-03
+Q2D | Iter =       28 | Time = 0.229230E-01 | Delta t = 0.818679E-03
+Q2D | Iter =       29 | Time = 0.237417E-01 | Delta t = 0.818679E-03
+Q2D | Iter =       30 | Time = 0.245604E-01 | Delta t = 0.818679E-03
+Q2D | Iter =       31 | Time = 0.253790E-01 | Delta t = 0.818679E-03
+Q2D | Iter =       32 | Time = 0.261977E-01 | Delta t = 0.818679E-03
+Q2D | Iter =       33 | Time = 0.270164E-01 | Delta t = 0.818679E-03
+Q2D | Iter =       34 | Time = 0.278351E-01 | Delta t = 0.818679E-03
+Q2D | Iter =       35 | Time = 0.286537E-01 | Delta t = 0.818679E-03
+Q2D | Iter =       36 | Time = 0.294724E-01 | Delta t = 0.818679E-03
+Q2D | Iter =       37 | Time = 0.302911E-01 | Delta t = 0.818679E-03
+Q2D | Iter =       38 | Time = 0.311098E-01 | Delta t = 0.818679E-03
+Q2D | Iter =       39 | Time = 0.319285E-01 | Delta t = 0.818679E-03
+Q2D | Iter =       40 | Time = 0.327471E-01 | Delta t = 0.818679E-03
+Q2D | Iter =       41 | Time = 0.335658E-01 | Delta t = 0.818679E-03
+Q2D | Iter =       42 | Time = 0.343845E-01 | Delta t = 0.818679E-03
+Q2D | Iter =       43 | Time = 0.352032E-01 | Delta t = 0.818679E-03
+Q2D | Iter =       44 | Time = 0.360219E-01 | Delta t = 0.818679E-03
+Q2D | Iter =       45 | Time = 0.368405E-01 | Delta t = 0.818679E-03
+Q2D | Iter =       46 | Time = 0.376592E-01 | Delta t = 0.818679E-03
+Q2D | Iter =       47 | Time = 0.384779E-01 | Delta t = 0.818679E-03
+Q2D | Iter =       48 | Time = 0.392966E-01 | Delta t = 0.818679E-03
+Q2D | Iter =       49 | Time = 0.401152E-01 | Delta t = 0.818679E-03
+Q2D | Iter =       50 | Time = 0.409339E-01 | Delta t = 0.818679E-03
+Q2D | Iter =       51 | Time = 0.417526E-01 | Delta t = 0.818679E-03
+Q2D | Iter =       52 | Time = 0.425713E-01 | Delta t = 0.818679E-03
+Q2D | Iter =       53 | Time = 0.433900E-01 | Delta t = 0.818679E-03
+Q2D | Iter =       54 | Time = 0.442086E-01 | Delta t = 0.818679E-03
+Q2D | Iter =       55 | Time = 0.450273E-01 | Delta t = 0.818679E-03
+Q2D | Iter =       56 | Time = 0.458460E-01 | Delta t = 0.818679E-03
+Q2D | Iter =       57 | Time = 0.466647E-01 | Delta t = 0.818679E-03
+Q2D | Iter =       58 | Time = 0.474834E-01 | Delta t = 0.818679E-03
+Q2D | Iter =       59 | Time = 0.483020E-01 | Delta t = 0.818679E-03
+Q2D | Iter =       60 | Time = 0.491207E-01 | Delta t = 0.818679E-03
+Q2D | Iter =       61 | Time = 0.499394E-01 | Delta t = 0.818679E-03
+Q2D | Iter =       62 | Time = 0.507581E-01 | Delta t = 0.818679E-03
+Q2D | Iter =       63 | Time = 0.515767E-01 | Delta t = 0.818679E-03
+Q2D | Iter =       64 | Time = 0.523954E-01 | Delta t = 0.818679E-03
+Q2D | Iter =       65 | Time = 0.532141E-01 | Delta t = 0.818679E-03
+Q2D | Iter =       66 | Time = 0.540328E-01 | Delta t = 0.818679E-03
+Q2D | Iter =       67 | Time = 0.548515E-01 | Delta t = 0.818679E-03
+Q2D | Iter =       68 | Time = 0.556701E-01 | Delta t = 0.818679E-03
+Q2D | Iter =       69 | Time = 0.564888E-01 | Delta t = 0.818679E-03
+Q2D | Iter =       70 | Time = 0.573075E-01 | Delta t = 0.818679E-03
+Q2D | Iter =       71 | Time = 0.581262E-01 | Delta t = 0.818679E-03
+Q2D | Iter =       72 | Time = 0.589449E-01 | Delta t = 0.818679E-03
+Q2D | Iter =       73 | Time = 0.597635E-01 | Delta t = 0.818679E-03
+Q2D | Iter =       74 | Time = 0.605822E-01 | Delta t = 0.818679E-03
+Q2D | Iter =       75 | Time = 0.614009E-01 | Delta t = 0.818679E-03
+Q2D | Iter =       76 | Time = 0.622196E-01 | Delta t = 0.818679E-03
+Q2D | Iter =       77 | Time = 0.630382E-01 | Delta t = 0.818679E-03
+Q2D | Iter =       78 | Time = 0.638569E-01 | Delta t = 0.818679E-03
+Q2D | Iter =       79 | Time = 0.646756E-01 | Delta t = 0.818679E-03
+Q2D | Iter =       80 | Time = 0.654943E-01 | Delta t = 0.818679E-03
+Q2D | Iter =       81 | Time = 0.663130E-01 | Delta t = 0.818679E-03
+Q2D | Iter =       82 | Time = 0.671316E-01 | Delta t = 0.818679E-03
+Q2D | Iter =       83 | Time = 0.679503E-01 | Delta t = 0.818679E-03
+Q2D | Iter =       84 | Time = 0.687690E-01 | Delta t = 0.818679E-03
+Q2D | Iter =       85 | Time = 0.695877E-01 | Delta t = 0.818679E-03
+Q2D | Iter =       86 | Time = 0.704064E-01 | Delta t = 0.818679E-03
+Q2D | Iter =       87 | Time = 0.712250E-01 | Delta t = 0.818679E-03
+Q2D | Iter =       88 | Time = 0.720437E-01 | Delta t = 0.818679E-03
+Q2D | Iter =       89 | Time = 0.728624E-01 | Delta t = 0.818679E-03
+Q2D | Iter =       90 | Time = 0.736811E-01 | Delta t = 0.818679E-03
+Q2D | Iter =       91 | Time = 0.744997E-01 | Delta t = 0.818679E-03
+Q2D | Iter =       92 | Time = 0.753184E-01 | Delta t = 0.818679E-03
+Q2D | Iter =       93 | Time = 0.761371E-01 | Delta t = 0.818679E-03
+Q2D | Iter =       94 | Time = 0.769558E-01 | Delta t = 0.818679E-03
+Q2D | Iter =       95 | Time = 0.777745E-01 | Delta t = 0.818679E-03
+Q2D | Iter =       96 | Time = 0.785931E-01 | Delta t = 0.818679E-03
+Q2D | Iter =       97 | Time = 0.794118E-01 | Delta t = 0.818679E-03
+Q2D | Iter =       98 | Time = 0.802305E-01 | Delta t = 0.818679E-03
+Q2D | Iter =       99 | Time = 0.810492E-01 | Delta t = 0.818679E-03
+Q2D | Iter =      100 | Time = 0.818679E-01 | Delta t = 0.818679E-03
+Q2D | Iter =      101 | Time = 0.826865E-01 | Delta t = 0.818679E-03
+Q2D | Iter =      102 | Time = 0.835052E-01 | Delta t = 0.818679E-03
+Q2D | Iter =      103 | Time = 0.843239E-01 | Delta t = 0.818679E-03
+Q2D | Iter =      104 | Time = 0.851426E-01 | Delta t = 0.818679E-03
+Q2D | Iter =      105 | Time = 0.859612E-01 | Delta t = 0.818679E-03
+Q2D | Iter =      106 | Time = 0.867799E-01 | Delta t = 0.818679E-03
+Q2D | Iter =      107 | Time = 0.875986E-01 | Delta t = 0.818679E-03
+Q2D | Iter =      108 | Time = 0.884173E-01 | Delta t = 0.818679E-03
+Q2D | Iter =      109 | Time = 0.892360E-01 | Delta t = 0.818679E-03
+Q2D | Iter =      110 | Time = 0.900546E-01 | Delta t = 0.818679E-03
+Q2D | Iter =      111 | Time = 0.908733E-01 | Delta t = 0.818679E-03
+Q2D | Iter =      112 | Time = 0.916920E-01 | Delta t = 0.818679E-03
+Q2D | Iter =      113 | Time = 0.925107E-01 | Delta t = 0.818679E-03
+Q2D | Iter =      114 | Time = 0.933294E-01 | Delta t = 0.818679E-03
+Q2D | Iter =      115 | Time = 0.941480E-01 | Delta t = 0.818679E-03
+Q2D | Iter =      116 | Time = 0.949667E-01 | Delta t = 0.818679E-03
+Q2D | Iter =      117 | Time = 0.957854E-01 | Delta t = 0.818679E-03
+Q2D | Iter =      118 | Time = 0.966041E-01 | Delta t = 0.818679E-03
+Q2D | Iter =      119 | Time = 0.974227E-01 | Delta t = 0.818679E-03
+Q2D | Iter =      120 | Time = 0.982414E-01 | Delta t = 0.818679E-03
+Q2D | Iter =      121 | Time = 0.990601E-01 | Delta t = 0.818679E-03
+Q2D | Iter =      122 | Time = 0.998788E-01 | Delta t = 0.818679E-03
+Q2D | Iter =      123 | Time = 0.100697E+00 | Delta t = 0.818679E-03
+Q2D | Iter =      124 | Time = 0.101516E+00 | Delta t = 0.818679E-03
+Q2D | Iter =      125 | Time = 0.102335E+00 | Delta t = 0.818679E-03
+Q2D | Iter =      126 | Time = 0.103153E+00 | Delta t = 0.818679E-03
+Q2D | Iter =      127 | Time = 0.103972E+00 | Delta t = 0.818679E-03
+Q2D | Iter =      128 | Time = 0.104791E+00 | Delta t = 0.818679E-03
+Q2D | Iter =      129 | Time = 0.105610E+00 | Delta t = 0.818679E-03
+Q2D | Iter =      130 | Time = 0.106428E+00 | Delta t = 0.818679E-03
+Q2D | Iter =      131 | Time = 0.107247E+00 | Delta t = 0.818679E-03
+Q2D | Iter =      132 | Time = 0.108066E+00 | Delta t = 0.818679E-03
+Q2D | Iter =      133 | Time = 0.108884E+00 | Delta t = 0.818679E-03
+Q2D | Iter =      134 | Time = 0.109703E+00 | Delta t = 0.818679E-03
+Q2D | Iter =      135 | Time = 0.110522E+00 | Delta t = 0.818679E-03
+Q2D | Iter =      136 | Time = 0.111340E+00 | Delta t = 0.818679E-03
+Q2D | Iter =      137 | Time = 0.112159E+00 | Delta t = 0.818679E-03
+Q2D | Iter =      138 | Time = 0.112978E+00 | Delta t = 0.818679E-03
+Q2D | Iter =      139 | Time = 0.113796E+00 | Delta t = 0.818679E-03
+Q2D | Iter =      140 | Time = 0.114615E+00 | Delta t = 0.818679E-03
+Q2D | Iter =      141 | Time = 0.115434E+00 | Delta t = 0.818679E-03
+Q2D | Iter =      142 | Time = 0.116252E+00 | Delta t = 0.818679E-03
+Q2D | Iter =      143 | Time = 0.117071E+00 | Delta t = 0.818679E-03
+Q2D | Iter =      144 | Time = 0.117890E+00 | Delta t = 0.818679E-03
+Q2D | Iter =      145 | Time = 0.118708E+00 | Delta t = 0.818679E-03
+Q2D | Iter =      146 | Time = 0.119527E+00 | Delta t = 0.818679E-03
+Q2D | Iter =      147 | Time = 0.120346E+00 | Delta t = 0.818679E-03
+Q2D | Iter =      148 | Time = 0.121164E+00 | Delta t = 0.818679E-03
+Q2D | Iter =      149 | Time = 0.121983E+00 | Delta t = 0.818679E-03
+Q2D | Iter =      150 | Time = 0.122802E+00 | Delta t = 0.818679E-03
+Q2D | Iter =      151 | Time = 0.123620E+00 | Delta t = 0.818679E-03
+Q2D | Iter =      152 | Time = 0.124439E+00 | Delta t = 0.818679E-03
+Q2D | Iter =      153 | Time = 0.125258E+00 | Delta t = 0.818679E-03
+Q2D | Iter =      154 | Time = 0.126076E+00 | Delta t = 0.818679E-03
+Q2D | Iter =      155 | Time = 0.126895E+00 | Delta t = 0.818679E-03
+Q2D | Iter =      156 | Time = 0.127714E+00 | Delta t = 0.818679E-03
+Q2D | Iter =      157 | Time = 0.128533E+00 | Delta t = 0.818679E-03
+Q2D | Iter =      158 | Time = 0.129351E+00 | Delta t = 0.818679E-03
+Q2D | Iter =      159 | Time = 0.130170E+00 | Delta t = 0.818679E-03
+Q2D | Iter =      160 | Time = 0.130989E+00 | Delta t = 0.818679E-03
+Q2D | Iter =      161 | Time = 0.131807E+00 | Delta t = 0.818679E-03
+Q2D | Iter =      162 | Time = 0.132626E+00 | Delta t = 0.818679E-03
+Q2D | Iter =      163 | Time = 0.133445E+00 | Delta t = 0.818679E-03
+Q2D | Iter =      164 | Time = 0.134263E+00 | Delta t = 0.818679E-03
+Q2D | Iter =      165 | Time = 0.135082E+00 | Delta t = 0.818679E-03
+Q2D | Iter =      166 | Time = 0.135901E+00 | Delta t = 0.818679E-03
+Q2D | Iter =      167 | Time = 0.136719E+00 | Delta t = 0.818679E-03
+Q2D | Iter =      168 | Time = 0.137538E+00 | Delta t = 0.818679E-03
+Q2D | Iter =      169 | Time = 0.138357E+00 | Delta t = 0.818679E-03
+Q2D | Iter =      170 | Time = 0.139175E+00 | Delta t = 0.818679E-03
+Q2D | Iter =      171 | Time = 0.139994E+00 | Delta t = 0.818679E-03
+Q2D | Iter =      172 | Time = 0.140813E+00 | Delta t = 0.818679E-03
+Q2D | Iter =      173 | Time = 0.141631E+00 | Delta t = 0.818679E-03
+Q2D | Iter =      174 | Time = 0.142450E+00 | Delta t = 0.818679E-03
+Q2D | Iter =      175 | Time = 0.143269E+00 | Delta t = 0.818679E-03
+Q2D | Iter =      176 | Time = 0.144087E+00 | Delta t = 0.818679E-03
+Q2D | Iter =      177 | Time = 0.144906E+00 | Delta t = 0.818679E-03
+Q2D | Iter =      178 | Time = 0.145725E+00 | Delta t = 0.818679E-03
+Q2D | Iter =      179 | Time = 0.146543E+00 | Delta t = 0.818679E-03
+Q2D | Iter =      180 | Time = 0.147362E+00 | Delta t = 0.818679E-03
+Q2D | Iter =      181 | Time = 0.148181E+00 | Delta t = 0.818679E-03
+Q2D | Iter =      182 | Time = 0.148999E+00 | Delta t = 0.818679E-03
+Q2D | Iter =      183 | Time = 0.149818E+00 | Delta t = 0.818679E-03
+Q2D | Iter =      184 | Time = 0.150637E+00 | Delta t = 0.818679E-03
+ 
+   Time of operation was  2.138900000000000E-003 min

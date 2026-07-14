@@ -1,0 +1,199 @@
+ Parallel execution
+ OpenMP:
+ -  Number of threads -->    8
+
+     ,----..          ,----,      ,---,     
+    /   /   \       .'   .' \   .'  .' `\   
+   /   .     :    ,----,'    |,---.'     \  
+  .   /   ;.  \   |    :  .  ;|   |  .`\  | 
+ .   ;   /  ` ;   ;    |.'  / :   : |  '  | 
+ ;   |  ; \ ; |   `----'/  ;  |   ' '  ;  : 
+ |   :  | ; | '     /  ;  /   '   | ;  .  | 
+ .   |  ' ' ' :    ;  /  /-,  |   | :  |  ' 
+ '   ;  \; /  |   /  /  /.`|  '   : | /  ;  
+  \   \  ',  . \./__;      :  |   | '` ,/   
+   ;   :      ; |   :    .'   ;   :  .'     
+    \   \ .'`--';   | .'      |   ,.'       
+     `---`      `---'         '---'         
+
+ =========================================================================================
+ Loading
+ =========================================================================================
+   Thermodynamics                 OK
+   Transport                      OK
+   Chemistry                      OK
+   Input file                     OK
+   Initial conditions             OK
+   Boundary conditions            OK
+ =========================================================================================
+
+ =========================================================================================
+ Set-up
+ =========================================================================================
+ Domain
+   Blocks                         1
+   Cells                          3264
+   Boundary faces                 232
+
+ Boundary conditions
+   Viscous wall                   56
+   Inflow/outflow                 96
+   Symmetry                       80
+
+ Input/Output
+   Initial conditions file        INPUT/ic.tec
+   Solution format                tecplot ascii
+   Probes number                  0          
+ =========================================================================================
+
+ =========================================================================================
+ Physical model
+ =========================================================================================
+ Gas model
+   Equations                      Navier-Stokes
+   Viscous model                  Turbulent, SSGLRR
+   Equation of state              Ideal
+   Thermodynamics                 Thermally perfect gas
+   Species                        1
+ =========================================================================================
+
+ =========================================================================================
+ Numerical scheme
+ =========================================================================================
+ Space
+   Reconstruction                 MUSCL
+   Flux limiter                   Van Leer
+
+ Time
+   Scheme                         Third-order Runge-Kutta
+   Integration variables          Conservative
+   Implicit residual smoothing    Beta set to 0.500000E+00
+
+ Fluxes
+   Riemann solver                 HLLC Batten
+ =========================================================================================
+
+Q2D | Iter =      100 | Global iter =      100 | Density residual = 0.136548E-02
+Q2D | Iter =      200 | Global iter =      200 | Density residual = 0.130335E-02
+Q2D | Iter =      300 | Global iter =      300 | Density residual = 0.106968E-02
+Q2D | Iter =      400 | Global iter =      400 | Density residual = 0.866714E-03
+Q2D | Iter =      500 | Global iter =      500 | Density residual = 0.420576E-03
+Q2D | Iter =      600 | Global iter =      600 | Density residual = 0.341152E-03
+Q2D | Iter =      700 | Global iter =      700 | Density residual = 0.246177E-03
+Q2D | Iter =      800 | Global iter =      800 | Density residual = 0.231870E-03
+Q2D | Iter =      900 | Global iter =      900 | Density residual = 0.207850E-03
+Q2D | Iter =     1000 | Global iter =     1000 | Density residual = 0.174343E-03
+Q2D | Iter =     1100 | Global iter =     1100 | Density residual = 0.162222E-03
+Q2D | Iter =     1200 | Global iter =     1200 | Density residual = 0.145343E-03
+Q2D | Iter =     1300 | Global iter =     1300 | Density residual = 0.140077E-03
+Q2D | Iter =     1400 | Global iter =     1400 | Density residual = 0.115155E-03
+Q2D | Iter =     1500 | Global iter =     1500 | Density residual = 0.102319E-03
+Q2D | Iter =     1600 | Global iter =     1600 | Density residual = 0.903733E-04
+Q2D | Iter =     1700 | Global iter =     1700 | Density residual = 0.886658E-04
+Q2D | Iter =     1800 | Global iter =     1800 | Density residual = 0.766596E-04
+Q2D | Iter =     1900 | Global iter =     1900 | Density residual = 0.713823E-04
+Q2D | Iter =     2000 | Global iter =     2000 | Density residual = 0.671371E-04
+  ... writing iter-based solution
+Q2D | Iter =     2100 | Global iter =     2100 | Density residual = 0.613786E-04
+Q2D | Iter =     2200 | Global iter =     2200 | Density residual = 0.576525E-04
+Q2D | Iter =     2300 | Global iter =     2300 | Density residual = 0.527358E-04
+Q2D | Iter =     2400 | Global iter =     2400 | Density residual = 0.505573E-04
+Q2D | Iter =     2500 | Global iter =     2500 | Density residual = 0.463294E-04
+Q2D | Iter =     2600 | Global iter =     2600 | Density residual = 0.453627E-04
+Q2D | Iter =     2700 | Global iter =     2700 | Density residual = 0.430581E-04
+Q2D | Iter =     2800 | Global iter =     2800 | Density residual = 0.418405E-04
+Q2D | Iter =     2900 | Global iter =     2900 | Density residual = 0.393415E-04
+Q2D | Iter =     3000 | Global iter =     3000 | Density residual = 0.384327E-04
+Q2D | Iter =     3100 | Global iter =     3100 | Density residual = 0.362333E-04
+Q2D | Iter =     3200 | Global iter =     3200 | Density residual = 0.354949E-04
+Q2D | Iter =     3300 | Global iter =     3300 | Density residual = 0.333706E-04
+Q2D | Iter =     3400 | Global iter =     3400 | Density residual = 0.328696E-04
+Q2D | Iter =     3500 | Global iter =     3500 | Density residual = 0.311509E-04
+Q2D | Iter =     3600 | Global iter =     3600 | Density residual = 0.307022E-04
+Q2D | Iter =     3700 | Global iter =     3700 | Density residual = 0.295570E-04
+Q2D | Iter =     3800 | Global iter =     3800 | Density residual = 0.286394E-04
+Q2D | Iter =     3900 | Global iter =     3900 | Density residual = 0.279212E-04
+Q2D | Iter =     4000 | Global iter =     4000 | Density residual = 0.267045E-04
+  ... writing iter-based solution
+Q2D | Iter =     4100 | Global iter =     4100 | Density residual = 0.263917E-04
+Q2D | Iter =     4200 | Global iter =     4200 | Density residual = 0.252228E-04
+Q2D | Iter =     4300 | Global iter =     4300 | Density residual = 0.248890E-04
+Q2D | Iter =     4400 | Global iter =     4400 | Density residual = 0.240599E-04
+Q2D | Iter =     4500 | Global iter =     4500 | Density residual = 0.235186E-04
+Q2D | Iter =     4600 | Global iter =     4600 | Density residual = 0.229839E-04
+Q2D | Iter =     4700 | Global iter =     4700 | Density residual = 0.224046E-04
+Q2D | Iter =     4800 | Global iter =     4800 | Density residual = 0.218262E-04
+Q2D | Iter =     4900 | Global iter =     4900 | Density residual = 0.214195E-04
+Q2D | Iter =     5000 | Global iter =     5000 | Density residual = 0.206568E-04
+Q2D | Iter =     5100 | Global iter =     5100 | Density residual = 0.204242E-04
+Q2D | Iter =     5200 | Global iter =     5200 | Density residual = 0.196114E-04
+Q2D | Iter =     5300 | Global iter =     5300 | Density residual = 0.194927E-04
+Q2D | Iter =     5400 | Global iter =     5400 | Density residual = 0.188295E-04
+Q2D | Iter =     5500 | Global iter =     5500 | Density residual = 0.186215E-04
+Q2D | Iter =     5600 | Global iter =     5600 | Density residual = 0.181990E-04
+Q2D | Iter =     5700 | Global iter =     5700 | Density residual = 0.178486E-04
+Q2D | Iter =     5800 | Global iter =     5800 | Density residual = 0.175867E-04
+Q2D | Iter =     5900 | Global iter =     5900 | Density residual = 0.171499E-04
+Q2D | Iter =     6000 | Global iter =     6000 | Density residual = 0.169028E-04
+  ... writing iter-based solution
+Q2D | Iter =     6100 | Global iter =     6100 | Density residual = 0.164750E-04
+Q2D | Iter =     6200 | Global iter =     6200 | Density residual = 0.162175E-04
+Q2D | Iter =     6300 | Global iter =     6300 | Density residual = 0.158302E-04
+Q2D | Iter =     6400 | Global iter =     6400 | Density residual = 0.155849E-04
+Q2D | Iter =     6500 | Global iter =     6500 | Density residual = 0.152284E-04
+Q2D | Iter =     6600 | Global iter =     6600 | Density residual = 0.150111E-04
+Q2D | Iter =     6700 | Global iter =     6700 | Density residual = 0.146886E-04
+Q2D | Iter =     6800 | Global iter =     6800 | Density residual = 0.145025E-04
+Q2D | Iter =     6900 | Global iter =     6900 | Density residual = 0.142363E-04
+Q2D | Iter =     7000 | Global iter =     7000 | Density residual = 0.140330E-04
+Q2D | Iter =     7100 | Global iter =     7100 | Density residual = 0.138200E-04
+Q2D | Iter =     7200 | Global iter =     7200 | Density residual = 0.135950E-04
+Q2D | Iter =     7300 | Global iter =     7300 | Density residual = 0.134152E-04
+Q2D | Iter =     7400 | Global iter =     7400 | Density residual = 0.131900E-04
+Q2D | Iter =     7500 | Global iter =     7500 | Density residual = 0.129948E-04
+Q2D | Iter =     7600 | Global iter =     7600 | Density residual = 0.127927E-04
+Q2D | Iter =     7700 | Global iter =     7700 | Density residual = 0.125750E-04
+Q2D | Iter =     7800 | Global iter =     7800 | Density residual = 0.123935E-04
+Q2D | Iter =     7900 | Global iter =     7900 | Density residual = 0.121884E-04
+Q2D | Iter =     8000 | Global iter =     8000 | Density residual = 0.120012E-04
+  ... writing iter-based solution
+Q2D | Iter =     8100 | Global iter =     8100 | Density residual = 0.118379E-04
+Q2D | Iter =     8200 | Global iter =     8200 | Density residual = 0.116479E-04
+Q2D | Iter =     8300 | Global iter =     8300 | Density residual = 0.115269E-04
+Q2D | Iter =     8400 | Global iter =     8400 | Density residual = 0.113583E-04
+Q2D | Iter =     8500 | Global iter =     8500 | Density residual = 0.112523E-04
+Q2D | Iter =     8600 | Global iter =     8600 | Density residual = 0.111425E-04
+Q2D | Iter =     8700 | Global iter =     8700 | Density residual = 0.110366E-04
+Q2D | Iter =     8800 | Global iter =     8800 | Density residual = 0.109881E-04
+Q2D | Iter =     8900 | Global iter =     8900 | Density residual = 0.108928E-04
+Q2D | Iter =     9000 | Global iter =     9000 | Density residual = 0.108700E-04
+Q2D | Iter =     9100 | Global iter =     9100 | Density residual = 0.108316E-04
+Q2D | Iter =     9200 | Global iter =     9200 | Density residual = 0.108021E-04
+Q2D | Iter =     9300 | Global iter =     9300 | Density residual = 0.108341E-04
+Q2D | Iter =     9400 | Global iter =     9400 | Density residual = 0.107970E-04
+Q2D | Iter =     9500 | Global iter =     9500 | Density residual = 0.108532E-04
+Q2D | Iter =     9600 | Global iter =     9600 | Density residual = 0.108590E-04
+Q2D | Iter =     9700 | Global iter =     9700 | Density residual = 0.108821E-04
+Q2D | Iter =     9800 | Global iter =     9800 | Density residual = 0.109522E-04
+Q2D | Iter =     9900 | Global iter =     9900 | Density residual = 0.109356E-04
+Q2D | Iter =    10000 | Global iter =    10000 | Density residual = 0.110213E-04
+  ... writing iter-based solution
+Q2D | Iter =    10100 | Global iter =    10100 | Density residual = 0.110025E-04
+Q2D | Iter =    10200 | Global iter =    10200 | Density residual = 0.110380E-04
+Q2D | Iter =    10300 | Global iter =    10300 | Density residual = 0.110493E-04
+Q2D | Iter =    10400 | Global iter =    10400 | Density residual = 0.110146E-04
+Q2D | Iter =    10500 | Global iter =    10500 | Density residual = 0.110407E-04
+Q2D | Iter =    10600 | Global iter =    10600 | Density residual = 0.109786E-04
+Q2D | Iter =    10700 | Global iter =    10700 | Density residual = 0.109728E-04
+Q2D | Iter =    10800 | Global iter =    10800 | Density residual = 0.109319E-04
+Q2D | Iter =    10900 | Global iter =    10900 | Density residual = 0.108826E-04
+Q2D | Iter =    11000 | Global iter =    11000 | Density residual = 0.108628E-04
+Q2D | Iter =    11100 | Global iter =    11100 | Density residual = 0.108098E-04
+Q2D | Iter =    11200 | Global iter =    11200 | Density residual = 0.107809E-04
+Q2D | Iter =    11300 | Global iter =    11300 | Density residual = 0.107587E-04
+Q2D | Iter =    11400 | Global iter =    11400 | Density residual = 0.107141E-04
+Note: The following floating-point exceptions are signalling: IEEE_DIVIDE_BY_ZERO
+STOP NaN or p<0 detected
+Q2D | Iter =    11500 | Global iter =    11500 | Density residual = 0.107119E-04
+Integration failed at b, i, j:   1   8   2
+  -21.461210685829755        117.94362623659507        223.83749478193468       -14349737.898325672        1.2217040442751633E-003   1.2212395573116580E-003   1.2214344542890536E-003   9.1387331823594017E-006   5177.0486899082225     

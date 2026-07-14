@@ -1,0 +1,5 @@
+# Canonical Git author identities for log shortlog/blame.
+# Format: Canonical Name <canonical@email> [Alias Name] <alias@email>
+
+# Alessandro Montanari (single canonical identity)
+Alessandro Montanari <alessandro.montanari@uniroma1.it>

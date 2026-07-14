@@ -1,0 +1,165 @@
+At line 146 of file /data07/montanari/Codes/open-hydra/archive-Q2D/src/lib/numerics/fluxes/Lib_Diffusive.f90At line 146 of file /data07/montanari/Codes/open-hydra/archive-Q2D/src/lib/numerics/fluxes/Lib_Diffusive.f90
+Fortran runtime warning: At line 146 of file /data07/montanari/Codes/open-hydra/archive-Q2D/src/lib/numerics/fluxes/Lib_Diffusive.f90At line 146 of file /data07/montanari/Codes/open-hydra/archive-Q2D/src/lib/numerics/fluxes/Lib_Diffusive.f90
+Fortran runtime warning: An array temporary was created for argument 'vel_gradient' of procedure 'eddy_viscosity'
+Fortran runtime warning: 
+Fortran runtime warning: 
+An array temporary was created for argument 'vel_gradient' of procedure 'eddy_viscosity'An array temporary was created for argument 'vel_gradient' of procedure 'eddy_viscosity'At line 154 of file /data07/montanari/Codes/open-hydra/archive-Q2D/src/lib/numerics/fluxes/Lib_Diffusive.f90An array temporary was created for argument 'vel_gradient' of procedure 'eddy_viscosity'
+
+
+Fortran runtime warning: 
+At line 154 of file /data07/montanari/Codes/open-hydra/archive-Q2D/src/lib/numerics/fluxes/Lib_Diffusive.f90At line 154 of file /data07/montanari/Codes/open-hydra/archive-Q2D/src/lib/numerics/fluxes/Lib_Diffusive.f90An array temporary was created for argument 'gradvel' of procedure 'stress_vector'At line 154 of file /data07/montanari/Codes/open-hydra/archive-Q2D/src/lib/numerics/fluxes/Lib_Diffusive.f90
+Fortran runtime warning: 
+Fortran runtime warning: 
+
+Fortran runtime warning: An array temporary was created for argument 'gradvel' of procedure 'stress_vector'An array temporary was created for argument 'gradvel' of procedure 'stress_vector'At line 178 of file /data07/montanari/Codes/open-hydra/archive-Q2D/src/lib/numerics/fluxes/Lib_Diffusive.f90An array temporary was created for argument 'gradvel' of procedure 'stress_vector'
+At line 178 of file /data07/montanari/Codes/open-hydra/archive-Q2D/src/lib/numerics/fluxes/Lib_Diffusive.f90
+Fortran runtime warning: An array temporary was created for argument 'vel_gradient' of procedure 'rans_diffusive_flux'
+At line 179 of file /data07/montanari/Codes/open-hydra/archive-Q2D/src/lib/numerics/fluxes/Lib_Diffusive.f90
+Fortran runtime warning: An array temporary was created for argument 'rans_gradient' of procedure 'rans_diffusive_flux'
+At line 387 of file /data07/montanari/Codes/open-hydra/archive-Q2D/src/lib/physics/turbulence/Lib_SSGLRR.f90
+Fortran runtime warning: An array temporary was created for argument 'gradw' of procedure 'compute_f1'
+
+
+
+Fortran runtime warning: An array temporary was created for argument 'vel_gradient' of procedure 'rans_diffusive_flux'
+At line 201 of file /data07/montanari/Codes/open-hydra/archive-Q2D/src/lib/numerics/fluxes/Mod_Fluxes.f90
+Fortran runtime warning: An array temporary was created for argument 'prim' of procedure 'convective_flux'
+At line 202 of file /data07/montanari/Codes/open-hydra/archive-Q2D/src/lib/numerics/fluxes/Mod_Fluxes.f90
+Fortran runtime warning: An array temporary was created for argument 'res' of procedure 'convective_flux'At line 201 of file /data07/montanari/Codes/open-hydra/archive-Q2D/src/lib/numerics/fluxes/Mod_Fluxes.f90
+
+Fortran runtime warning: An array temporary was created for argument 'prim' of procedure 'convective_flux'
+At line 201 of file /data07/montanari/Codes/open-hydra/archive-Q2D/src/lib/numerics/fluxes/Mod_Fluxes.f90
+Fortran runtime warning: An array temporary was created for argument 'prim' of procedure 'convective_flux'
+At line 201 of file /data07/montanari/Codes/open-hydra/archive-Q2D/src/lib/numerics/fluxes/Mod_Fluxes.f90
+Fortran runtime warning: An array temporary was created for argument 'prim' of procedure 'convective_flux'
+At line 84 of file /data07/montanari/Codes/open-hydra/archive-Q2D/src/lib/numerics/fluxes/bc/Lib_BC_Fluxes_Wall_Heat.f90
+Fortran runtime warning: An array temporary was created for argument 'gradvel' of procedure 'stress_vector'
+At line 92 of file /data07/montanari/Codes/open-hydra/archive-Q2D/src/lib/numerics/fluxes/bc/Lib_BC_Fluxes_Wall_Heat.f90
+Fortran runtime warning: An array temporary was created for argument 'vel_gradient' of procedure 'rans_diffusive_flux'
+At line 92 of file /data07/montanari/Codes/open-hydra/archive-Q2D/src/lib/numerics/fluxes/bc/Lib_BC_Fluxes_Wall_Heat.f90
+Fortran runtime warning: An array temporary was created for argument 'rans_gradient' of procedure 'rans_diffusive_flux'At line 84 of file /data07/montanari/Codes/open-hydra/archive-Q2D/src/lib/numerics/fluxes/bc/Lib_BC_Fluxes_Wall_Heat.f90
+
+Fortran runtime warning: An array temporary was created for argument 'gradvel' of procedure 'stress_vector'
+At line 84 of file /data07/montanari/Codes/open-hydra/archive-Q2D/src/lib/numerics/fluxes/bc/Lib_BC_Fluxes_Wall_Heat.f90
+Fortran runtime warning: An array temporary was created for argument 'gradvel' of procedure 'stress_vector'
+At line 84 of file /data07/montanari/Codes/open-hydra/archive-Q2D/src/lib/numerics/fluxes/bc/Lib_BC_Fluxes_Wall_Heat.f90
+Fortran runtime warning: An array temporary was created for argument 'gradvel' of procedure 'stress_vector'
+At line 221 of file /data07/montanari/Codes/open-hydra/archive-Q2D/src/lib/physics/turbulence/Lib_SSGLRR.f90
+Fortran runtime warning: At line 221 of file /data07/montanari/Codes/open-hydra/archive-Q2D/src/lib/physics/turbulence/Lib_SSGLRR.f90An array temporary was created for argument 'gradw' of procedure 'compute_f1'
+Fortran runtime warning: 
+An array temporary was created for argument 'gradw' of procedure 'compute_f1'
+At line 221 of file /data07/montanari/Codes/open-hydra/archive-Q2D/src/lib/physics/turbulence/Lib_SSGLRR.f90
+Fortran runtime warning: An array temporary was created for argument 'gradw' of procedure 'compute_f1'
+At line 221 of file /data07/montanari/Codes/open-hydra/archive-Q2D/src/lib/physics/turbulence/Lib_SSGLRR.f90
+Fortran runtime warning: An array temporary was created for argument 'gradw' of procedure 'compute_f1'
+ Parallel execution
+ OpenMP:
+ -  Number of threads -->    4
+
+     ,----..          ,----,      ,---,     
+    /   /   \       .'   .' \   .'  .' `\   
+   /   .     :    ,----,'    |,---.'     \  
+  .   /   ;.  \   |    :  .  ;|   |  .`\  | 
+ .   ;   /  ` ;   ;    |.'  / :   : |  '  | 
+ ;   |  ; \ ; |   `----'/  ;  |   ' '  ;  : 
+ |   :  | ; | '     /  ;  /   '   | ;  .  | 
+ .   |  ' ' ' :    ;  /  /-,  |   | :  |  ' 
+ '   ;  \; /  |   /  /  /.`|  '   : | /  ;  
+  \   \  ',  . \./__;      :  |   | '` ,/   
+   ;   :      ; |   :    .'   ;   :  .'     
+    \   \ .'`--';   | .'      |   ,.'       
+     `---`      `---'         '---'         
+
+ =========================================================================================
+ Loading
+ =========================================================================================
+   Thermodynamics                 OK
+   Transport                      OK
+   Chemistry                      OK
+   Input file                     OK
+   Initial conditions             OK
+   Boundary conditions            OK
+ =========================================================================================
+
+ =========================================================================================
+ Set-up
+ =========================================================================================
+ Domain
+   Blocks                         1
+   Cells                          3264
+   Boundary faces                 232
+
+ Boundary conditions
+   Viscous wall                   56
+   Inflow/outflow                 96
+   Symmetry                       80
+
+ Input/Output
+   Initial conditions file        INPUT/ic.tec
+   Solution format                tecplot ascii
+   Probes number                  0          
+ =========================================================================================
+
+ =========================================================================================
+ Physical model
+ =========================================================================================
+ Gas model
+   Equations                      Navier-Stokes
+   Viscous model                  Turbulent, SSGLRR
+   Equation of state              Ideal
+   Thermodynamics                 Thermally perfect gas
+   Species                        1
+ =========================================================================================
+
+ =========================================================================================
+ Numerical scheme
+ =========================================================================================
+ Space
+   Reconstruction                 MUSCL
+   Flux limiter                   Van Leer
+
+ Time
+   Scheme                         Third-order Runge-Kutta
+   Integration variables          Conservative
+   Implicit residual smoothing    Beta set to 0.500000E+00
+
+ Fluxes
+   Riemann solver                 HLLC Batten
+ =========================================================================================
+
+Q2D | Iter =      100 | Global iter =      100 | Density residual = 0.136548E-02
+Q2D | Iter =      200 | Global iter =      200 | Density residual = 0.130335E-02
+Q2D | Iter =      300 | Global iter =      300 | Density residual = 0.106968E-02
+Q2D | Iter =      400 | Global iter =      400 | Density residual = 0.866714E-03
+Q2D | Iter =      500 | Global iter =      500 | Density residual = 0.420576E-03
+Q2D | Iter =      600 | Global iter =      600 | Density residual = 0.341152E-03
+Q2D | Iter =      700 | Global iter =      700 | Density residual = 0.246177E-03
+Q2D | Iter =      800 | Global iter =      800 | Density residual = 0.231870E-03
+Q2D | Iter =      900 | Global iter =      900 | Density residual = 0.207850E-03
+Q2D | Iter =     1000 | Global iter =     1000 | Density residual = 0.174343E-03
+Q2D | Iter =     1100 | Global iter =     1100 | Density residual = 0.162222E-03
+Q2D | Iter =     1200 | Global iter =     1200 | Density residual = 0.145343E-03
+Q2D | Iter =     1300 | Global iter =     1300 | Density residual = 0.140077E-03
+Q2D | Iter =     1400 | Global iter =     1400 | Density residual = 0.115155E-03
+At line 368 of file /data07/montanari/Codes/open-hydra/archive-Q2D/src/lib/diagnostic/Mod_Diagnostic.f90
+Fortran runtime error: Array bound mismatch for dimension 1 of array 'iofield' (8/3)
+
+Error termination. Backtrace:
+#0  0x7f77827ef640 in ???
+#1  0x7f77827f0185 in ???
+#2  0x7f77827f052a in ???
+#3  0x52acdd in __q2d_mod_diagnostic_MOD_write_diagnostic
+	at /data07/montanari/Codes/open-hydra/archive-Q2D/src/lib/diagnostic/Mod_Diagnostic.f90:368
+#4  0x40a0bf in __q2d_wrap_postprocess_MOD_q2d_postprocess
+	at /data07/montanari/Codes/open-hydra/archive-Q2D/src/lib/driver/Wrap_Postprocess.f90:178
+#5  0x402eee in q2d_program
+	at /data07/montanari/Codes/open-hydra/archive-Q2D/src/app/main.f90:50
+#6  0x402f63 in main
+	at /data07/montanari/Codes/open-hydra/archive-Q2D/src/app/main.f90:3
+Q2D | Iter =     1500 | Global iter =     1500 | Density residual = 0.102319E-03
+Q2D | Iter =     1600 | Global iter =     1600 | Density residual = 0.903733E-04
+Q2D | Iter =     1700 | Global iter =     1700 | Density residual = 0.886658E-04
+Q2D | Iter =     1800 | Global iter =     1800 | Density residual = 0.766596E-04
+Q2D | Iter =     1900 | Global iter =     1900 | Density residual = 0.713823E-04
+Q2D | Iter =     2000 | Global iter =     2000 | Density residual = 0.671371E-04
+  ... writing iter-based solution

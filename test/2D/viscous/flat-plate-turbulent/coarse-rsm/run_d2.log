@@ -1,0 +1,100 @@
+ Parallel execution
+ OpenMP:
+ -  Number of threads -->    1
+
+     ,----..          ,----,      ,---,     
+    /   /   \       .'   .' \   .'  .' `\   
+   /   .     :    ,----,'    |,---.'     \  
+  .   /   ;.  \   |    :  .  ;|   |  .`\  | 
+ .   ;   /  ` ;   ;    |.'  / :   : |  '  | 
+ ;   |  ; \ ; |   `----'/  ;  |   ' '  ;  : 
+ |   :  | ; | '     /  ;  /   '   | ;  .  | 
+ .   |  ' ' ' :    ;  /  /-,  |   | :  |  ' 
+ '   ;  \; /  |   /  /  /.`|  '   : | /  ;  
+  \   \  ',  . \./__;      :  |   | '` ,/   
+   ;   :      ; |   :    .'   ;   :  .'     
+    \   \ .'`--';   | .'      |   ,.'       
+     `---`      `---'         '---'         
+
+ =========================================================================================
+ Loading
+ =========================================================================================
+   Thermodynamics                 OK
+   Transport                      OK
+   Chemistry                      OK
+   Input file                     OK
+   Initial conditions             OK
+   Boundary conditions            OK
+ =========================================================================================
+
+ =========================================================================================
+ Set-up
+ =========================================================================================
+ Domain
+   Blocks                         1
+   Cells                          3264
+   Boundary faces                 232
+
+ Boundary conditions
+   Viscous wall                   56
+   Inflow/outflow                 96
+   Symmetry                       80
+
+ Input/Output
+   Initial conditions file        INPUT/ic.tec
+   Solution format                tecplot ascii
+   Probes number                  0          
+ =========================================================================================
+
+ =========================================================================================
+ Physical model
+ =========================================================================================
+ Gas model
+   Equations                      Navier-Stokes
+   Viscous model                  Turbulent, SSGLRR
+   Equation of state              Ideal
+   Thermodynamics                 Thermally perfect gas
+   Species                        1
+ =========================================================================================
+
+ =========================================================================================
+ Numerical scheme
+ =========================================================================================
+ Space
+   Reconstruction                 MUSCL
+   Flux limiter                   Van Leer
+
+ Time
+   Scheme                         Third-order Runge-Kutta
+   Integration variables          Conservative
+   Implicit residual smoothing    Beta set to 0.500000E+00
+
+ Fluxes
+   Riemann solver                 HLLC Batten
+ =========================================================================================
+
+Q2D | Iter =      100 | Global iter =      100 | Density residual = 0.136548E-02
+Q2D | Iter =      200 | Global iter =      200 | Density residual = 0.130335E-02
+Q2D | Iter =      300 | Global iter =      300 | Density residual = 0.106968E-02
+Q2D | Iter =      400 | Global iter =      400 | Density residual = 0.866714E-03
+Q2D | Iter =      500 | Global iter =      500 | Density residual = 0.420576E-03
+Q2D | Iter =      600 | Global iter =      600 | Density residual = 0.341152E-03
+Q2D | Iter =      700 | Global iter =      700 | Density residual = 0.246177E-03
+Q2D | Iter =      800 | Global iter =      800 | Density residual = 0.231870E-03
+Q2D | Iter =      900 | Global iter =      900 | Density residual = 0.207850E-03
+Q2D | Iter =     1000 | Global iter =     1000 | Density residual = 0.174343E-03
+Q2D | Iter =     1100 | Global iter =     1100 | Density residual = 0.162222E-03
+Q2D | Iter =     1200 | Global iter =     1200 | Density residual = 0.145343E-03
+Q2D | Iter =     1300 | Global iter =     1300 | Density residual = 0.140077E-03
+Q2D | Iter =     1400 | Global iter =     1400 | Density residual = 0.115155E-03
+Q2D | Iter =     1500 | Global iter =     1500 | Density residual = 0.102319E-03
+Q2D | Iter =     1600 | Global iter =     1600 | Density residual = 0.903733E-04
+Q2D | Iter =     1700 | Global iter =     1700 | Density residual = 0.886658E-04
+Q2D | Iter =     1800 | Global iter =     1800 | Density residual = 0.766596E-04
+Q2D | Iter =     1900 | Global iter =     1900 | Density residual = 0.713823E-04
+Q2D | Iter =     2000 | Global iter =     2000 | Density residual = 0.671371E-04
+  ... writing iter-based solution
+Q2D | Iter =     2100 | Global iter =     2100 | Density residual = 0.613786E-04
+Q2D | Iter =     2200 | Global iter =     2200 | Density residual = 0.576525E-04
+
+   Time of operation was  0.73910191666666658      min

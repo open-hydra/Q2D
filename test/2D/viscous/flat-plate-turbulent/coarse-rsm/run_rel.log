@@ -1,0 +1,113 @@
+ Parallel execution
+ OpenMP:
+ -  Number of threads -->    4
+
+     ,----..          ,----,      ,---,     
+    /   /   \       .'   .' \   .'  .' `\   
+   /   .     :    ,----,'    |,---.'     \  
+  .   /   ;.  \   |    :  .  ;|   |  .`\  | 
+ .   ;   /  ` ;   ;    |.'  / :   : |  '  | 
+ ;   |  ; \ ; |   `----'/  ;  |   ' '  ;  : 
+ |   :  | ; | '     /  ;  /   '   | ;  .  | 
+ .   |  ' ' ' :    ;  /  /-,  |   | :  |  ' 
+ '   ;  \; /  |   /  /  /.`|  '   : | /  ;  
+  \   \  ',  . \./__;      :  |   | '` ,/   
+   ;   :      ; |   :    .'   ;   :  .'     
+    \   \ .'`--';   | .'      |   ,.'       
+     `---`      `---'         '---'         
+
+ =========================================================================================
+ Loading
+ =========================================================================================
+   Thermodynamics                 OK
+   Transport                      OK
+   Chemistry                      OK
+   Input file                     OK
+   Initial conditions             OK
+   Boundary conditions            OK
+ =========================================================================================
+
+ =========================================================================================
+ Set-up
+ =========================================================================================
+ Domain
+   Blocks                         1
+   Cells                          3264
+   Boundary faces                 232
+
+ Boundary conditions
+   Viscous wall                   56
+   Inflow/outflow                 96
+   Symmetry                       80
+
+ Input/Output
+   Initial conditions file        INPUT/ic.tec
+   Solution format                tecplot ascii
+   Probes number                  0          
+ =========================================================================================
+
+ =========================================================================================
+ Physical model
+ =========================================================================================
+ Gas model
+   Equations                      Navier-Stokes
+   Viscous model                  Turbulent, SSGLRR
+   Equation of state              Ideal
+   Thermodynamics                 Thermally perfect gas
+   Species                        1
+ =========================================================================================
+
+ =========================================================================================
+ Numerical scheme
+ =========================================================================================
+ Space
+   Reconstruction                 MUSCL
+   Flux limiter                   Van Leer
+
+ Time
+   Scheme                         Third-order Runge-Kutta
+   Integration variables          Conservative
+   Implicit residual smoothing    Beta set to 0.500000E+00
+
+ Fluxes
+   Riemann solver                 HLLC Batten
+ =========================================================================================
+
+Q2D | Iter =      100 | Global iter =      100 | Density residual = 0.136548E-02
+Q2D | Iter =      200 | Global iter =      200 | Density residual = 0.130335E-02
+Q2D | Iter =      300 | Global iter =      300 | Density residual = 0.106968E-02
+Q2D | Iter =      400 | Global iter =      400 | Density residual = 0.866714E-03
+Q2D | Iter =      500 | Global iter =      500 | Density residual = 0.420576E-03
+Q2D | Iter =      600 | Global iter =      600 | Density residual = 0.341152E-03
+Q2D | Iter =      700 | Global iter =      700 | Density residual = 0.246177E-03
+Q2D | Iter =      800 | Global iter =      800 | Density residual = 0.231870E-03
+Q2D | Iter =      900 | Global iter =      900 | Density residual = 0.207850E-03
+Q2D | Iter =     1000 | Global iter =     1000 | Density residual = 0.174343E-03
+Q2D | Iter =     1100 | Global iter =     1100 | Density residual = 0.162222E-03
+Q2D | Iter =     1200 | Global iter =     1200 | Density residual = 0.145343E-03
+Q2D | Iter =     1300 | Global iter =     1300 | Density residual = 0.140077E-03
+Q2D | Iter =     1400 | Global iter =     1400 | Density residual = 0.115155E-03
+malloc(): corrupted top size
+
+Program received signal SIGABRT: Process abort signal.
+
+Backtrace for this error:
+#0  0x7ff3408f6640 in ???
+#1  0x7ff3408f5873 in ???
+#2  0x7ff340520cff in ???
+#3  0x7ff340520c6b in ???
+#4  0x7ff340522304 in ???
+#5  0x7ff340566a96 in ???
+#6  0x7ff34056eb19 in ???
+#7  0x7ff3405722ad in ???
+#8  0x7ff3405735c7 in ???
+#9  0x49b731 in ???
+#10  0x44ac4f in ???
+#11  0x40972a in ???
+#12  0x402b41 in ???
+#13  0x40297c in ???
+#14  0x7ff34050b24c in ???
+#15  0x4029e9 in _start
+	at ../sysdeps/x86_64/start.S:120
+#16  0xffffffffffffffff in ???
+timeout: the monitored command dumped core

@@ -1,0 +1,1126 @@
+ Parallel execution
+ OpenMP:
+ -  Number of threads -->   30
+
+     ,----..          ,----,      ,---,     
+    /   /   \       .'   .' \   .'  .' `\   
+   /   .     :    ,----,'    |,---.'     \  
+  .   /   ;.  \   |    :  .  ;|   |  .`\  | 
+ .   ;   /  ` ;   ;    |.'  / :   : |  '  | 
+ ;   |  ; \ ; |   `----'/  ;  |   ' '  ;  : 
+ |   :  | ; | '     /  ;  /   '   | ;  .  | 
+ .   |  ' ' ' :    ;  /  /-,  |   | :  |  ' 
+ '   ;  \; /  |   /  /  /.`|  '   : | /  ;  
+  \   \  ',  . \./__;      :  |   | '` ,/   
+   ;   :      ; |   :    .'   ;   :  .'     
+    \   \ .'`--';   | .'      |   ,.'       
+     `---`      `---'         '---'         
+
+ =========================================================================================
+ Loading
+ =========================================================================================
+   Thermodynamics                 OK
+   Transport                      OK
+   Chemistry                      OK
+   Input file                     OK
+   Initial conditions             OK
+   Boundary conditions            OK
+ =========================================================================================
+
+ =========================================================================================
+ Set-up
+ =========================================================================================
+ Domain
+   Blocks                         1
+   Cells                          208896
+   Boundary faces                 1856
+
+ Boundary conditions
+   Viscous wall                   448
+   Inflow/outflow                 768
+   Symmetry                       640
+
+ Input/Output
+   Initial conditions file        INPUT/ic.tec
+   Solution format                tecplot ascii
+   Probes number                  0          
+ =========================================================================================
+
+ =========================================================================================
+ Physical model
+ =========================================================================================
+ Gas model
+   Equations                      Navier-Stokes
+   Viscous model                  Turbulent, SSGLRR
+   Equation of state              Ideal
+   Thermodynamics                 Thermally perfect gas
+   Species                        1
+ =========================================================================================
+
+ =========================================================================================
+ Numerical scheme
+ =========================================================================================
+ Space
+   Reconstruction                 MUSCL
+   Flux limiter                   Van Leer
+
+ Time
+   Scheme                         Third-order Runge-Kutta
+   Integration variables          Conservative
+   Implicit residual smoothing    Beta set to 0.500000E+00
+
+ Fluxes
+   Riemann solver                 HLLC Batten
+ =========================================================================================
+
+Q2D | Iter =      100 | Global iter =      100 | Density residual = 0.301462E-02
+Q2D | Iter =      200 | Global iter =      200 | Density residual = 0.254317E-02
+Q2D | Iter =      300 | Global iter =      300 | Density residual = 0.236003E-02
+Q2D | Iter =      400 | Global iter =      400 | Density residual = 0.224282E-02
+Q2D | Iter =      500 | Global iter =      500 | Density residual = 0.215140E-02
+Q2D | Iter =      600 | Global iter =      600 | Density residual = 0.193869E-02
+Q2D | Iter =      700 | Global iter =      700 | Density residual = 0.142931E-02
+Q2D | Iter =      800 | Global iter =      800 | Density residual = 0.880343E-03
+Q2D | Iter =      900 | Global iter =      900 | Density residual = 0.621495E-03
+Q2D | Iter =     1000 | Global iter =     1000 | Density residual = 0.592567E-03
+Q2D | Iter =     1100 | Global iter =     1100 | Density residual = 0.645621E-03
+Q2D | Iter =     1200 | Global iter =     1200 | Density residual = 0.638471E-03
+Q2D | Iter =     1300 | Global iter =     1300 | Density residual = 0.632106E-03
+Q2D | Iter =     1400 | Global iter =     1400 | Density residual = 0.625221E-03
+Q2D | Iter =     1500 | Global iter =     1500 | Density residual = 0.617159E-03
+Q2D | Iter =     1600 | Global iter =     1600 | Density residual = 0.608635E-03
+Q2D | Iter =     1700 | Global iter =     1700 | Density residual = 0.582680E-03
+Q2D | Iter =     1800 | Global iter =     1800 | Density residual = 0.564413E-03
+Q2D | Iter =     1900 | Global iter =     1900 | Density residual = 0.553320E-03
+Q2D | Iter =     2000 | Global iter =     2000 | Density residual = 0.542937E-03
+  ... writing iter-based solution
+Q2D | Iter =     2100 | Global iter =     2100 | Density residual = 0.536800E-03
+Q2D | Iter =     2200 | Global iter =     2200 | Density residual = 0.531172E-03
+Q2D | Iter =     2300 | Global iter =     2300 | Density residual = 0.523916E-03
+Q2D | Iter =     2400 | Global iter =     2400 | Density residual = 0.511726E-03
+Q2D | Iter =     2500 | Global iter =     2500 | Density residual = 0.440875E-03
+Q2D | Iter =     2600 | Global iter =     2600 | Density residual = 0.381978E-03
+Q2D | Iter =     2700 | Global iter =     2700 | Density residual = 0.371018E-03
+Q2D | Iter =     2800 | Global iter =     2800 | Density residual = 0.420718E-03
+Q2D | Iter =     2900 | Global iter =     2900 | Density residual = 0.448582E-03
+Q2D | Iter =     3000 | Global iter =     3000 | Density residual = 0.440685E-03
+Q2D | Iter =     3100 | Global iter =     3100 | Density residual = 0.452669E-03
+Q2D | Iter =     3200 | Global iter =     3200 | Density residual = 0.454599E-03
+Q2D | Iter =     3300 | Global iter =     3300 | Density residual = 0.455698E-03
+Q2D | Iter =     3400 | Global iter =     3400 | Density residual = 0.449695E-03
+Q2D | Iter =     3500 | Global iter =     3500 | Density residual = 0.458418E-03
+Q2D | Iter =     3600 | Global iter =     3600 | Density residual = 0.443839E-03
+Q2D | Iter =     3700 | Global iter =     3700 | Density residual = 0.444825E-03
+Q2D | Iter =     3800 | Global iter =     3800 | Density residual = 0.437822E-03
+Q2D | Iter =     3900 | Global iter =     3900 | Density residual = 0.433257E-03
+Q2D | Iter =     4000 | Global iter =     4000 | Density residual = 0.433900E-03
+  ... writing iter-based solution
+Q2D | Iter =     4100 | Global iter =     4100 | Density residual = 0.432215E-03
+Q2D | Iter =     4200 | Global iter =     4200 | Density residual = 0.399853E-03
+Q2D | Iter =     4300 | Global iter =     4300 | Density residual = 0.372393E-03
+Q2D | Iter =     4400 | Global iter =     4400 | Density residual = 0.336353E-03
+Q2D | Iter =     4500 | Global iter =     4500 | Density residual = 0.358683E-03
+Q2D | Iter =     4600 | Global iter =     4600 | Density residual = 0.381851E-03
+Q2D | Iter =     4700 | Global iter =     4700 | Density residual = 0.359705E-03
+Q2D | Iter =     4800 | Global iter =     4800 | Density residual = 0.367867E-03
+Q2D | Iter =     4900 | Global iter =     4900 | Density residual = 0.379810E-03
+Q2D | Iter =     5000 | Global iter =     5000 | Density residual = 0.377639E-03
+Q2D | Iter =     5100 | Global iter =     5100 | Density residual = 0.382510E-03
+Q2D | Iter =     5200 | Global iter =     5200 | Density residual = 0.371992E-03
+Q2D | Iter =     5300 | Global iter =     5300 | Density residual = 0.375647E-03
+Q2D | Iter =     5400 | Global iter =     5400 | Density residual = 0.407078E-03
+Q2D | Iter =     5500 | Global iter =     5500 | Density residual = 0.366279E-03
+Q2D | Iter =     5600 | Global iter =     5600 | Density residual = 0.350177E-03
+Q2D | Iter =     5700 | Global iter =     5700 | Density residual = 0.344739E-03
+Q2D | Iter =     5800 | Global iter =     5800 | Density residual = 0.331604E-03
+Q2D | Iter =     5900 | Global iter =     5900 | Density residual = 0.338496E-03
+Q2D | Iter =     6000 | Global iter =     6000 | Density residual = 0.303945E-03
+  ... writing iter-based solution
+Q2D | Iter =     6100 | Global iter =     6100 | Density residual = 0.276334E-03
+Q2D | Iter =     6200 | Global iter =     6200 | Density residual = 0.286842E-03
+Q2D | Iter =     6300 | Global iter =     6300 | Density residual = 0.288942E-03
+Q2D | Iter =     6400 | Global iter =     6400 | Density residual = 0.291252E-03
+Q2D | Iter =     6500 | Global iter =     6500 | Density residual = 0.271573E-03
+Q2D | Iter =     6600 | Global iter =     6600 | Density residual = 0.271785E-03
+Q2D | Iter =     6700 | Global iter =     6700 | Density residual = 0.287733E-03
+Q2D | Iter =     6800 | Global iter =     6800 | Density residual = 0.286060E-03
+Q2D | Iter =     6900 | Global iter =     6900 | Density residual = 0.276477E-03
+Q2D | Iter =     7000 | Global iter =     7000 | Density residual = 0.276199E-03
+Q2D | Iter =     7100 | Global iter =     7100 | Density residual = 0.267184E-03
+Q2D | Iter =     7200 | Global iter =     7200 | Density residual = 0.257923E-03
+Q2D | Iter =     7300 | Global iter =     7300 | Density residual = 0.258839E-03
+Q2D | Iter =     7400 | Global iter =     7400 | Density residual = 0.255904E-03
+Q2D | Iter =     7500 | Global iter =     7500 | Density residual = 0.248707E-03
+Q2D | Iter =     7600 | Global iter =     7600 | Density residual = 0.241020E-03
+Q2D | Iter =     7700 | Global iter =     7700 | Density residual = 0.240601E-03
+Q2D | Iter =     7800 | Global iter =     7800 | Density residual = 0.225763E-03
+Q2D | Iter =     7900 | Global iter =     7900 | Density residual = 0.216533E-03
+Q2D | Iter =     8000 | Global iter =     8000 | Density residual = 0.227501E-03
+  ... writing iter-based solution
+Q2D | Iter =     8100 | Global iter =     8100 | Density residual = 0.230964E-03
+Q2D | Iter =     8200 | Global iter =     8200 | Density residual = 0.218526E-03
+Q2D | Iter =     8300 | Global iter =     8300 | Density residual = 0.222617E-03
+Q2D | Iter =     8400 | Global iter =     8400 | Density residual = 0.224700E-03
+Q2D | Iter =     8500 | Global iter =     8500 | Density residual = 0.221827E-03
+Q2D | Iter =     8600 | Global iter =     8600 | Density residual = 0.222682E-03
+Q2D | Iter =     8700 | Global iter =     8700 | Density residual = 0.225736E-03
+Q2D | Iter =     8800 | Global iter =     8800 | Density residual = 0.220530E-03
+Q2D | Iter =     8900 | Global iter =     8900 | Density residual = 0.217327E-03
+Q2D | Iter =     9000 | Global iter =     9000 | Density residual = 0.223071E-03
+Q2D | Iter =     9100 | Global iter =     9100 | Density residual = 0.220844E-03
+Q2D | Iter =     9200 | Global iter =     9200 | Density residual = 0.203631E-03
+Q2D | Iter =     9300 | Global iter =     9300 | Density residual = 0.220233E-03
+Q2D | Iter =     9400 | Global iter =     9400 | Density residual = 0.215315E-03
+Q2D | Iter =     9500 | Global iter =     9500 | Density residual = 0.215012E-03
+Q2D | Iter =     9600 | Global iter =     9600 | Density residual = 0.208151E-03
+Q2D | Iter =     9700 | Global iter =     9700 | Density residual = 0.195500E-03
+Q2D | Iter =     9800 | Global iter =     9800 | Density residual = 0.200286E-03
+Q2D | Iter =     9900 | Global iter =     9900 | Density residual = 0.201810E-03
+Q2D | Iter =    10000 | Global iter =    10000 | Density residual = 0.199736E-03
+  ... writing iter-based solution
+Q2D | Iter =    10100 | Global iter =    10100 | Density residual = 0.207508E-03
+Q2D | Iter =    10200 | Global iter =    10200 | Density residual = 0.207333E-03
+Q2D | Iter =    10300 | Global iter =    10300 | Density residual = 0.193413E-03
+Q2D | Iter =    10400 | Global iter =    10400 | Density residual = 0.203531E-03
+Q2D | Iter =    10500 | Global iter =    10500 | Density residual = 0.201410E-03
+Q2D | Iter =    10600 | Global iter =    10600 | Density residual = 0.185939E-03
+Q2D | Iter =    10700 | Global iter =    10700 | Density residual = 0.194487E-03
+Q2D | Iter =    10800 | Global iter =    10800 | Density residual = 0.192210E-03
+Q2D | Iter =    10900 | Global iter =    10900 | Density residual = 0.202806E-03
+Q2D | Iter =    11000 | Global iter =    11000 | Density residual = 0.201011E-03
+Q2D | Iter =    11100 | Global iter =    11100 | Density residual = 0.180639E-03
+Q2D | Iter =    11200 | Global iter =    11200 | Density residual = 0.180718E-03
+Q2D | Iter =    11300 | Global iter =    11300 | Density residual = 0.194643E-03
+Q2D | Iter =    11400 | Global iter =    11400 | Density residual = 0.197961E-03
+Q2D | Iter =    11500 | Global iter =    11500 | Density residual = 0.188619E-03
+Q2D | Iter =    11600 | Global iter =    11600 | Density residual = 0.166285E-03
+Q2D | Iter =    11700 | Global iter =    11700 | Density residual = 0.165754E-03
+Q2D | Iter =    11800 | Global iter =    11800 | Density residual = 0.173593E-03
+Q2D | Iter =    11900 | Global iter =    11900 | Density residual = 0.170964E-03
+Q2D | Iter =    12000 | Global iter =    12000 | Density residual = 0.159958E-03
+  ... writing iter-based solution
+Q2D | Iter =    12100 | Global iter =    12100 | Density residual = 0.165757E-03
+Q2D | Iter =    12200 | Global iter =    12200 | Density residual = 0.162561E-03
+Q2D | Iter =    12300 | Global iter =    12300 | Density residual = 0.162813E-03
+Q2D | Iter =    12400 | Global iter =    12400 | Density residual = 0.157560E-03
+Q2D | Iter =    12500 | Global iter =    12500 | Density residual = 0.147877E-03
+Q2D | Iter =    12600 | Global iter =    12600 | Density residual = 0.153612E-03
+Q2D | Iter =    12700 | Global iter =    12700 | Density residual = 0.143525E-03
+Q2D | Iter =    12800 | Global iter =    12800 | Density residual = 0.153647E-03
+Q2D | Iter =    12900 | Global iter =    12900 | Density residual = 0.149175E-03
+Q2D | Iter =    13000 | Global iter =    13000 | Density residual = 0.146985E-03
+Q2D | Iter =    13100 | Global iter =    13100 | Density residual = 0.138420E-03
+Q2D | Iter =    13200 | Global iter =    13200 | Density residual = 0.147571E-03
+Q2D | Iter =    13300 | Global iter =    13300 | Density residual = 0.143155E-03
+Q2D | Iter =    13400 | Global iter =    13400 | Density residual = 0.140269E-03
+Q2D | Iter =    13500 | Global iter =    13500 | Density residual = 0.140093E-03
+Q2D | Iter =    13600 | Global iter =    13600 | Density residual = 0.142947E-03
+Q2D | Iter =    13700 | Global iter =    13700 | Density residual = 0.144982E-03
+Q2D | Iter =    13800 | Global iter =    13800 | Density residual = 0.147500E-03
+Q2D | Iter =    13900 | Global iter =    13900 | Density residual = 0.148674E-03
+Q2D | Iter =    14000 | Global iter =    14000 | Density residual = 0.141458E-03
+  ... writing iter-based solution
+Q2D | Iter =    14100 | Global iter =    14100 | Density residual = 0.147792E-03
+Q2D | Iter =    14200 | Global iter =    14200 | Density residual = 0.140005E-03
+Q2D | Iter =    14300 | Global iter =    14300 | Density residual = 0.145203E-03
+Q2D | Iter =    14400 | Global iter =    14400 | Density residual = 0.136821E-03
+Q2D | Iter =    14500 | Global iter =    14500 | Density residual = 0.142721E-03
+Q2D | Iter =    14600 | Global iter =    14600 | Density residual = 0.134782E-03
+Q2D | Iter =    14700 | Global iter =    14700 | Density residual = 0.132818E-03
+Q2D | Iter =    14800 | Global iter =    14800 | Density residual = 0.134918E-03
+Q2D | Iter =    14900 | Global iter =    14900 | Density residual = 0.130008E-03
+Q2D | Iter =    15000 | Global iter =    15000 | Density residual = 0.137535E-03
+Q2D | Iter =    15100 | Global iter =    15100 | Density residual = 0.123117E-03
+Q2D | Iter =    15200 | Global iter =    15200 | Density residual = 0.129576E-03
+Q2D | Iter =    15300 | Global iter =    15300 | Density residual = 0.122743E-03
+Q2D | Iter =    15400 | Global iter =    15400 | Density residual = 0.125165E-03
+Q2D | Iter =    15500 | Global iter =    15500 | Density residual = 0.129684E-03
+Q2D | Iter =    15600 | Global iter =    15600 | Density residual = 0.123972E-03
+Q2D | Iter =    15700 | Global iter =    15700 | Density residual = 0.124746E-03
+Q2D | Iter =    15800 | Global iter =    15800 | Density residual = 0.120987E-03
+Q2D | Iter =    15900 | Global iter =    15900 | Density residual = 0.128316E-03
+Q2D | Iter =    16000 | Global iter =    16000 | Density residual = 0.118364E-03
+  ... writing iter-based solution
+Q2D | Iter =    16100 | Global iter =    16100 | Density residual = 0.121228E-03
+Q2D | Iter =    16200 | Global iter =    16200 | Density residual = 0.122763E-03
+Q2D | Iter =    16300 | Global iter =    16300 | Density residual = 0.126638E-03
+Q2D | Iter =    16400 | Global iter =    16400 | Density residual = 0.132365E-03
+Q2D | Iter =    16500 | Global iter =    16500 | Density residual = 0.113085E-03
+Q2D | Iter =    16600 | Global iter =    16600 | Density residual = 0.119078E-03
+Q2D | Iter =    16700 | Global iter =    16700 | Density residual = 0.119508E-03
+Q2D | Iter =    16800 | Global iter =    16800 | Density residual = 0.121809E-03
+Q2D | Iter =    16900 | Global iter =    16900 | Density residual = 0.137226E-03
+Q2D | Iter =    17000 | Global iter =    17000 | Density residual = 0.116747E-03
+Q2D | Iter =    17100 | Global iter =    17100 | Density residual = 0.114257E-03
+Q2D | Iter =    17200 | Global iter =    17200 | Density residual = 0.119430E-03
+Q2D | Iter =    17300 | Global iter =    17300 | Density residual = 0.137003E-03
+Q2D | Iter =    17400 | Global iter =    17400 | Density residual = 0.128465E-03
+Q2D | Iter =    17500 | Global iter =    17500 | Density residual = 0.113770E-03
+Q2D | Iter =    17600 | Global iter =    17600 | Density residual = 0.110978E-03
+Q2D | Iter =    17700 | Global iter =    17700 | Density residual = 0.116697E-03
+Q2D | Iter =    17800 | Global iter =    17800 | Density residual = 0.123526E-03
+Q2D | Iter =    17900 | Global iter =    17900 | Density residual = 0.117647E-03
+Q2D | Iter =    18000 | Global iter =    18000 | Density residual = 0.105844E-03
+  ... writing iter-based solution
+Q2D | Iter =    18100 | Global iter =    18100 | Density residual = 0.110293E-03
+Q2D | Iter =    18200 | Global iter =    18200 | Density residual = 0.112622E-03
+Q2D | Iter =    18300 | Global iter =    18300 | Density residual = 0.114662E-03
+Q2D | Iter =    18400 | Global iter =    18400 | Density residual = 0.109662E-03
+Q2D | Iter =    18500 | Global iter =    18500 | Density residual = 0.105986E-03
+Q2D | Iter =    18600 | Global iter =    18600 | Density residual = 0.109840E-03
+Q2D | Iter =    18700 | Global iter =    18700 | Density residual = 0.106924E-03
+Q2D | Iter =    18800 | Global iter =    18800 | Density residual = 0.102559E-03
+Q2D | Iter =    18900 | Global iter =    18900 | Density residual = 0.110031E-03
+Q2D | Iter =    19000 | Global iter =    19000 | Density residual = 0.106356E-03
+Q2D | Iter =    19100 | Global iter =    19100 | Density residual = 0.104936E-03
+Q2D | Iter =    19200 | Global iter =    19200 | Density residual = 0.110501E-03
+Q2D | Iter =    19300 | Global iter =    19300 | Density residual = 0.106118E-03
+Q2D | Iter =    19400 | Global iter =    19400 | Density residual = 0.968636E-04
+Q2D | Iter =    19500 | Global iter =    19500 | Density residual = 0.109460E-03
+Q2D | Iter =    19600 | Global iter =    19600 | Density residual = 0.103894E-03
+Q2D | Iter =    19700 | Global iter =    19700 | Density residual = 0.100172E-03
+Q2D | Iter =    19800 | Global iter =    19800 | Density residual = 0.108499E-03
+Q2D | Iter =    19900 | Global iter =    19900 | Density residual = 0.104284E-03
+Q2D | Iter =    20000 | Global iter =    20000 | Density residual = 0.990268E-04
+  ... writing iter-based solution
+Q2D | Iter =    20100 | Global iter =    20100 | Density residual = 0.104145E-03
+Q2D | Iter =    20200 | Global iter =    20200 | Density residual = 0.966285E-04
+Q2D | Iter =    20300 | Global iter =    20300 | Density residual = 0.102010E-03
+Q2D | Iter =    20400 | Global iter =    20400 | Density residual = 0.104130E-03
+Q2D | Iter =    20500 | Global iter =    20500 | Density residual = 0.976050E-04
+Q2D | Iter =    20600 | Global iter =    20600 | Density residual = 0.989435E-04
+Q2D | Iter =    20700 | Global iter =    20700 | Density residual = 0.987142E-04
+Q2D | Iter =    20800 | Global iter =    20800 | Density residual = 0.997307E-04
+Q2D | Iter =    20900 | Global iter =    20900 | Density residual = 0.980568E-04
+Q2D | Iter =    21000 | Global iter =    21000 | Density residual = 0.971452E-04
+Q2D | Iter =    21100 | Global iter =    21100 | Density residual = 0.915146E-04
+Q2D | Iter =    21200 | Global iter =    21200 | Density residual = 0.978377E-04
+Q2D | Iter =    21300 | Global iter =    21300 | Density residual = 0.974364E-04
+Q2D | Iter =    21400 | Global iter =    21400 | Density residual = 0.911351E-04
+Q2D | Iter =    21500 | Global iter =    21500 | Density residual = 0.843381E-04
+Q2D | Iter =    21600 | Global iter =    21600 | Density residual = 0.862867E-04
+Q2D | Iter =    21700 | Global iter =    21700 | Density residual = 0.864068E-04
+Q2D | Iter =    21800 | Global iter =    21800 | Density residual = 0.927820E-04
+Q2D | Iter =    21900 | Global iter =    21900 | Density residual = 0.846502E-04
+Q2D | Iter =    22000 | Global iter =    22000 | Density residual = 0.857023E-04
+  ... writing iter-based solution
+Q2D | Iter =    22100 | Global iter =    22100 | Density residual = 0.857980E-04
+Q2D | Iter =    22200 | Global iter =    22200 | Density residual = 0.877835E-04
+Q2D | Iter =    22300 | Global iter =    22300 | Density residual = 0.990385E-04
+Q2D | Iter =    22400 | Global iter =    22400 | Density residual = 0.947680E-04
+Q2D | Iter =    22500 | Global iter =    22500 | Density residual = 0.848161E-04
+Q2D | Iter =    22600 | Global iter =    22600 | Density residual = 0.820267E-04
+Q2D | Iter =    22700 | Global iter =    22700 | Density residual = 0.898275E-04
+Q2D | Iter =    22800 | Global iter =    22800 | Density residual = 0.938483E-04
+Q2D | Iter =    22900 | Global iter =    22900 | Density residual = 0.988049E-04
+Q2D | Iter =    23000 | Global iter =    23000 | Density residual = 0.794978E-04
+Q2D | Iter =    23100 | Global iter =    23100 | Density residual = 0.760263E-04
+Q2D | Iter =    23200 | Global iter =    23200 | Density residual = 0.993004E-04
+Q2D | Iter =    23300 | Global iter =    23300 | Density residual = 0.103768E-03
+Q2D | Iter =    23400 | Global iter =    23400 | Density residual = 0.937423E-04
+Q2D | Iter =    23500 | Global iter =    23500 | Density residual = 0.779035E-04
+Q2D | Iter =    23600 | Global iter =    23600 | Density residual = 0.834364E-04
+Q2D | Iter =    23700 | Global iter =    23700 | Density residual = 0.910973E-04
+Q2D | Iter =    23800 | Global iter =    23800 | Density residual = 0.914948E-04
+Q2D | Iter =    23900 | Global iter =    23900 | Density residual = 0.806068E-04
+Q2D | Iter =    24000 | Global iter =    24000 | Density residual = 0.823154E-04
+  ... writing iter-based solution
+Q2D | Iter =    24100 | Global iter =    24100 | Density residual = 0.943038E-04
+Q2D | Iter =    24200 | Global iter =    24200 | Density residual = 0.829262E-04
+Q2D | Iter =    24300 | Global iter =    24300 | Density residual = 0.815947E-04
+Q2D | Iter =    24400 | Global iter =    24400 | Density residual = 0.854907E-04
+Q2D | Iter =    24500 | Global iter =    24500 | Density residual = 0.852967E-04
+Q2D | Iter =    24600 | Global iter =    24600 | Density residual = 0.790060E-04
+Q2D | Iter =    24700 | Global iter =    24700 | Density residual = 0.807477E-04
+Q2D | Iter =    24800 | Global iter =    24800 | Density residual = 0.776078E-04
+Q2D | Iter =    24900 | Global iter =    24900 | Density residual = 0.792701E-04
+Q2D | Iter =    25000 | Global iter =    25000 | Density residual = 0.796390E-04
+Q2D | Iter =    25100 | Global iter =    25100 | Density residual = 0.715116E-04
+Q2D | Iter =    25200 | Global iter =    25200 | Density residual = 0.765389E-04
+Q2D | Iter =    25300 | Global iter =    25300 | Density residual = 0.805496E-04
+Q2D | Iter =    25400 | Global iter =    25400 | Density residual = 0.701352E-04
+Q2D | Iter =    25500 | Global iter =    25500 | Density residual = 0.799525E-04
+Q2D | Iter =    25600 | Global iter =    25600 | Density residual = 0.727856E-04
+Q2D | Iter =    25700 | Global iter =    25700 | Density residual = 0.748017E-04
+Q2D | Iter =    25800 | Global iter =    25800 | Density residual = 0.782637E-04
+Q2D | Iter =    25900 | Global iter =    25900 | Density residual = 0.738760E-04
+Q2D | Iter =    26000 | Global iter =    26000 | Density residual = 0.721775E-04
+  ... writing iter-based solution
+Q2D | Iter =    26100 | Global iter =    26100 | Density residual = 0.702064E-04
+Q2D | Iter =    26200 | Global iter =    26200 | Density residual = 0.785082E-04
+Q2D | Iter =    26300 | Global iter =    26300 | Density residual = 0.684003E-04
+Q2D | Iter =    26400 | Global iter =    26400 | Density residual = 0.715021E-04
+Q2D | Iter =    26500 | Global iter =    26500 | Density residual = 0.676955E-04
+Q2D | Iter =    26600 | Global iter =    26600 | Density residual = 0.713060E-04
+Q2D | Iter =    26700 | Global iter =    26700 | Density residual = 0.720185E-04
+Q2D | Iter =    26800 | Global iter =    26800 | Density residual = 0.641252E-04
+Q2D | Iter =    26900 | Global iter =    26900 | Density residual = 0.695841E-04
+Q2D | Iter =    27000 | Global iter =    27000 | Density residual = 0.651752E-04
+Q2D | Iter =    27100 | Global iter =    27100 | Density residual = 0.695745E-04
+Q2D | Iter =    27200 | Global iter =    27200 | Density residual = 0.687259E-04
+Q2D | Iter =    27300 | Global iter =    27300 | Density residual = 0.668140E-04
+Q2D | Iter =    27400 | Global iter =    27400 | Density residual = 0.741717E-04
+Q2D | Iter =    27500 | Global iter =    27500 | Density residual = 0.715007E-04
+Q2D | Iter =    27600 | Global iter =    27600 | Density residual = 0.646684E-04
+Q2D | Iter =    27700 | Global iter =    27700 | Density residual = 0.721269E-04
+Q2D | Iter =    27800 | Global iter =    27800 | Density residual = 0.724881E-04
+Q2D | Iter =    27900 | Global iter =    27900 | Density residual = 0.744720E-04
+Q2D | Iter =    28000 | Global iter =    28000 | Density residual = 0.734224E-04
+  ... writing iter-based solution
+Q2D | Iter =    28100 | Global iter =    28100 | Density residual = 0.689037E-04
+Q2D | Iter =    28200 | Global iter =    28200 | Density residual = 0.729005E-04
+Q2D | Iter =    28300 | Global iter =    28300 | Density residual = 0.841392E-04
+Q2D | Iter =    28400 | Global iter =    28400 | Density residual = 0.802115E-04
+Q2D | Iter =    28500 | Global iter =    28500 | Density residual = 0.687207E-04
+Q2D | Iter =    28600 | Global iter =    28600 | Density residual = 0.670214E-04
+Q2D | Iter =    28700 | Global iter =    28700 | Density residual = 0.734800E-04
+Q2D | Iter =    28800 | Global iter =    28800 | Density residual = 0.844118E-04
+Q2D | Iter =    28900 | Global iter =    28900 | Density residual = 0.787497E-04
+Q2D | Iter =    29000 | Global iter =    29000 | Density residual = 0.653132E-04
+Q2D | Iter =    29100 | Global iter =    29100 | Density residual = 0.693013E-04
+Q2D | Iter =    29200 | Global iter =    29200 | Density residual = 0.880032E-04
+Q2D | Iter =    29300 | Global iter =    29300 | Density residual = 0.875368E-04
+Q2D | Iter =    29400 | Global iter =    29400 | Density residual = 0.701862E-04
+Q2D | Iter =    29500 | Global iter =    29500 | Density residual = 0.699976E-04
+Q2D | Iter =    29600 | Global iter =    29600 | Density residual = 0.738636E-04
+Q2D | Iter =    29700 | Global iter =    29700 | Density residual = 0.705571E-04
+Q2D | Iter =    29800 | Global iter =    29800 | Density residual = 0.726183E-04
+Q2D | Iter =    29900 | Global iter =    29900 | Density residual = 0.706636E-04
+Q2D | Iter =    30000 | Global iter =    30000 | Density residual = 0.712745E-04
+  ... writing iter-based solution
+Q2D | Iter =    30100 | Global iter =    30100 | Density residual = 0.704123E-04
+Q2D | Iter =    30200 | Global iter =    30200 | Density residual = 0.639016E-04
+Q2D | Iter =    30300 | Global iter =    30300 | Density residual = 0.703730E-04
+Q2D | Iter =    30400 | Global iter =    30400 | Density residual = 0.637704E-04
+Q2D | Iter =    30500 | Global iter =    30500 | Density residual = 0.635680E-04
+Q2D | Iter =    30600 | Global iter =    30600 | Density residual = 0.660586E-04
+Q2D | Iter =    30700 | Global iter =    30700 | Density residual = 0.644303E-04
+Q2D | Iter =    30800 | Global iter =    30800 | Density residual = 0.585368E-04
+Q2D | Iter =    30900 | Global iter =    30900 | Density residual = 0.652545E-04
+Q2D | Iter =    31000 | Global iter =    31000 | Density residual = 0.580132E-04
+Q2D | Iter =    31100 | Global iter =    31100 | Density residual = 0.580858E-04
+Q2D | Iter =    31200 | Global iter =    31200 | Density residual = 0.603550E-04
+Q2D | Iter =    31300 | Global iter =    31300 | Density residual = 0.539107E-04
+Q2D | Iter =    31400 | Global iter =    31400 | Density residual = 0.559648E-04
+Q2D | Iter =    31500 | Global iter =    31500 | Density residual = 0.520445E-04
+Q2D | Iter =    31600 | Global iter =    31600 | Density residual = 0.528410E-04
+Q2D | Iter =    31700 | Global iter =    31700 | Density residual = 0.518931E-04
+Q2D | Iter =    31800 | Global iter =    31800 | Density residual = 0.535235E-04
+Q2D | Iter =    31900 | Global iter =    31900 | Density residual = 0.496841E-04
+Q2D | Iter =    32000 | Global iter =    32000 | Density residual = 0.498696E-04
+  ... writing iter-based solution
+Q2D | Iter =    32100 | Global iter =    32100 | Density residual = 0.507677E-04
+Q2D | Iter =    32200 | Global iter =    32200 | Density residual = 0.513300E-04
+Q2D | Iter =    32300 | Global iter =    32300 | Density residual = 0.513465E-04
+Q2D | Iter =    32400 | Global iter =    32400 | Density residual = 0.511763E-04
+Q2D | Iter =    32500 | Global iter =    32500 | Density residual = 0.525392E-04
+Q2D | Iter =    32600 | Global iter =    32600 | Density residual = 0.515625E-04
+Q2D | Iter =    32700 | Global iter =    32700 | Density residual = 0.511180E-04
+Q2D | Iter =    32800 | Global iter =    32800 | Density residual = 0.512199E-04
+Q2D | Iter =    32900 | Global iter =    32900 | Density residual = 0.528588E-04
+Q2D | Iter =    33000 | Global iter =    33000 | Density residual = 0.454919E-04
+Q2D | Iter =    33100 | Global iter =    33100 | Density residual = 0.513762E-04
+Q2D | Iter =    33200 | Global iter =    33200 | Density residual = 0.552109E-04
+Q2D | Iter =    33300 | Global iter =    33300 | Density residual = 0.541545E-04
+Q2D | Iter =    33400 | Global iter =    33400 | Density residual = 0.581951E-04
+Q2D | Iter =    33500 | Global iter =    33500 | Density residual = 0.495873E-04
+Q2D | Iter =    33600 | Global iter =    33600 | Density residual = 0.508749E-04
+Q2D | Iter =    33700 | Global iter =    33700 | Density residual = 0.614185E-04
+Q2D | Iter =    33800 | Global iter =    33800 | Density residual = 0.634843E-04
+Q2D | Iter =    33900 | Global iter =    33900 | Density residual = 0.617212E-04
+Q2D | Iter =    34000 | Global iter =    34000 | Density residual = 0.582213E-04
+  ... writing iter-based solution
+Q2D | Iter =    34100 | Global iter =    34100 | Density residual = 0.573382E-04
+Q2D | Iter =    34200 | Global iter =    34200 | Density residual = 0.708730E-04
+Q2D | Iter =    34300 | Global iter =    34300 | Density residual = 0.786310E-04
+Q2D | Iter =    34400 | Global iter =    34400 | Density residual = 0.677223E-04
+Q2D | Iter =    34500 | Global iter =    34500 | Density residual = 0.512391E-04
+Q2D | Iter =    34600 | Global iter =    34600 | Density residual = 0.654295E-04
+Q2D | Iter =    34700 | Global iter =    34700 | Density residual = 0.713269E-04
+Q2D | Iter =    34800 | Global iter =    34800 | Density residual = 0.701111E-04
+Q2D | Iter =    34900 | Global iter =    34900 | Density residual = 0.566757E-04
+Q2D | Iter =    35000 | Global iter =    35000 | Density residual = 0.574621E-04
+Q2D | Iter =    35100 | Global iter =    35100 | Density residual = 0.629293E-04
+Q2D | Iter =    35200 | Global iter =    35200 | Density residual = 0.656620E-04
+Q2D | Iter =    35300 | Global iter =    35300 | Density residual = 0.637382E-04
+Q2D | Iter =    35400 | Global iter =    35400 | Density residual = 0.546626E-04
+Q2D | Iter =    35500 | Global iter =    35500 | Density residual = 0.543659E-04
+Q2D | Iter =    35600 | Global iter =    35600 | Density residual = 0.556202E-04
+Q2D | Iter =    35700 | Global iter =    35700 | Density residual = 0.597994E-04
+Q2D | Iter =    35800 | Global iter =    35800 | Density residual = 0.532354E-04
+Q2D | Iter =    35900 | Global iter =    35900 | Density residual = 0.497954E-04
+Q2D | Iter =    36000 | Global iter =    36000 | Density residual = 0.612171E-04
+  ... writing iter-based solution
+Q2D | Iter =    36100 | Global iter =    36100 | Density residual = 0.529095E-04
+Q2D | Iter =    36200 | Global iter =    36200 | Density residual = 0.501405E-04
+Q2D | Iter =    36300 | Global iter =    36300 | Density residual = 0.533883E-04
+Q2D | Iter =    36400 | Global iter =    36400 | Density residual = 0.469405E-04
+Q2D | Iter =    36500 | Global iter =    36500 | Density residual = 0.493035E-04
+Q2D | Iter =    36600 | Global iter =    36600 | Density residual = 0.500236E-04
+Q2D | Iter =    36700 | Global iter =    36700 | Density residual = 0.472622E-04
+Q2D | Iter =    36800 | Global iter =    36800 | Density residual = 0.491727E-04
+Q2D | Iter =    36900 | Global iter =    36900 | Density residual = 0.476556E-04
+Q2D | Iter =    37000 | Global iter =    37000 | Density residual = 0.462070E-04
+Q2D | Iter =    37100 | Global iter =    37100 | Density residual = 0.460243E-04
+Q2D | Iter =    37200 | Global iter =    37200 | Density residual = 0.488083E-04
+Q2D | Iter =    37300 | Global iter =    37300 | Density residual = 0.456990E-04
+Q2D | Iter =    37400 | Global iter =    37400 | Density residual = 0.492308E-04
+Q2D | Iter =    37500 | Global iter =    37500 | Density residual = 0.473027E-04
+Q2D | Iter =    37600 | Global iter =    37600 | Density residual = 0.450364E-04
+Q2D | Iter =    37700 | Global iter =    37700 | Density residual = 0.485236E-04
+Q2D | Iter =    37800 | Global iter =    37800 | Density residual = 0.467293E-04
+Q2D | Iter =    37900 | Global iter =    37900 | Density residual = 0.493198E-04
+Q2D | Iter =    38000 | Global iter =    38000 | Density residual = 0.476792E-04
+  ... writing iter-based solution
+Q2D | Iter =    38100 | Global iter =    38100 | Density residual = 0.469661E-04
+Q2D | Iter =    38200 | Global iter =    38200 | Density residual = 0.455753E-04
+Q2D | Iter =    38300 | Global iter =    38300 | Density residual = 0.493190E-04
+Q2D | Iter =    38400 | Global iter =    38400 | Density residual = 0.477794E-04
+Q2D | Iter =    38500 | Global iter =    38500 | Density residual = 0.449359E-04
+Q2D | Iter =    38600 | Global iter =    38600 | Density residual = 0.492260E-04
+Q2D | Iter =    38700 | Global iter =    38700 | Density residual = 0.507266E-04
+Q2D | Iter =    38800 | Global iter =    38800 | Density residual = 0.562403E-04
+Q2D | Iter =    38900 | Global iter =    38900 | Density residual = 0.493712E-04
+Q2D | Iter =    39000 | Global iter =    39000 | Density residual = 0.449906E-04
+Q2D | Iter =    39100 | Global iter =    39100 | Density residual = 0.535809E-04
+Q2D | Iter =    39200 | Global iter =    39200 | Density residual = 0.566182E-04
+Q2D | Iter =    39300 | Global iter =    39300 | Density residual = 0.598628E-04
+Q2D | Iter =    39400 | Global iter =    39400 | Density residual = 0.593547E-04
+Q2D | Iter =    39500 | Global iter =    39500 | Density residual = 0.445633E-04
+Q2D | Iter =    39600 | Global iter =    39600 | Density residual = 0.547160E-04
+Q2D | Iter =    39700 | Global iter =    39700 | Density residual = 0.600496E-04
+Q2D | Iter =    39800 | Global iter =    39800 | Density residual = 0.619650E-04
+Q2D | Iter =    39900 | Global iter =    39900 | Density residual = 0.494445E-04
+Q2D | Iter =    40000 | Global iter =    40000 | Density residual = 0.496092E-04
+  ... writing iter-based solution
+Q2D | Iter =    40100 | Global iter =    40100 | Density residual = 0.552128E-04
+Q2D | Iter =    40200 | Global iter =    40200 | Density residual = 0.608154E-04
+Q2D | Iter =    40300 | Global iter =    40300 | Density residual = 0.642862E-04
+Q2D | Iter =    40400 | Global iter =    40400 | Density residual = 0.536429E-04
+Q2D | Iter =    40500 | Global iter =    40500 | Density residual = 0.468406E-04
+Q2D | Iter =    40600 | Global iter =    40600 | Density residual = 0.530718E-04
+Q2D | Iter =    40700 | Global iter =    40700 | Density residual = 0.626504E-04
+Q2D | Iter =    40800 | Global iter =    40800 | Density residual = 0.584521E-04
+Q2D | Iter =    40900 | Global iter =    40900 | Density residual = 0.495716E-04
+Q2D | Iter =    41000 | Global iter =    41000 | Density residual = 0.444965E-04
+Q2D | Iter =    41100 | Global iter =    41100 | Density residual = 0.562744E-04
+Q2D | Iter =    41200 | Global iter =    41200 | Density residual = 0.574608E-04
+Q2D | Iter =    41300 | Global iter =    41300 | Density residual = 0.484884E-04
+Q2D | Iter =    41400 | Global iter =    41400 | Density residual = 0.492594E-04
+Q2D | Iter =    41500 | Global iter =    41500 | Density residual = 0.475575E-04
+Q2D | Iter =    41600 | Global iter =    41600 | Density residual = 0.495640E-04
+Q2D | Iter =    41700 | Global iter =    41700 | Density residual = 0.463999E-04
+Q2D | Iter =    41800 | Global iter =    41800 | Density residual = 0.412940E-04
+Q2D | Iter =    41900 | Global iter =    41900 | Density residual = 0.470700E-04
+Q2D | Iter =    42000 | Global iter =    42000 | Density residual = 0.445605E-04
+  ... writing iter-based solution
+Q2D | Iter =    42100 | Global iter =    42100 | Density residual = 0.429318E-04
+Q2D | Iter =    42200 | Global iter =    42200 | Density residual = 0.461658E-04
+Q2D | Iter =    42300 | Global iter =    42300 | Density residual = 0.432067E-04
+Q2D | Iter =    42400 | Global iter =    42400 | Density residual = 0.405079E-04
+Q2D | Iter =    42500 | Global iter =    42500 | Density residual = 0.421581E-04
+Q2D | Iter =    42600 | Global iter =    42600 | Density residual = 0.418765E-04
+Q2D | Iter =    42700 | Global iter =    42700 | Density residual = 0.412202E-04
+Q2D | Iter =    42800 | Global iter =    42800 | Density residual = 0.446482E-04
+Q2D | Iter =    42900 | Global iter =    42900 | Density residual = 0.398453E-04
+Q2D | Iter =    43000 | Global iter =    43000 | Density residual = 0.387074E-04
+Q2D | Iter =    43100 | Global iter =    43100 | Density residual = 0.434831E-04
+Q2D | Iter =    43200 | Global iter =    43200 | Density residual = 0.419918E-04
+Q2D | Iter =    43300 | Global iter =    43300 | Density residual = 0.396547E-04
+Q2D | Iter =    43400 | Global iter =    43400 | Density residual = 0.421868E-04
+Q2D | Iter =    43500 | Global iter =    43500 | Density residual = 0.452369E-04
+Q2D | Iter =    43600 | Global iter =    43600 | Density residual = 0.429717E-04
+Q2D | Iter =    43700 | Global iter =    43700 | Density residual = 0.452388E-04
+Q2D | Iter =    43800 | Global iter =    43800 | Density residual = 0.435141E-04
+Q2D | Iter =    43900 | Global iter =    43900 | Density residual = 0.458354E-04
+Q2D | Iter =    44000 | Global iter =    44000 | Density residual = 0.475372E-04
+  ... writing iter-based solution
+Q2D | Iter =    44100 | Global iter =    44100 | Density residual = 0.459188E-04
+Q2D | Iter =    44200 | Global iter =    44200 | Density residual = 0.456717E-04
+Q2D | Iter =    44300 | Global iter =    44300 | Density residual = 0.465152E-04
+Q2D | Iter =    44400 | Global iter =    44400 | Density residual = 0.449340E-04
+Q2D | Iter =    44500 | Global iter =    44500 | Density residual = 0.425372E-04
+Q2D | Iter =    44600 | Global iter =    44600 | Density residual = 0.404721E-04
+Q2D | Iter =    44700 | Global iter =    44700 | Density residual = 0.452070E-04
+Q2D | Iter =    44800 | Global iter =    44800 | Density residual = 0.483550E-04
+Q2D | Iter =    44900 | Global iter =    44900 | Density residual = 0.415885E-04
+Q2D | Iter =    45000 | Global iter =    45000 | Density residual = 0.429808E-04
+Q2D | Iter =    45100 | Global iter =    45100 | Density residual = 0.473811E-04
+Q2D | Iter =    45200 | Global iter =    45200 | Density residual = 0.504391E-04
+Q2D | Iter =    45300 | Global iter =    45300 | Density residual = 0.508590E-04
+Q2D | Iter =    45400 | Global iter =    45400 | Density residual = 0.460808E-04
+Q2D | Iter =    45500 | Global iter =    45500 | Density residual = 0.436971E-04
+Q2D | Iter =    45600 | Global iter =    45600 | Density residual = 0.447433E-04
+Q2D | Iter =    45700 | Global iter =    45700 | Density residual = 0.535272E-04
+Q2D | Iter =    45800 | Global iter =    45800 | Density residual = 0.533920E-04
+Q2D | Iter =    45900 | Global iter =    45900 | Density residual = 0.467006E-04
+Q2D | Iter =    46000 | Global iter =    46000 | Density residual = 0.397681E-04
+  ... writing iter-based solution
+Q2D | Iter =    46100 | Global iter =    46100 | Density residual = 0.465898E-04
+Q2D | Iter =    46200 | Global iter =    46200 | Density residual = 0.569954E-04
+Q2D | Iter =    46300 | Global iter =    46300 | Density residual = 0.533307E-04
+Q2D | Iter =    46400 | Global iter =    46400 | Density residual = 0.388328E-04
+Q2D | Iter =    46500 | Global iter =    46500 | Density residual = 0.398523E-04
+Q2D | Iter =    46600 | Global iter =    46600 | Density residual = 0.475433E-04
+Q2D | Iter =    46700 | Global iter =    46700 | Density residual = 0.509889E-04
+Q2D | Iter =    46800 | Global iter =    46800 | Density residual = 0.449575E-04
+Q2D | Iter =    46900 | Global iter =    46900 | Density residual = 0.381372E-04
+Q2D | Iter =    47000 | Global iter =    47000 | Density residual = 0.464880E-04
+Q2D | Iter =    47100 | Global iter =    47100 | Density residual = 0.481248E-04
+Q2D | Iter =    47200 | Global iter =    47200 | Density residual = 0.453885E-04
+Q2D | Iter =    47300 | Global iter =    47300 | Density residual = 0.453591E-04
+Q2D | Iter =    47400 | Global iter =    47400 | Density residual = 0.422652E-04
+Q2D | Iter =    47500 | Global iter =    47500 | Density residual = 0.436489E-04
+Q2D | Iter =    47600 | Global iter =    47600 | Density residual = 0.453423E-04
+Q2D | Iter =    47700 | Global iter =    47700 | Density residual = 0.378954E-04
+Q2D | Iter =    47800 | Global iter =    47800 | Density residual = 0.370756E-04
+Q2D | Iter =    47900 | Global iter =    47900 | Density residual = 0.412860E-04
+Q2D | Iter =    48000 | Global iter =    48000 | Density residual = 0.372145E-04
+  ... writing iter-based solution
+Q2D | Iter =    48100 | Global iter =    48100 | Density residual = 0.338051E-04
+Q2D | Iter =    48200 | Global iter =    48200 | Density residual = 0.389658E-04
+Q2D | Iter =    48300 | Global iter =    48300 | Density residual = 0.393680E-04
+Q2D | Iter =    48400 | Global iter =    48400 | Density residual = 0.360274E-04
+Q2D | Iter =    48500 | Global iter =    48500 | Density residual = 0.370011E-04
+Q2D | Iter =    48600 | Global iter =    48600 | Density residual = 0.368212E-04
+Q2D | Iter =    48700 | Global iter =    48700 | Density residual = 0.402129E-04
+Q2D | Iter =    48800 | Global iter =    48800 | Density residual = 0.376670E-04
+Q2D | Iter =    48900 | Global iter =    48900 | Density residual = 0.360248E-04
+Q2D | Iter =    49000 | Global iter =    49000 | Density residual = 0.345123E-04
+Q2D | Iter =    49100 | Global iter =    49100 | Density residual = 0.393839E-04
+Q2D | Iter =    49200 | Global iter =    49200 | Density residual = 0.358039E-04
+Q2D | Iter =    49300 | Global iter =    49300 | Density residual = 0.361751E-04
+Q2D | Iter =    49400 | Global iter =    49400 | Density residual = 0.376947E-04
+Q2D | Iter =    49500 | Global iter =    49500 | Density residual = 0.360602E-04
+Q2D | Iter =    49600 | Global iter =    49600 | Density residual = 0.367983E-04
+Q2D | Iter =    49700 | Global iter =    49700 | Density residual = 0.375297E-04
+Q2D | Iter =    49800 | Global iter =    49800 | Density residual = 0.380666E-04
+Q2D | Iter =    49900 | Global iter =    49900 | Density residual = 0.378081E-04
+Q2D | Iter =    50000 | Global iter =    50000 | Density residual = 0.376041E-04
+  ... writing iter-based solution
+Q2D | Iter =    50100 | Global iter =    50100 | Density residual = 0.422582E-04
+Q2D | Iter =    50200 | Global iter =    50200 | Density residual = 0.446725E-04
+Q2D | Iter =    50300 | Global iter =    50300 | Density residual = 0.413270E-04
+Q2D | Iter =    50400 | Global iter =    50400 | Density residual = 0.405291E-04
+Q2D | Iter =    50500 | Global iter =    50500 | Density residual = 0.430056E-04
+Q2D | Iter =    50600 | Global iter =    50600 | Density residual = 0.427704E-04
+Q2D | Iter =    50700 | Global iter =    50700 | Density residual = 0.445519E-04
+Q2D | Iter =    50800 | Global iter =    50800 | Density residual = 0.442450E-04
+Q2D | Iter =    50900 | Global iter =    50900 | Density residual = 0.423419E-04
+Q2D | Iter =    51000 | Global iter =    51000 | Density residual = 0.416739E-04
+Q2D | Iter =    51100 | Global iter =    51100 | Density residual = 0.418620E-04
+Q2D | Iter =    51200 | Global iter =    51200 | Density residual = 0.453952E-04
+Q2D | Iter =    51300 | Global iter =    51300 | Density residual = 0.465793E-04
+Q2D | Iter =    51400 | Global iter =    51400 | Density residual = 0.400450E-04
+Q2D | Iter =    51500 | Global iter =    51500 | Density residual = 0.334116E-04
+Q2D | Iter =    51600 | Global iter =    51600 | Density residual = 0.398000E-04
+Q2D | Iter =    51700 | Global iter =    51700 | Density residual = 0.494513E-04
+Q2D | Iter =    51800 | Global iter =    51800 | Density residual = 0.434917E-04
+Q2D | Iter =    51900 | Global iter =    51900 | Density residual = 0.393534E-04
+Q2D | Iter =    52000 | Global iter =    52000 | Density residual = 0.382724E-04
+  ... writing iter-based solution
+Q2D | Iter =    52100 | Global iter =    52100 | Density residual = 0.453587E-04
+Q2D | Iter =    52200 | Global iter =    52200 | Density residual = 0.501710E-04
+Q2D | Iter =    52300 | Global iter =    52300 | Density residual = 0.429132E-04
+Q2D | Iter =    52400 | Global iter =    52400 | Density residual = 0.355782E-04
+Q2D | Iter =    52500 | Global iter =    52500 | Density residual = 0.345435E-04
+Q2D | Iter =    52600 | Global iter =    52600 | Density residual = 0.414078E-04
+Q2D | Iter =    52700 | Global iter =    52700 | Density residual = 0.430918E-04
+Q2D | Iter =    52800 | Global iter =    52800 | Density residual = 0.341356E-04
+Q2D | Iter =    52900 | Global iter =    52900 | Density residual = 0.323549E-04
+Q2D | Iter =    53000 | Global iter =    53000 | Density residual = 0.396826E-04
+Q2D | Iter =    53100 | Global iter =    53100 | Density residual = 0.399431E-04
+Q2D | Iter =    53200 | Global iter =    53200 | Density residual = 0.356711E-04
+Q2D | Iter =    53300 | Global iter =    53300 | Density residual = 0.352384E-04
+Q2D | Iter =    53400 | Global iter =    53400 | Density residual = 0.378902E-04
+Q2D | Iter =    53500 | Global iter =    53500 | Density residual = 0.359526E-04
+Q2D | Iter =    53600 | Global iter =    53600 | Density residual = 0.355415E-04
+Q2D | Iter =    53700 | Global iter =    53700 | Density residual = 0.351858E-04
+Q2D | Iter =    53800 | Global iter =    53800 | Density residual = 0.362447E-04
+Q2D | Iter =    53900 | Global iter =    53900 | Density residual = 0.351417E-04
+Q2D | Iter =    54000 | Global iter =    54000 | Density residual = 0.311782E-04
+  ... writing iter-based solution
+Q2D | Iter =    54100 | Global iter =    54100 | Density residual = 0.351185E-04
+Q2D | Iter =    54200 | Global iter =    54200 | Density residual = 0.342022E-04
+Q2D | Iter =    54300 | Global iter =    54300 | Density residual = 0.302226E-04
+Q2D | Iter =    54400 | Global iter =    54400 | Density residual = 0.295767E-04
+Q2D | Iter =    54500 | Global iter =    54500 | Density residual = 0.331928E-04
+Q2D | Iter =    54600 | Global iter =    54600 | Density residual = 0.329545E-04
+Q2D | Iter =    54700 | Global iter =    54700 | Density residual = 0.287893E-04
+Q2D | Iter =    54800 | Global iter =    54800 | Density residual = 0.315979E-04
+Q2D | Iter =    54900 | Global iter =    54900 | Density residual = 0.292289E-04
+Q2D | Iter =    55000 | Global iter =    55000 | Density residual = 0.311045E-04
+Q2D | Iter =    55100 | Global iter =    55100 | Density residual = 0.318088E-04
+Q2D | Iter =    55200 | Global iter =    55200 | Density residual = 0.329973E-04
+Q2D | Iter =    55300 | Global iter =    55300 | Density residual = 0.332683E-04
+Q2D | Iter =    55400 | Global iter =    55400 | Density residual = 0.295253E-04
+Q2D | Iter =    55500 | Global iter =    55500 | Density residual = 0.313158E-04
+Q2D | Iter =    55600 | Global iter =    55600 | Density residual = 0.337133E-04
+Q2D | Iter =    55700 | Global iter =    55700 | Density residual = 0.308452E-04
+Q2D | Iter =    55800 | Global iter =    55800 | Density residual = 0.304685E-04
+Q2D | Iter =    55900 | Global iter =    55900 | Density residual = 0.299280E-04
+Q2D | Iter =    56000 | Global iter =    56000 | Density residual = 0.294921E-04
+  ... writing iter-based solution
+Q2D | Iter =    56100 | Global iter =    56100 | Density residual = 0.339962E-04
+Q2D | Iter =    56200 | Global iter =    56200 | Density residual = 0.344667E-04
+Q2D | Iter =    56300 | Global iter =    56300 | Density residual = 0.327926E-04
+Q2D | Iter =    56400 | Global iter =    56400 | Density residual = 0.317288E-04
+Q2D | Iter =    56500 | Global iter =    56500 | Density residual = 0.303762E-04
+Q2D | Iter =    56600 | Global iter =    56600 | Density residual = 0.330888E-04
+Q2D | Iter =    56700 | Global iter =    56700 | Density residual = 0.397997E-04
+Q2D | Iter =    56800 | Global iter =    56800 | Density residual = 0.374590E-04
+Q2D | Iter =    56900 | Global iter =    56900 | Density residual = 0.310577E-04
+Q2D | Iter =    57000 | Global iter =    57000 | Density residual = 0.315528E-04
+Q2D | Iter =    57100 | Global iter =    57100 | Density residual = 0.418565E-04
+Q2D | Iter =    57200 | Global iter =    57200 | Density residual = 0.416332E-04
+Q2D | Iter =    57300 | Global iter =    57300 | Density residual = 0.357403E-04
+Q2D | Iter =    57400 | Global iter =    57400 | Density residual = 0.283000E-04
+Q2D | Iter =    57500 | Global iter =    57500 | Density residual = 0.283287E-04
+Q2D | Iter =    57600 | Global iter =    57600 | Density residual = 0.372361E-04
+Q2D | Iter =    57700 | Global iter =    57700 | Density residual = 0.387116E-04
+Q2D | Iter =    57800 | Global iter =    57800 | Density residual = 0.318016E-04
+Q2D | Iter =    57900 | Global iter =    57900 | Density residual = 0.260171E-04
+Q2D | Iter =    58000 | Global iter =    58000 | Density residual = 0.342239E-04
+  ... writing iter-based solution
+Q2D | Iter =    58100 | Global iter =    58100 | Density residual = 0.406087E-04
+Q2D | Iter =    58200 | Global iter =    58200 | Density residual = 0.392009E-04
+Q2D | Iter =    58300 | Global iter =    58300 | Density residual = 0.291007E-04
+Q2D | Iter =    58400 | Global iter =    58400 | Density residual = 0.285511E-04
+Q2D | Iter =    58500 | Global iter =    58500 | Density residual = 0.357376E-04
+Q2D | Iter =    58600 | Global iter =    58600 | Density residual = 0.343729E-04
+Q2D | Iter =    58700 | Global iter =    58700 | Density residual = 0.311428E-04
+Q2D | Iter =    58800 | Global iter =    58800 | Density residual = 0.301825E-04
+Q2D | Iter =    58900 | Global iter =    58900 | Density residual = 0.333231E-04
+Q2D | Iter =    59000 | Global iter =    59000 | Density residual = 0.342731E-04
+Q2D | Iter =    59100 | Global iter =    59100 | Density residual = 0.274624E-04
+Q2D | Iter =    59200 | Global iter =    59200 | Density residual = 0.307999E-04
+Q2D | Iter =    59300 | Global iter =    59300 | Density residual = 0.317160E-04
+Q2D | Iter =    59400 | Global iter =    59400 | Density residual = 0.259323E-04
+Q2D | Iter =    59500 | Global iter =    59500 | Density residual = 0.303594E-04
+Q2D | Iter =    59600 | Global iter =    59600 | Density residual = 0.306631E-04
+Q2D | Iter =    59700 | Global iter =    59700 | Density residual = 0.277235E-04
+Q2D | Iter =    59800 | Global iter =    59800 | Density residual = 0.295532E-04
+Q2D | Iter =    59900 | Global iter =    59900 | Density residual = 0.294558E-04
+Q2D | Iter =    60000 | Global iter =    60000 | Density residual = 0.297576E-04
+  ... writing iter-based solution
+Q2D | Iter =    60100 | Global iter =    60100 | Density residual = 0.279620E-04
+Q2D | Iter =    60200 | Global iter =    60200 | Density residual = 0.295924E-04
+Q2D | Iter =    60300 | Global iter =    60300 | Density residual = 0.275880E-04
+Q2D | Iter =    60400 | Global iter =    60400 | Density residual = 0.252601E-04
+Q2D | Iter =    60500 | Global iter =    60500 | Density residual = 0.257560E-04
+Q2D | Iter =    60600 | Global iter =    60600 | Density residual = 0.248064E-04
+Q2D | Iter =    60700 | Global iter =    60700 | Density residual = 0.249286E-04
+Q2D | Iter =    60800 | Global iter =    60800 | Density residual = 0.257041E-04
+Q2D | Iter =    60900 | Global iter =    60900 | Density residual = 0.228972E-04
+Q2D | Iter =    61000 | Global iter =    61000 | Density residual = 0.248360E-04
+Q2D | Iter =    61100 | Global iter =    61100 | Density residual = 0.250142E-04
+Q2D | Iter =    61200 | Global iter =    61200 | Density residual = 0.265009E-04
+Q2D | Iter =    61300 | Global iter =    61300 | Density residual = 0.270203E-04
+Q2D | Iter =    61400 | Global iter =    61400 | Density residual = 0.243254E-04
+Q2D | Iter =    61500 | Global iter =    61500 | Density residual = 0.267510E-04
+Q2D | Iter =    61600 | Global iter =    61600 | Density residual = 0.280427E-04
+Q2D | Iter =    61700 | Global iter =    61700 | Density residual = 0.265532E-04
+Q2D | Iter =    61800 | Global iter =    61800 | Density residual = 0.281941E-04
+Q2D | Iter =    61900 | Global iter =    61900 | Density residual = 0.244466E-04
+Q2D | Iter =    62000 | Global iter =    62000 | Density residual = 0.235395E-04
+  ... writing iter-based solution
+Q2D | Iter =    62100 | Global iter =    62100 | Density residual = 0.290806E-04
+Q2D | Iter =    62200 | Global iter =    62200 | Density residual = 0.316281E-04
+Q2D | Iter =    62300 | Global iter =    62300 | Density residual = 0.281761E-04
+Q2D | Iter =    62400 | Global iter =    62400 | Density residual = 0.219802E-04
+Q2D | Iter =    62500 | Global iter =    62500 | Density residual = 0.243613E-04
+Q2D | Iter =    62600 | Global iter =    62600 | Density residual = 0.298532E-04
+Q2D | Iter =    62700 | Global iter =    62700 | Density residual = 0.332599E-04
+Q2D | Iter =    62800 | Global iter =    62800 | Density residual = 0.297901E-04
+Q2D | Iter =    62900 | Global iter =    62900 | Density residual = 0.237395E-04
+Q2D | Iter =    63000 | Global iter =    63000 | Density residual = 0.283051E-04
+Q2D | Iter =    63100 | Global iter =    63100 | Density residual = 0.366928E-04
+Q2D | Iter =    63200 | Global iter =    63200 | Density residual = 0.386018E-04
+Q2D | Iter =    63300 | Global iter =    63300 | Density residual = 0.310806E-04
+Q2D | Iter =    63400 | Global iter =    63400 | Density residual = 0.255176E-04
+Q2D | Iter =    63500 | Global iter =    63500 | Density residual = 0.295765E-04
+Q2D | Iter =    63600 | Global iter =    63600 | Density residual = 0.372285E-04
+Q2D | Iter =    63700 | Global iter =    63700 | Density residual = 0.348315E-04
+Q2D | Iter =    63800 | Global iter =    63800 | Density residual = 0.254161E-04
+Q2D | Iter =    63900 | Global iter =    63900 | Density residual = 0.276501E-04
+Q2D | Iter =    64000 | Global iter =    64000 | Density residual = 0.335043E-04
+  ... writing iter-based solution
+Q2D | Iter =    64100 | Global iter =    64100 | Density residual = 0.348162E-04
+Q2D | Iter =    64200 | Global iter =    64200 | Density residual = 0.305816E-04
+Q2D | Iter =    64300 | Global iter =    64300 | Density residual = 0.276876E-04
+Q2D | Iter =    64400 | Global iter =    64400 | Density residual = 0.278239E-04
+Q2D | Iter =    64500 | Global iter =    64500 | Density residual = 0.278587E-04
+Q2D | Iter =    64600 | Global iter =    64600 | Density residual = 0.310187E-04
+Q2D | Iter =    64700 | Global iter =    64700 | Density residual = 0.290814E-04
+Q2D | Iter =    64800 | Global iter =    64800 | Density residual = 0.239174E-04
+Q2D | Iter =    64900 | Global iter =    64900 | Density residual = 0.291963E-04
+Q2D | Iter =    65000 | Global iter =    65000 | Density residual = 0.294735E-04
+Q2D | Iter =    65100 | Global iter =    65100 | Density residual = 0.258512E-04
+Q2D | Iter =    65200 | Global iter =    65200 | Density residual = 0.254288E-04
+Q2D | Iter =    65300 | Global iter =    65300 | Density residual = 0.247334E-04
+Q2D | Iter =    65400 | Global iter =    65400 | Density residual = 0.244584E-04
+Q2D | Iter =    65500 | Global iter =    65500 | Density residual = 0.236463E-04
+Q2D | Iter =    65600 | Global iter =    65600 | Density residual = 0.255146E-04
+Q2D | Iter =    65700 | Global iter =    65700 | Density residual = 0.240718E-04
+Q2D | Iter =    65800 | Global iter =    65800 | Density residual = 0.250964E-04
+Q2D | Iter =    65900 | Global iter =    65900 | Density residual = 0.244839E-04
+Q2D | Iter =    66000 | Global iter =    66000 | Density residual = 0.260324E-04
+  ... writing iter-based solution
+Q2D | Iter =    66100 | Global iter =    66100 | Density residual = 0.256203E-04
+Q2D | Iter =    66200 | Global iter =    66200 | Density residual = 0.262169E-04
+Q2D | Iter =    66300 | Global iter =    66300 | Density residual = 0.234714E-04
+Q2D | Iter =    66400 | Global iter =    66400 | Density residual = 0.242305E-04
+Q2D | Iter =    66500 | Global iter =    66500 | Density residual = 0.252521E-04
+Q2D | Iter =    66600 | Global iter =    66600 | Density residual = 0.240738E-04
+Q2D | Iter =    66700 | Global iter =    66700 | Density residual = 0.247033E-04
+Q2D | Iter =    66800 | Global iter =    66800 | Density residual = 0.227610E-04
+Q2D | Iter =    66900 | Global iter =    66900 | Density residual = 0.236685E-04
+Q2D | Iter =    67000 | Global iter =    67000 | Density residual = 0.235168E-04
+Q2D | Iter =    67100 | Global iter =    67100 | Density residual = 0.232506E-04
+Q2D | Iter =    67200 | Global iter =    67200 | Density residual = 0.251209E-04
+Q2D | Iter =    67300 | Global iter =    67300 | Density residual = 0.234211E-04
+Q2D | Iter =    67400 | Global iter =    67400 | Density residual = 0.215089E-04
+Q2D | Iter =    67500 | Global iter =    67500 | Density residual = 0.225191E-04
+Q2D | Iter =    67600 | Global iter =    67600 | Density residual = 0.258441E-04
+Q2D | Iter =    67700 | Global iter =    67700 | Density residual = 0.254993E-04
+Q2D | Iter =    67800 | Global iter =    67800 | Density residual = 0.230887E-04
+Q2D | Iter =    67900 | Global iter =    67900 | Density residual = 0.215203E-04
+Q2D | Iter =    68000 | Global iter =    68000 | Density residual = 0.232992E-04
+  ... writing iter-based solution
+Q2D | Iter =    68100 | Global iter =    68100 | Density residual = 0.285171E-04
+Q2D | Iter =    68200 | Global iter =    68200 | Density residual = 0.291224E-04
+Q2D | Iter =    68300 | Global iter =    68300 | Density residual = 0.251884E-04
+Q2D | Iter =    68400 | Global iter =    68400 | Density residual = 0.218478E-04
+Q2D | Iter =    68500 | Global iter =    68500 | Density residual = 0.240892E-04
+Q2D | Iter =    68600 | Global iter =    68600 | Density residual = 0.305002E-04
+Q2D | Iter =    68700 | Global iter =    68700 | Density residual = 0.315211E-04
+Q2D | Iter =    68800 | Global iter =    68800 | Density residual = 0.271411E-04
+Q2D | Iter =    68900 | Global iter =    68900 | Density residual = 0.234515E-04
+Q2D | Iter =    69000 | Global iter =    69000 | Density residual = 0.303059E-04
+Q2D | Iter =    69100 | Global iter =    69100 | Density residual = 0.359758E-04
+Q2D | Iter =    69200 | Global iter =    69200 | Density residual = 0.322345E-04
+Q2D | Iter =    69300 | Global iter =    69300 | Density residual = 0.277117E-04
+Q2D | Iter =    69400 | Global iter =    69400 | Density residual = 0.257033E-04
+Q2D | Iter =    69500 | Global iter =    69500 | Density residual = 0.284978E-04
+Q2D | Iter =    69600 | Global iter =    69600 | Density residual = 0.322865E-04
+Q2D | Iter =    69700 | Global iter =    69700 | Density residual = 0.296282E-04
+Q2D | Iter =    69800 | Global iter =    69800 | Density residual = 0.245492E-04
+Q2D | Iter =    69900 | Global iter =    69900 | Density residual = 0.237756E-04
+Q2D | Iter =    70000 | Global iter =    70000 | Density residual = 0.294386E-04
+  ... writing iter-based solution
+Q2D | Iter =    70100 | Global iter =    70100 | Density residual = 0.318602E-04
+Q2D | Iter =    70200 | Global iter =    70200 | Density residual = 0.244776E-04
+Q2D | Iter =    70300 | Global iter =    70300 | Density residual = 0.224475E-04
+Q2D | Iter =    70400 | Global iter =    70400 | Density residual = 0.256713E-04
+Q2D | Iter =    70500 | Global iter =    70500 | Density residual = 0.262007E-04
+Q2D | Iter =    70600 | Global iter =    70600 | Density residual = 0.263701E-04
+Q2D | Iter =    70700 | Global iter =    70700 | Density residual = 0.232932E-04
+Q2D | Iter =    70800 | Global iter =    70800 | Density residual = 0.246632E-04
+Q2D | Iter =    70900 | Global iter =    70900 | Density residual = 0.263001E-04
+Q2D | Iter =    71000 | Global iter =    71000 | Density residual = 0.249462E-04
+Q2D | Iter =    71100 | Global iter =    71100 | Density residual = 0.233611E-04
+Q2D | Iter =    71200 | Global iter =    71200 | Density residual = 0.235102E-04
+Q2D | Iter =    71300 | Global iter =    71300 | Density residual = 0.234735E-04
+Q2D | Iter =    71400 | Global iter =    71400 | Density residual = 0.216675E-04
+Q2D | Iter =    71500 | Global iter =    71500 | Density residual = 0.213371E-04
+Q2D | Iter =    71600 | Global iter =    71600 | Density residual = 0.232123E-04
+Q2D | Iter =    71700 | Global iter =    71700 | Density residual = 0.219306E-04
+Q2D | Iter =    71800 | Global iter =    71800 | Density residual = 0.216661E-04
+Q2D | Iter =    71900 | Global iter =    71900 | Density residual = 0.226409E-04
+Q2D | Iter =    72000 | Global iter =    72000 | Density residual = 0.219951E-04
+  ... writing iter-based solution
+Q2D | Iter =    72100 | Global iter =    72100 | Density residual = 0.235460E-04
+Q2D | Iter =    72200 | Global iter =    72200 | Density residual = 0.226555E-04
+Q2D | Iter =    72300 | Global iter =    72300 | Density residual = 0.223764E-04
+Q2D | Iter =    72400 | Global iter =    72400 | Density residual = 0.207411E-04
+Q2D | Iter =    72500 | Global iter =    72500 | Density residual = 0.215626E-04
+Q2D | Iter =    72600 | Global iter =    72600 | Density residual = 0.225778E-04
+Q2D | Iter =    72700 | Global iter =    72700 | Density residual = 0.228391E-04
+Q2D | Iter =    72800 | Global iter =    72800 | Density residual = 0.217518E-04
+Q2D | Iter =    72900 | Global iter =    72900 | Density residual = 0.196414E-04
+Q2D | Iter =    73000 | Global iter =    73000 | Density residual = 0.222946E-04
+Q2D | Iter =    73100 | Global iter =    73100 | Density residual = 0.242965E-04
+Q2D | Iter =    73200 | Global iter =    73200 | Density residual = 0.248992E-04
+Q2D | Iter =    73300 | Global iter =    73300 | Density residual = 0.217084E-04
+Q2D | Iter =    73400 | Global iter =    73400 | Density residual = 0.202136E-04
+Q2D | Iter =    73500 | Global iter =    73500 | Density residual = 0.241345E-04
+Q2D | Iter =    73600 | Global iter =    73600 | Density residual = 0.258363E-04
+Q2D | Iter =    73700 | Global iter =    73700 | Density residual = 0.257240E-04
+Q2D | Iter =    73800 | Global iter =    73800 | Density residual = 0.233592E-04
+Q2D | Iter =    73900 | Global iter =    73900 | Density residual = 0.202590E-04
+Q2D | Iter =    74000 | Global iter =    74000 | Density residual = 0.252005E-04
+  ... writing iter-based solution
+Q2D | Iter =    74100 | Global iter =    74100 | Density residual = 0.289778E-04
+Q2D | Iter =    74200 | Global iter =    74200 | Density residual = 0.275773E-04
+Q2D | Iter =    74300 | Global iter =    74300 | Density residual = 0.208153E-04
+Q2D | Iter =    74400 | Global iter =    74400 | Density residual = 0.203279E-04
+Q2D | Iter =    74500 | Global iter =    74500 | Density residual = 0.249538E-04
+Q2D | Iter =    74600 | Global iter =    74600 | Density residual = 0.273741E-04
+Q2D | Iter =    74700 | Global iter =    74700 | Density residual = 0.274257E-04
+Q2D | Iter =    74800 | Global iter =    74800 | Density residual = 0.213311E-04
+Q2D | Iter =    74900 | Global iter =    74900 | Density residual = 0.207178E-04
+Q2D | Iter =    75000 | Global iter =    75000 | Density residual = 0.277270E-04
+Q2D | Iter =    75100 | Global iter =    75100 | Density residual = 0.309150E-04
+Q2D | Iter =    75200 | Global iter =    75200 | Density residual = 0.280646E-04
+Q2D | Iter =    75300 | Global iter =    75300 | Density residual = 0.216770E-04
+Q2D | Iter =    75400 | Global iter =    75400 | Density residual = 0.223025E-04
+Q2D | Iter =    75500 | Global iter =    75500 | Density residual = 0.283566E-04
+Q2D | Iter =    75600 | Global iter =    75600 | Density residual = 0.274704E-04
+Q2D | Iter =    75700 | Global iter =    75700 | Density residual = 0.231767E-04
+Q2D | Iter =    75800 | Global iter =    75800 | Density residual = 0.200746E-04
+Q2D | Iter =    75900 | Global iter =    75900 | Density residual = 0.236790E-04
+Q2D | Iter =    76000 | Global iter =    76000 | Density residual = 0.278421E-04
+  ... writing iter-based solution
+Q2D | Iter =    76100 | Global iter =    76100 | Density residual = 0.244708E-04
+Q2D | Iter =    76200 | Global iter =    76200 | Density residual = 0.209640E-04
+Q2D | Iter =    76300 | Global iter =    76300 | Density residual = 0.215272E-04
+Q2D | Iter =    76400 | Global iter =    76400 | Density residual = 0.215178E-04
+Q2D | Iter =    76500 | Global iter =    76500 | Density residual = 0.220372E-04
+Q2D | Iter =    76600 | Global iter =    76600 | Density residual = 0.208840E-04
+Q2D | Iter =    76700 | Global iter =    76700 | Density residual = 0.204166E-04
+Q2D | Iter =    76800 | Global iter =    76800 | Density residual = 0.197953E-04
+Q2D | Iter =    76900 | Global iter =    76900 | Density residual = 0.199396E-04
+Q2D | Iter =    77000 | Global iter =    77000 | Density residual = 0.206418E-04
+Q2D | Iter =    77100 | Global iter =    77100 | Density residual = 0.184504E-04
+Q2D | Iter =    77200 | Global iter =    77200 | Density residual = 0.185380E-04
+Q2D | Iter =    77300 | Global iter =    77300 | Density residual = 0.185040E-04
+Q2D | Iter =    77400 | Global iter =    77400 | Density residual = 0.178026E-04
+Q2D | Iter =    77500 | Global iter =    77500 | Density residual = 0.194420E-04
+Q2D | Iter =    77600 | Global iter =    77600 | Density residual = 0.189325E-04
+Q2D | Iter =    77700 | Global iter =    77700 | Density residual = 0.194356E-04
+Q2D | Iter =    77800 | Global iter =    77800 | Density residual = 0.187849E-04
+Q2D | Iter =    77900 | Global iter =    77900 | Density residual = 0.202351E-04
+Q2D | Iter =    78000 | Global iter =    78000 | Density residual = 0.206211E-04
+  ... writing iter-based solution
+Q2D | Iter =    78100 | Global iter =    78100 | Density residual = 0.210615E-04
+Q2D | Iter =    78200 | Global iter =    78200 | Density residual = 0.212853E-04
+Q2D | Iter =    78300 | Global iter =    78300 | Density residual = 0.195284E-04
+Q2D | Iter =    78400 | Global iter =    78400 | Density residual = 0.200038E-04
+Q2D | Iter =    78500 | Global iter =    78500 | Density residual = 0.203015E-04
+Q2D | Iter =    78600 | Global iter =    78600 | Density residual = 0.212198E-04
+Q2D | Iter =    78700 | Global iter =    78700 | Density residual = 0.208322E-04
+Q2D | Iter =    78800 | Global iter =    78800 | Density residual = 0.193573E-04
+Q2D | Iter =    78900 | Global iter =    78900 | Density residual = 0.199335E-04
+Q2D | Iter =    79000 | Global iter =    79000 | Density residual = 0.206332E-04
+Q2D | Iter =    79100 | Global iter =    79100 | Density residual = 0.225032E-04
+Q2D | Iter =    79200 | Global iter =    79200 | Density residual = 0.230540E-04
+Q2D | Iter =    79300 | Global iter =    79300 | Density residual = 0.196554E-04
+Q2D | Iter =    79400 | Global iter =    79400 | Density residual = 0.201157E-04
+Q2D | Iter =    79500 | Global iter =    79500 | Density residual = 0.223702E-04
+Q2D | Iter =    79600 | Global iter =    79600 | Density residual = 0.237257E-04
+Q2D | Iter =    79700 | Global iter =    79700 | Density residual = 0.232086E-04
+Q2D | Iter =    79800 | Global iter =    79800 | Density residual = 0.205425E-04
+Q2D | Iter =    79900 | Global iter =    79900 | Density residual = 0.194799E-04
+Q2D | Iter =    80000 | Global iter =    80000 | Density residual = 0.222828E-04
+  ... writing iter-based solution
+Q2D | Iter =    80100 | Global iter =    80100 | Density residual = 0.272708E-04
+Q2D | Iter =    80200 | Global iter =    80200 | Density residual = 0.254380E-04
+Q2D | Iter =    80300 | Global iter =    80300 | Density residual = 0.193125E-04
+Q2D | Iter =    80400 | Global iter =    80400 | Density residual = 0.180705E-04
+Q2D | Iter =    80500 | Global iter =    80500 | Density residual = 0.233903E-04
+Q2D | Iter =    80600 | Global iter =    80600 | Density residual = 0.274926E-04
+Q2D | Iter =    80700 | Global iter =    80700 | Density residual = 0.243972E-04
+Q2D | Iter =    80800 | Global iter =    80800 | Density residual = 0.186256E-04
+Q2D | Iter =    80900 | Global iter =    80900 | Density residual = 0.214630E-04
+Q2D | Iter =    81000 | Global iter =    81000 | Density residual = 0.274957E-04
+Q2D | Iter =    81100 | Global iter =    81100 | Density residual = 0.280320E-04
+Q2D | Iter =    81200 | Global iter =    81200 | Density residual = 0.231828E-04
+Q2D | Iter =    81300 | Global iter =    81300 | Density residual = 0.199231E-04
+Q2D | Iter =    81400 | Global iter =    81400 | Density residual = 0.232612E-04
+Q2D | Iter =    81500 | Global iter =    81500 | Density residual = 0.244745E-04
+Q2D | Iter =    81600 | Global iter =    81600 | Density residual = 0.232579E-04
+Q2D | Iter =    81700 | Global iter =    81700 | Density residual = 0.197258E-04
+Q2D | Iter =    81800 | Global iter =    81800 | Density residual = 0.183825E-04
+Q2D | Iter =    81900 | Global iter =    81900 | Density residual = 0.211050E-04
+Q2D | Iter =    82000 | Global iter =    82000 | Density residual = 0.218579E-04
+  ... writing iter-based solution
+Q2D | Iter =    82100 | Global iter =    82100 | Density residual = 0.201302E-04
+Q2D | Iter =    82200 | Global iter =    82200 | Density residual = 0.168118E-04
+Q2D | Iter =    82300 | Global iter =    82300 | Density residual = 0.170578E-04
+Q2D | Iter =    82400 | Global iter =    82400 | Density residual = 0.193831E-04
+Q2D | Iter =    82500 | Global iter =    82500 | Density residual = 0.183434E-04
+Q2D | Iter =    82600 | Global iter =    82600 | Density residual = 0.184970E-04
+Q2D | Iter =    82700 | Global iter =    82700 | Density residual = 0.190094E-04
+Q2D | Iter =    82800 | Global iter =    82800 | Density residual = 0.183463E-04
+Q2D | Iter =    82900 | Global iter =    82900 | Density residual = 0.186521E-04
+Q2D | Iter =    83000 | Global iter =    83000 | Density residual = 0.176503E-04
+Q2D | Iter =    83100 | Global iter =    83100 | Density residual = 0.183065E-04
+Q2D | Iter =    83200 | Global iter =    83200 | Density residual = 0.168890E-04
+Q2D | Iter =    83300 | Global iter =    83300 | Density residual = 0.168191E-04
+Q2D | Iter =    83400 | Global iter =    83400 | Density residual = 0.166842E-04
+Q2D | Iter =    83500 | Global iter =    83500 | Density residual = 0.178825E-04
+Q2D | Iter =    83600 | Global iter =    83600 | Density residual = 0.185144E-04
+Q2D | Iter =    83700 | Global iter =    83700 | Density residual = 0.171720E-04
+Q2D | Iter =    83800 | Global iter =    83800 | Density residual = 0.187545E-04
+Q2D | Iter =    83900 | Global iter =    83900 | Density residual = 0.199050E-04
+Q2D | Iter =    84000 | Global iter =    84000 | Density residual = 0.200883E-04
+  ... writing iter-based solution
+Q2D | Iter =    84100 | Global iter =    84100 | Density residual = 0.208039E-04
+Q2D | Iter =    84200 | Global iter =    84200 | Density residual = 0.203834E-04
+Q2D | Iter =    84300 | Global iter =    84300 | Density residual = 0.189258E-04
+Q2D | Iter =    84400 | Global iter =    84400 | Density residual = 0.183210E-04
+Q2D | Iter =    84500 | Global iter =    84500 | Density residual = 0.195628E-04
+Q2D | Iter =    84600 | Global iter =    84600 | Density residual = 0.203559E-04
+Q2D | Iter =    84700 | Global iter =    84700 | Density residual = 0.181904E-04
+Q2D | Iter =    84800 | Global iter =    84800 | Density residual = 0.180213E-04
+Q2D | Iter =    84900 | Global iter =    84900 | Density residual = 0.182845E-04
+Q2D | Iter =    85000 | Global iter =    85000 | Density residual = 0.194013E-04
+Q2D | Iter =    85100 | Global iter =    85100 | Density residual = 0.215046E-04
+Q2D | Iter =    85200 | Global iter =    85200 | Density residual = 0.203947E-04
+Q2D | Iter =    85300 | Global iter =    85300 | Density residual = 0.177009E-04
+Q2D | Iter =    85400 | Global iter =    85400 | Density residual = 0.178073E-04
+Q2D | Iter =    85500 | Global iter =    85500 | Density residual = 0.211677E-04
+Q2D | Iter =    85600 | Global iter =    85600 | Density residual = 0.230567E-04
+Q2D | Iter =    85700 | Global iter =    85700 | Density residual = 0.216819E-04
+Q2D | Iter =    85800 | Global iter =    85800 | Density residual = 0.183380E-04
+Q2D | Iter =    85900 | Global iter =    85900 | Density residual = 0.181119E-04
+Q2D | Iter =    86000 | Global iter =    86000 | Density residual = 0.240314E-04
+  ... writing iter-based solution
+Q2D | Iter =    86100 | Global iter =    86100 | Density residual = 0.260448E-04
+Q2D | Iter =    86200 | Global iter =    86200 | Density residual = 0.209487E-04
+Q2D | Iter =    86300 | Global iter =    86300 | Density residual = 0.167947E-04
+Q2D | Iter =    86400 | Global iter =    86400 | Density residual = 0.198618E-04
+Q2D | Iter =    86500 | Global iter =    86500 | Density residual = 0.237943E-04
+Q2D | Iter =    86600 | Global iter =    86600 | Density residual = 0.236180E-04
+Q2D | Iter =    86700 | Global iter =    86700 | Density residual = 0.200756E-04
+Q2D | Iter =    86800 | Global iter =    86800 | Density residual = 0.184315E-04
+Q2D | Iter =    86900 | Global iter =    86900 | Density residual = 0.213523E-04
+Q2D | Iter =    87000 | Global iter =    87000 | Density residual = 0.251591E-04
+Q2D | Iter =    87100 | Global iter =    87100 | Density residual = 0.242733E-04
+Q2D | Iter =    87200 | Global iter =    87200 | Density residual = 0.201021E-04
+Q2D | Iter =    87300 | Global iter =    87300 | Density residual = 0.194333E-04
+Q2D | Iter =    87400 | Global iter =    87400 | Density residual = 0.217269E-04
+Q2D | Iter =    87500 | Global iter =    87500 | Density residual = 0.232135E-04
+Q2D | Iter =    87600 | Global iter =    87600 | Density residual = 0.199719E-04
+Q2D | Iter =    87700 | Global iter =    87700 | Density residual = 0.168649E-04
+Q2D | Iter =    87800 | Global iter =    87800 | Density residual = 0.186194E-04
+Q2D | Iter =    87900 | Global iter =    87900 | Density residual = 0.195901E-04
+Q2D | Iter =    88000 | Global iter =    88000 | Density residual = 0.189504E-04
+  ... writing iter-based solution
+Q2D | Iter =    88100 | Global iter =    88100 | Density residual = 0.169366E-04
+Q2D | Iter =    88200 | Global iter =    88200 | Density residual = 0.162886E-04
+Q2D | Iter =    88300 | Global iter =    88300 | Density residual = 0.167462E-04
+Q2D | Iter =    88400 | Global iter =    88400 | Density residual = 0.161341E-04
+Q2D | Iter =    88500 | Global iter =    88500 | Density residual = 0.178944E-04
+Q2D | Iter =    88600 | Global iter =    88600 | Density residual = 0.179513E-04
+Q2D | Iter =    88700 | Global iter =    88700 | Density residual = 0.178641E-04
+Q2D | Iter =    88800 | Global iter =    88800 | Density residual = 0.168467E-04
+Q2D | Iter =    88900 | Global iter =    88900 | Density residual = 0.175262E-04
+Q2D | Iter =    89000 | Global iter =    89000 | Density residual = 0.186393E-04
+Q2D | Iter =    89100 | Global iter =    89100 | Density residual = 0.164022E-04
+Q2D | Iter =    89200 | Global iter =    89200 | Density residual = 0.163097E-04
+Q2D | Iter =    89300 | Global iter =    89300 | Density residual = 0.153331E-04
+Q2D | Iter =    89400 | Global iter =    89400 | Density residual = 0.152635E-04
+Q2D | Iter =    89500 | Global iter =    89500 | Density residual = 0.166146E-04
+Q2D | Iter =    89600 | Global iter =    89600 | Density residual = 0.163965E-04
+Q2D | Iter =    89700 | Global iter =    89700 | Density residual = 0.158232E-04
+Q2D | Iter =    89800 | Global iter =    89800 | Density residual = 0.158913E-04
+Q2D | Iter =    89900 | Global iter =    89900 | Density residual = 0.175544E-04
+Q2D | Iter =    90000 | Global iter =    90000 | Density residual = 0.189863E-04
+  ... writing iter-based solution
+Q2D | Iter =    90100 | Global iter =    90100 | Density residual = 0.186330E-04
+Q2D | Iter =    90200 | Global iter =    90200 | Density residual = 0.182761E-04
+Q2D | Iter =    90300 | Global iter =    90300 | Density residual = 0.171157E-04
+Q2D | Iter =    90400 | Global iter =    90400 | Density residual = 0.164591E-04
+Q2D | Iter =    90500 | Global iter =    90500 | Density residual = 0.189625E-04
+Q2D | Iter =    90600 | Global iter =    90600 | Density residual = 0.190592E-04
+Q2D | Iter =    90700 | Global iter =    90700 | Density residual = 0.174224E-04
+Q2D | Iter =    90800 | Global iter =    90800 | Density residual = 0.160890E-04
+Q2D | Iter =    90900 | Global iter =    90900 | Density residual = 0.163322E-04
+Q2D | Iter =    91000 | Global iter =    91000 | Density residual = 0.187304E-04
+Q2D | Iter =    91100 | Global iter =    91100 | Density residual = 0.205892E-04
+Q2D | Iter =    91200 | Global iter =    91200 | Density residual = 0.184654E-04
+Q2D | Iter =    91300 | Global iter =    91300 | Density residual = 0.140333E-04
+Q2D | Iter =    91400 | Global iter =    91400 | Density residual = 0.163491E-04
+Q2D | Iter =    91500 | Global iter =    91500 | Density residual = 0.210257E-04
+Q2D | Iter =    91600 | Global iter =    91600 | Density residual = 0.205377E-04
+Q2D | Iter =    91700 | Global iter =    91700 | Density residual = 0.169054E-04
+Q2D | Iter =    91800 | Global iter =    91800 | Density residual = 0.154704E-04
+Q2D | Iter =    91900 | Global iter =    91900 | Density residual = 0.177024E-04
+Q2D | Iter =    92000 | Global iter =    92000 | Density residual = 0.217823E-04
+  ... writing iter-based solution
+Q2D | Iter =    92100 | Global iter =    92100 | Density residual = 0.215448E-04
+Q2D | Iter =    92200 | Global iter =    92200 | Density residual = 0.169786E-04
+Q2D | Iter =    92300 | Global iter =    92300 | Density residual = 0.129895E-04
+Q2D | Iter =    92400 | Global iter =    92400 | Density residual = 0.174329E-04
+Q2D | Iter =    92500 | Global iter =    92500 | Density residual = 0.205849E-04
+Q2D | Iter =    92600 | Global iter =    92600 | Density residual = 0.190835E-04
+Q2D | Iter =    92700 | Global iter =    92700 | Density residual = 0.154307E-04
+Q2D | Iter =    92800 | Global iter =    92800 | Density residual = 0.148779E-04
+Q2D | Iter =    92900 | Global iter =    92900 | Density residual = 0.197345E-04
+Q2D | Iter =    93000 | Global iter =    93000 | Density residual = 0.214723E-04
+Q2D | Iter =    93100 | Global iter =    93100 | Density residual = 0.186063E-04
+Q2D | Iter =    93200 | Global iter =    93200 | Density residual = 0.165095E-04
+Q2D | Iter =    93300 | Global iter =    93300 | Density residual = 0.176862E-04
+Q2D | Iter =    93400 | Global iter =    93400 | Density residual = 0.193583E-04
+Q2D | Iter =    93500 | Global iter =    93500 | Density residual = 0.181118E-04
+Q2D | Iter =    93600 | Global iter =    93600 | Density residual = 0.161977E-04
+Q2D | Iter =    93700 | Global iter =    93700 | Density residual = 0.154567E-04
+Q2D | Iter =    93800 | Global iter =    93800 | Density residual = 0.152400E-04
+Q2D | Iter =    93900 | Global iter =    93900 | Density residual = 0.163587E-04
+Q2D | Iter =    94000 | Global iter =    94000 | Density residual = 0.154740E-04
+  ... writing iter-based solution
+Q2D | Iter =    94100 | Global iter =    94100 | Density residual = 0.134597E-04
+Q2D | Iter =    94200 | Global iter =    94200 | Density residual = 0.125823E-04
+Q2D | Iter =    94300 | Global iter =    94300 | Density residual = 0.131959E-04
+Q2D | Iter =    94400 | Global iter =    94400 | Density residual = 0.139225E-04
+Q2D | Iter =    94500 | Global iter =    94500 | Density residual = 0.131123E-04
+Q2D | Iter =    94600 | Global iter =    94600 | Density residual = 0.144782E-04
+Q2D | Iter =    94700 | Global iter =    94700 | Density residual = 0.141128E-04
+Q2D | Iter =    94800 | Global iter =    94800 | Density residual = 0.134841E-04
+Q2D | Iter =    94900 | Global iter =    94900 | Density residual = 0.144354E-04
+Q2D | Iter =    95000 | Global iter =    95000 | Density residual = 0.141887E-04
+Q2D | Iter =    95100 | Global iter =    95100 | Density residual = 0.138813E-04
+Q2D | Iter =    95200 | Global iter =    95200 | Density residual = 0.138905E-04
+Q2D | Iter =    95300 | Global iter =    95300 | Density residual = 0.134280E-04
+Q2D | Iter =    95400 | Global iter =    95400 | Density residual = 0.132021E-04
+Q2D | Iter =    95500 | Global iter =    95500 | Density residual = 0.133613E-04
+Q2D | Iter =    95600 | Global iter =    95600 | Density residual = 0.143701E-04
+Q2D | Iter =    95700 | Global iter =    95700 | Density residual = 0.139944E-04
+Q2D | Iter =    95800 | Global iter =    95800 | Density residual = 0.133311E-04
+Q2D | Iter =    95900 | Global iter =    95900 | Density residual = 0.147791E-04
+Q2D | Iter =    96000 | Global iter =    96000 | Density residual = 0.163176E-04
+  ... writing iter-based solution
+Q2D | Iter =    96100 | Global iter =    96100 | Density residual = 0.173463E-04
+Q2D | Iter =    96200 | Global iter =    96200 | Density residual = 0.163248E-04
+Q2D | Iter =    96300 | Global iter =    96300 | Density residual = 0.134892E-04
+Q2D | Iter =    96400 | Global iter =    96400 | Density residual = 0.143525E-04
+Q2D | Iter =    96500 | Global iter =    96500 | Density residual = 0.173753E-04
+Q2D | Iter =    96600 | Global iter =    96600 | Density residual = 0.177279E-04
+Q2D | Iter =    96700 | Global iter =    96700 | Density residual = 0.141016E-04
+Q2D | Iter =    96800 | Global iter =    96800 | Density residual = 0.119309E-04
+Q2D | Iter =    96900 | Global iter =    96900 | Density residual = 0.151809E-04
+Q2D | Iter =    97000 | Global iter =    97000 | Density residual = 0.176220E-04
+Q2D | Iter =    97100 | Global iter =    97100 | Density residual = 0.173893E-04
+Q2D | Iter =    97200 | Global iter =    97200 | Density residual = 0.137660E-04
+Q2D | Iter =    97300 | Global iter =    97300 | Density residual = 0.103688E-04
+Q2D | Iter =    97400 | Global iter =    97400 | Density residual = 0.147137E-04
+Q2D | Iter =    97500 | Global iter =    97500 | Density residual = 0.182462E-04
+Q2D | Iter =    97600 | Global iter =    97600 | Density residual = 0.175687E-04
+Q2D | Iter =    97700 | Global iter =    97700 | Density residual = 0.131984E-04
+Q2D | Iter =    97800 | Global iter =    97800 | Density residual = 0.130678E-04
+Q2D | Iter =    97900 | Global iter =    97900 | Density residual = 0.171831E-04
+Q2D | Iter =    98000 | Global iter =    98000 | Density residual = 0.197379E-04
+  ... writing iter-based solution
+Q2D | Iter =    98100 | Global iter =    98100 | Density residual = 0.178961E-04
+Q2D | Iter =    98200 | Global iter =    98200 | Density residual = 0.116349E-04
+Q2D | Iter =    98300 | Global iter =    98300 | Density residual = 0.125729E-04
+Q2D | Iter =    98400 | Global iter =    98400 | Density residual = 0.164060E-04
+Q2D | Iter =    98500 | Global iter =    98500 | Density residual = 0.170583E-04
+Q2D | Iter =    98600 | Global iter =    98600 | Density residual = 0.144943E-04
+Q2D | Iter =    98700 | Global iter =    98700 | Density residual = 0.112822E-04
+Q2D | Iter =    98800 | Global iter =    98800 | Density residual = 0.136165E-04
+Q2D | Iter =    98900 | Global iter =    98900 | Density residual = 0.165055E-04
+Q2D | Iter =    99000 | Global iter =    99000 | Density residual = 0.168009E-04
+Q2D | Iter =    99100 | Global iter =    99100 | Density residual = 0.143448E-04
+Q2D | Iter =    99200 | Global iter =    99200 | Density residual = 0.117362E-04
+Q2D | Iter =    99300 | Global iter =    99300 | Density residual = 0.140451E-04
+Q2D | Iter =    99400 | Global iter =    99400 | Density residual = 0.158118E-04
+Q2D | Iter =    99500 | Global iter =    99500 | Density residual = 0.141016E-04
+Q2D | Iter =    99600 | Global iter =    99600 | Density residual = 0.121897E-04
+Q2D | Iter =    99700 | Global iter =    99700 | Density residual = 0.124070E-04
+Q2D | Iter =    99800 | Global iter =    99800 | Density residual = 0.135553E-04
+Q2D | Iter =    99900 | Global iter =    99900 | Density residual = 0.131696E-04
+Q2D | Iter =   100000 | Global iter =   100000 | Density residual = 0.131672E-04
+
+   Time of operation was   158.78112399888886      min

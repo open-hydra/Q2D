@@ -1,0 +1,10 @@
+original_authors:
+  - name: Alessandro Montanari
+
+present_maintainers:
+  - name: Alessandro Montanari
+    role: Lead Maintainer
+
+exclude:
+  - dependabot[bot]
+  - github-actions[bot]

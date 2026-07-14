@@ -1,0 +1,44 @@
+At line 560 of file /data07/montanari/Codes/open-hydra/archive-Q2D/lib/ORION/src/fortran/lib/Lib_Tecplot.f90
+Fortran runtime error: Index '2' of dimension 1 of array 'nskip' above upper bound of 1
+
+Error termination. Backtrace:
+#0  0x7f8b9ac32640 in ???
+#1  0x7f8b9ac33185 in ???
+#2  0x7f8b9ac3352a in ???
+#3  0x7965f8 in tec_read_ascii
+	at /data07/montanari/Codes/open-hydra/archive-Q2D/lib/ORION/src/fortran/lib/Lib_Tecplot.f90:560
+#4  0x79aca5 in __lib_tecplot_MOD_tec_read_structured_multiblock
+	at /data07/montanari/Codes/open-hydra/archive-Q2D/lib/ORION/src/fortran/lib/Lib_Tecplot.f90:471
+#5  0x442ac6 in __q2d_io_solution_MOD_read_ic
+	at /data07/montanari/Codes/open-hydra/archive-Q2D/src/lib/io/IO_Solution.f90:114
+#6  0x4108c7 in __q2d_wrap_setup_MOD_q2d_setup
+	at /data07/montanari/Codes/open-hydra/archive-Q2D/src/lib/driver/Wrap_Setup.f90:168
+#7  0x402ea5 in q2d_program
+	at /data07/montanari/Codes/open-hydra/archive-Q2D/src/app/main.f90:42
+#8  0x402f63 in main
+	at /data07/montanari/Codes/open-hydra/archive-Q2D/src/app/main.f90:3
+ Parallel execution
+ OpenMP:
+ -  Number of threads -->    1
+
+     ,----..          ,----,      ,---,     
+    /   /   \       .'   .' \   .'  .' `\   
+   /   .     :    ,----,'    |,---.'     \  
+  .   /   ;.  \   |    :  .  ;|   |  .`\  | 
+ .   ;   /  ` ;   ;    |.'  / :   : |  '  | 
+ ;   |  ; \ ; |   `----'/  ;  |   ' '  ;  : 
+ |   :  | ; | '     /  ;  /   '   | ;  .  | 
+ .   |  ' ' ' :    ;  /  /-,  |   | :  |  ' 
+ '   ;  \; /  |   /  /  /.`|  '   : | /  ;  
+  \   \  ',  . \./__;      :  |   | '` ,/   
+   ;   :      ; |   :    .'   ;   :  .'     
+    \   \ .'`--';   | .'      |   ,.'       
+     `---`      `---'         '---'         
+
+ =========================================================================================
+ Loading
+ =========================================================================================
+   Thermodynamics                 OK
+   Transport                      OK
+   Chemistry                      OK
+   Input file                     OK

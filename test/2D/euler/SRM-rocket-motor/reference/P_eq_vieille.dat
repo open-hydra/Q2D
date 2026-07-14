@@ -1,0 +1,18 @@
+# Analytical chamber equilibrium pressure - Vieille burn-rate balance
+# Q2D_new test/2D/euler/SRM-rocket-motor -- piano section-5 Fase 8c criterion C2
+# Formula: P_eq = [aCoeff * c_star * (A_chamber/A_throat) / pRef^n]^(1/(1-n))
+# Inputs:
+#   aCoeff   = 50.0 kg/(m^2*s) at pRef
+#   n        = 0.3
+#   pRef     = 1.0000e+06 Pa
+#   Taf      = 3000.0 K
+#   rhoG     = 1800.0 kg/m^3
+#   SF_geo   = 1.0
+#   R_gas    = 287.05 J/kg/K (air, M=28.97)
+#   gamma    = 1.4
+#   A_chamber= 1.266979e-02 m^2 (= pi*R_c^2 from MESH/profile.dat[0])
+#   A_throat = 1.299394e-03 m^2 (= pi*R_t^2 from MESH/profile.dat[argmin])
+#   Kn       = 9.7505
+#   c_star   = 1355.2491 m/s
+# P_eq_Pa
+5.532003e+05

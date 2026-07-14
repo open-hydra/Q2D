@@ -1,0 +1,83 @@
+ Parallel execution
+ OpenMP:
+ -  Number of threads -->   30
+
+     ,----..          ,----,      ,---,     
+    /   /   \       .'   .' \   .'  .' `\   
+   /   .     :    ,----,'    |,---.'     \  
+  .   /   ;.  \   |    :  .  ;|   |  .`\  | 
+ .   ;   /  ` ;   ;    |.'  / :   : |  '  | 
+ ;   |  ; \ ; |   `----'/  ;  |   ' '  ;  : 
+ |   :  | ; | '     /  ;  /   '   | ;  .  | 
+ .   |  ' ' ' :    ;  /  /-,  |   | :  |  ' 
+ '   ;  \; /  |   /  /  /.`|  '   : | /  ;  
+  \   \  ',  . \./__;      :  |   | '` ,/   
+   ;   :      ; |   :    .'   ;   :  .'     
+    \   \ .'`--';   | .'      |   ,.'       
+     `---`      `---'         '---'         
+
+ =========================================================================================
+ Loading
+ =========================================================================================
+   Thermodynamics                 OK
+   Transport                      OK
+   Chemistry                      OK
+   Input file                     OK
+   Initial conditions             OK
+   Boundary conditions            OK
+ =========================================================================================
+
+ =========================================================================================
+ Set-up
+ =========================================================================================
+ Domain
+   Blocks                         1
+   Cells                          208896
+   Boundary faces                 1856
+
+ Boundary conditions
+   Viscous wall                   448
+   Inflow/outflow                 768
+   Symmetry                       640
+
+ Input/Output
+   Initial conditions file        INPUT/ic.tec
+   Solution format                tecplot ascii
+   Probes number                  0          
+ =========================================================================================
+
+ =========================================================================================
+ Physical model
+ =========================================================================================
+ Gas model
+   Equations                      Navier-Stokes
+   Viscous model                  Turbulent, SSGLRR
+   Equation of state              Ideal
+   Thermodynamics                 Thermally perfect gas
+   Species                        1
+ =========================================================================================
+
+ =========================================================================================
+ Numerical scheme
+ =========================================================================================
+ Space
+   Reconstruction                 MUSCL
+   Flux limiter                   Van Leer
+
+ Time
+   Scheme                         Third-order Runge-Kutta
+   Integration variables          Conservative
+   Implicit residual smoothing    Beta set to 0.500000E+00
+
+ Fluxes
+   Riemann solver                 HLLC Batten
+ =========================================================================================
+
+Integration failed at b, i, j:   1  90  27
+  0.12944485052341836        84.331904426606854       -158.02385172206067       -3072655484.4960003        3.3906791512774492       0.84038131604989441        1.5257779333596981      -0.18197737608442613        5668.1112085830173     
+Note: The following floating-point exceptions are signalling:Integration failed at b, i, j:   1  91  25
+ IEEE_DIVIDE_BY_ZERO
+STOP NaN or p<0 detected
+  0.59161655921084866        70.103550460845668       -2.5833205544566242       -706431.02442306117        3.9798161992611107       0.98621347520219460        1.7908336282969750      -0.19583872587421453        5347.4302627587149     
+Note: The following floating-point exceptions are signalling: IEEE_DIVIDE_BY_ZERO
+STOP NaN or p<0 detected

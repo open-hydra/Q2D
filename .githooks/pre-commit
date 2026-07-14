@@ -1,0 +1,56 @@
+#!/usr/bin/env bash
+# Git pre-commit hook — runs Q2D peculiarity invariants check on staged sources.
+# Activate with:  git config core.hooksPath .githooks
+#
+# Light-weight grep-based checks:
+#   * peculiarity #1 No-w principle: `do k =` / `nu:nw` / `Normal(3)` violations
+#     in src/lib/ Q2D-form sources.
+#   * Orphan TODO markers without phase reference.
+#
+
+set -euo pipefail
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+
+# Collect staged Fortran sources in src/lib/.
+staged="$(git diff --cached --name-only --diff-filter=ACMR | grep -E '^src/lib/.*\.f90$' || true)"
+
+if [[ -z "${staged}" ]]; then
+    exit 0
+fi
+
+errors=0
+echo "[pre-commit] Checking peculiarità invariants on staged sources..."
+
+# Peculiarity #1 violations (No-w principle): `do k =` patterns in Q2D-form Fortran.
+# Excludes commented lines and explicit "k=1, 1" trivial loops (audit_q2d_peculiarities pattern).
+for f in ${staged}; do
+    if grep -nE '^\s*do\s+k\s*=' "${REPO_ROOT}/${f}" 2>/dev/null | grep -vE '!.*do\s+k' >/dev/null; then
+        echo "[pre-commit]   ${f}: peculiarità #1 violation — found 'do k =' pattern"
+        grep -nE '^\s*do\s+k\s*=' "${REPO_ROOT}/${f}" | grep -vE '!.*do\s+k' | head -3
+        errors=$((errors + 1))
+    fi
+    if grep -nE 'Normal\(3\)' "${REPO_ROOT}/${f}" 2>/dev/null | grep -vE '!.*Normal\(3\)' >/dev/null; then
+        echo "[pre-commit]   ${f}: peculiarità #1 violation — found 'Normal(3)' (use Normal(2))"
+        errors=$((errors + 1))
+    fi
+done
+
+# Orphan TODO markers (TODO must reference a phase).
+for f in ${staged}; do
+    orphans="$(grep -nE '^\s*!\s*TODO[^:]*$' "${REPO_ROOT}/${f}" 2>/dev/null || true)"
+    if [[ -n "${orphans}" ]]; then
+        echo "[pre-commit]   ${f}: orphan TODO without phase reference"
+        echo "${orphans}" | head -3
+        errors=$((errors + 1))
+    fi
+done
+
+if [[ ${errors} -ne 0 ]]; then
+    echo "[pre-commit] ${errors} violation(s) — commit aborted."
+    echo "[pre-commit] Fix the violations or amend the staged files."
+    echo "[pre-commit] To bypass (dangerous), use 'git commit --no-verify'."
+    exit 1
+fi
+
+echo "[pre-commit] All checks passed."

@@ -1,0 +1,78 @@
+name: CTest
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  test-gfortran:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        gfortran-version: [12, 13, 14]
+        use-openmp: [true, false]
+        use-mpi: [false, true]
+        exclude:
+          # Skip pure-serial (no-OMP no-MPI) — uncommon production config; covered
+          # by gfortran-13 default-only via test-baseline below.
+          - use-openmp: false
+            use-mpi: false
+        include:
+          # Single deterministic baseline (gfortran-13 + serial) for fail-fast
+          # smoke detection independent of matrix expansion.
+          - gfortran-version: 13
+            use-openmp: false
+            use-mpi: false
+            baseline: true
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install gfortran-${{ matrix.gfortran-version }}
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gfortran-${{ matrix.gfortran-version }} gcc-${{ matrix.gfortran-version }} g++-${{ matrix.gfortran-version }}
+          # Ensure correct version selected
+          sudo update-alternatives --install /usr/bin/gfortran gfortran /usr/bin/gfortran-${{ matrix.gfortran-version }} 100
+          sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-${{ matrix.gfortran-version }} 100
+          sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-${{ matrix.gfortran-version }} 100
+
+      - name: Install MPI (if matrix cell needs it)
+        if: matrix.use-mpi == true
+        run: |
+          sudo apt-get install -y mpich libmpich-dev
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Install Python dependencies
+        run: |
+          pip install numpy sympy
+
+      - name: Configure
+        run: |
+          cmake -B build \
+            -DCMAKE_BUILD_TYPE=TESTING \
+            -DCMAKE_Fortran_COMPILER=gfortran-${{ matrix.gfortran-version }} \
+            -DCMAKE_C_COMPILER=gcc-${{ matrix.gfortran-version }} \
+            -DCMAKE_CXX_COMPILER=g++-${{ matrix.gfortran-version }} \
+            -DUSE_OPENMP=${{ matrix.use-openmp }} \
+            -DUSE_MPI=${{ matrix.use-mpi }} \
+            -DUSE_TECIO=OFF \
+            -DUSE_SUNDIALS=OFF \
+            -DUSE_CANTERA=OFF
+
+      - name: Build
+        run: cmake --build build --parallel $(nproc)
+
+      - name: Run tests
+        run: ctest --test-dir build --output-on-failure --timeout 300

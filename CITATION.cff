@@ -1,0 +1,49 @@
+cff-version: 0.1.0-alpha
+message: "If you use Q2D in academic work, please cite it as below."
+title: "Q2D — a Fortran solver for 2D planar, 2D axisymmetric, and quasi-2D area-variation compressible flows"
+abstract: >
+  Q2D is an open-source CFD solver for compressible Euler and
+  Navier–Stokes equations in three geometric regimes: 2D planar, 2D
+  axisymmetric, and quasi-2D area-variation. It is part of the
+  `open-hydra` release together with the companion 3D solver MOSE.
+  Q2D supports inviscid and viscous flows, multi-species chemistry
+  (CEA / finite-rate), one- and two-equation and Reynolds-stress transport RANS closures (Spalart–Allmaras,
+  k–ω SST, k–ω Wilcox 2006, SSG/LRR), soot transport, surface chemistry,
+  Borda-flow sudden-expansion injection (Fievisohn 2016/2017).
+type: software
+authors:
+  - family-names: Montanari
+    given-names: Alessandro
+    email: alessandro.montanari@uniroma1.it
+    affiliation: "Sapienza University of Rome (DIMA)"
+license: GPL-3.0
+url: "https://github.com/open-hydra/Q2D"
+repository-code: "https://github.com/open-hydra/Q2D"
+keywords:
+  - "computational fluid dynamics"
+  - "compressible flow"
+  - "axisymmetric flow"
+  - "quasi-2D"
+  - "Fortran"
+  - "RANS"
+references:
+  - type: software
+    title: MOSE
+    abstract: "Companion 3D CFD solver in the `open-hydra` release."
+    url: "https://github.com/open-hydra/MOSE"
+  - type: software
+    title: ORION
+    abstract: "I/O library (Tecplot, VTK, Plot3D)."
+    url: "https://github.com/MarcoGrossi92/ORION"
+  - type: software
+    title: FLINT
+    abstract: "Thermodynamic and chemical kinetics database."
+    url: "https://github.com/MarcoGrossi92/FLINT"
+  - type: software
+    title: OSlo
+    abstract: "Stiff ODE solver library (Radau IIA, SDIRK, Rosenbrock)."
+    url: "https://github.com/MarcoGrossi92/OSlo"
+  - type: software
+    title: ExactPack
+    abstract: "Analytical reference solutions for compressible-flow V&V (Los Alamos National Laboratory)."
+    url: "https://github.com/lanl/ExactPack"
