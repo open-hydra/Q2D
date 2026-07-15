@@ -1,23 +1,23 @@
-!>@brief: HLL-family Riemann solvers (Q2D 2D-reduced).
+!>@brief: Solutori di Riemann della famiglia HLL (formulazione 2D).
 !
-! 7 public solvers + 3 helpers, 2D-adapted (no `wl/wr/nz/F_w`, single tangent
-! `t = (-ny,nx)`).
+! 7 solutori pubblici + 3 routine di servizio; in 2D la tangente di faccia è
+! unica: `t = (-ny,nx)`.
 !
-! Public solvers:
-!   - riemann_HLLE   (Einfeldt-Roe HLL flux)
-!   - riemann_HLLEM  (HLLEM = HLL + antidiffusion contact/shear, Einfeldt 1991)
-!   - riemann_HLLC   (Batten star wave, HLLC formulation)
-!   - riemann_HLLEpp (HLLE++ Tramel/OVERFLOW Roe-blend, Tramel 2009)
-!   - riemann_HLLEMSD (Shock-detector blend HLLEM+HLLE)
-!   - riemann_HLLCSD  (Shock-detector blend HLLC+HLLE)
-!   - riemann_HLLCHLLE (Rotated HLLC/HLLE for cell faces not aligned with the discontinuity)
+! Solutori pubblici:
+!   - riemann_HLLE   (flusso HLL di Einfeldt-Roe)
+!   - riemann_HLLEM  (HLLEM = HLL + antidiffusione su contatto/shear, Einfeldt 1991)
+!   - riemann_HLLC   (onda intermedia star di Batten, formulazione HLLC)
+!   - riemann_HLLEpp (HLLE++ blend con Roe alla Tramel/OVERFLOW, Tramel 2009)
+!   - riemann_HLLEMSD (blend HLLEM+HLLE pilotato dal rilevatore d'urto)
+!   - riemann_HLLCSD  (blend HLLC+HLLE pilotato dal rilevatore d'urto)
+!   - riemann_HLLCHLLE (HLLC/HLLE ruotato per facce non allineate con la discontinuità)
 !
-! Reference:
+! Riferimento:
 !   Tramel, R., Nichols, R., & Buning, P. (2009). Addition of improved
 !   shock-capturing schemes to OVERFLOW 2.1. AIAA-2009-3988.
 !
-! HLLEMSD/HLLCSD: the main consumers of the `beta` computed by Lib_Shock_Detector.
-! Without HLLEMSD/HLLCSD the Shock_Detector is dead code.
+! HLLEMSD/HLLCSD sono i principali consumatori del `beta` calcolato da
+! Lib_Shock_Detector: senza di essi il rilevatore d'urto resta inutilizzato.
 !
 module Q2D_Lib_Riemann_HLL
   use iso_fortran_env, only: I4 => int32, R8 => real64
@@ -318,7 +318,7 @@ contains
 
 
   pure function hartenHyman(v,e) result(l)
-    ! Harten-Hyman entropy fix used by riemann_HLLEpp.
+    ! Correzione entropica di Harten-Hyman usata da riemann_HLLEpp.
     implicit none
     real(R8), intent(in) :: v, e
     real(R8) :: l
@@ -332,7 +332,7 @@ contains
 
 
   pure subroutine fluxes_helper ( p, r, u, v, nx, ny, F_r, F_u, F_v, F_E )
-    ! Inviscid conservative flux from the primitives (2D: no w).
+    ! Flusso inviscido in forma conservativa a partire dalle primitive (2D).
     use Q2D_Global_m,            only: nsc
     use FLINT_Lib_Thermodynamic, only: H0
     implicit none
@@ -354,9 +354,10 @@ contains
 
   subroutine riemann_HLLEM ( dl, ul, vl, pl, al, dltot, dr, ur, vr, pr, ar, drtot, &
                              beta, nx, ny, F_r, F_u, F_v, F_E )
-    ! HLLEM (Einfeldt et al. 1991): HLL + antidiffusion on contact and shear.
-    ! 2D reduction: single tangent `t = (-ny, nx)`, no alpha_s2.
-    ! `beta` ignored (HLLEM is not SD-aware; exposed only for the uniform abstract interface).
+    ! HLLEM (Einfeldt et al. 1991): HLL + antidiffusione su contatto e shear.
+    ! Formulazione 2D: tangente unica `t = (-ny, nx)`, una sola onda di shear.
+    ! `beta` è ignorato (HLLEM non usa il rilevatore d'urto; l'argomento esiste
+    ! solo per uniformità con l'interfaccia astratta comune).
     use Q2D_Global_m, only: nsc
     implicit none
     real(R8), intent(in)  :: dl(nsc),ul,vl,pl,al
@@ -364,7 +365,7 @@ contains
     real(R8), intent(in)  :: dltot,drtot
     real(R8), intent(in)  :: beta, nx, ny
     real(R8), intent(out) :: F_r, F_u, F_v, F_E
-    ! Local
+    ! Variabili locali
     real(R8) :: h0r, h0l
     real(R8) :: S1, S4, C, delta, inv_denom
     real(R8) :: Frl, Ful, Fvl, Fel
@@ -375,20 +376,20 @@ contains
     real(R8) :: alpha_c, alpha_s
     real(R8) :: e0l_cons, e0r_cons
 
-    ! Roe averages
+    ! Medie di Roe
     call roe_averages ( nsc, dl, dr, dltot, drtot, ul, vl, ur, vr, pl, pr, &
                         h0l, h0r, rho_roe, u_roe, v_roe, a_roe, h0_roe )
     un_roe = u_roe*nx + v_roe*ny
 
-    ! Wave speed estimates (Einfeldt clamping)
+    ! Stime delle velocità d'onda (limitazione di Einfeldt)
     S1 = min(0.d0, (ul*nx + vl*ny) - al, un_ROE - a_ROE)
     S4 = max(0.d0, (ur*nx + vr*ny) + ar, un_ROE + a_ROE)
 
-    ! Inviscid fluxes left/right
+    ! Flussi inviscidi sinistro/destro
     call fluxes_helper ( pl, dl, ul, vl, nx, ny, Frl, Ful, Fvl, Fel )
     call fluxes_helper ( pr, dr, ur, vr, nx, ny, Frr, Fur, Fvr, Fer )
 
-    ! HLL flux (energy via cons-var e0 = h0 - p/rho).
+    ! Flusso HLL (energia tramite la variabile conservativa e0 = h0 - p/rho).
     e0l_cons = h0l - pl/dltot
     e0r_cons = h0r - pr/drtot
     inv_denom = 1.d0 / (S4 - S1)
@@ -398,36 +399,36 @@ contains
     F_v = ( S4*Fvl - S1*Fvr + S1*S4*(drtot*vr - dltot*vl)   ) * inv_denom
     F_E = ( S4*Fel - S1*Fer + S1*S4*(drtot*e0r_cons - dltot*e0l_cons) ) * inv_denom
 
-    ! HLLEM antidiffusion (only in subsonic interval S1 < 0 < S4)
+    ! Antidiffusione HLLEM (solo nell'intervallo subsonico S1 < 0 < S4)
     if (S1 < 0.d0 .and. S4 > 0.d0) then
       drho = drtot - dltot
       dp   = pr - pl
       du   = ur - ul
       dv   = vr - vl
 
-      ! Tangent in 2D (unique): perpendicular to (nx,ny), unit norm.
+      ! Tangente 2D (unica): perpendicolare a (nx,ny), norma unitaria.
       tx = -ny
       ty =  nx
 
-      ! Wave strengths: contact + 1 shear (vs the 3D peer's 2 shears alpha_s1/alpha_s2)
+      ! Intensità d'onda: contatto + un'onda di shear (in 2D lo shear è unico)
       alpha_c = drho - dp/(a_ROE*a_ROE)
       alpha_s = rho_ROE*(du*tx + dv*ty)
 
-      ! Antidiffusion coefficient
+      ! Coefficiente di antidiffusione
       delta = a_ROE / (a_ROE + abs(0.5d0*(S1+S4)))
       C     = (S1*S4) * inv_denom
 
-      ! Mass
+      ! Massa
       F_r = F_r - C*delta*alpha_c
-      ! Momentum: contact + shear contributions
+      ! Quantità di moto: contributi di contatto e shear
       F_u = F_u - C*delta*( alpha_c*u_ROE + alpha_s*tx )
       F_v = F_v - C*delta*( alpha_c*v_ROE + alpha_s*ty )
-      ! Energy: contact + shear contributions
+      ! Energia: contributi di contatto e shear
       F_E = F_E - C*delta*( alpha_c * 0.5d0 * (u_ROE*u_ROE + v_ROE*v_ROE) &
                           + alpha_s * (u_ROE*tx + v_ROE*ty) )
     end if
 
-    ! Suppress unused-arg warning on beta (HLLEM ignores it by design).
+    ! Evita il warning di argomento inutilizzato su beta (ignorato da HLLEM per costruzione).
     associate (beta_unused => beta); end associate
 
   end subroutine riemann_HLLEM
@@ -435,9 +436,10 @@ contains
 
   subroutine riemann_HLLEpp ( dl, ul, vl, pl, al, dltot, dr, ur, vr, pr, ar, drtot, &
                               beta, nx, ny, F_r, F_u, F_v, F_E )
-    ! HLLE++ Tramel/OVERFLOW (Tramel et al. 2009): blend HLLE+Roe via beta SD.
-    ! 2D reduction: single tangent, no alpha_s2.
-    ! Note: `lambda_1 = un_roe` (not max(un_roe,a_roe)) to preserve shear flow.
+    ! HLLE++ alla Tramel/OVERFLOW (Tramel et al. 2009): blend HLLE+Roe pilotato
+    ! dal beta del rilevatore d'urto.
+    ! Formulazione 2D: tangente unica, una sola onda di shear.
+    ! Nota: `lambda_1 = un_roe` (non max(un_roe,a_roe)) per preservare gli strati di shear.
     use Q2D_Global_m, only: nsc
     implicit none
     real(R8), intent(in)  :: dl(nsc), ul, vl, pl, al
@@ -445,7 +447,7 @@ contains
     real(R8), intent(in)  :: dltot, drtot
     real(R8), intent(in)  :: beta, nx, ny
     real(R8), intent(out) :: F_r, F_u, F_v, F_E
-    ! Local
+    ! Variabili locali
     real(R8) :: Sm, Sp, unl, unr
     real(R8) :: Frl, Ful, Fvl, Fel
     real(R8) :: Frr, Fur, Fvr, Fer
@@ -462,12 +464,12 @@ contains
     unl = ul*nx + vl*ny
     unr = ur*nx + vr*ny
 
-    ! Roe averages
+    ! Medie di Roe
     call roe_averages ( nsc, dl, dr, dltot, drtot, ul, vl, ur, vr, pl, pr, &
                         h0l, h0r, rho_roe, u_roe, v_roe, a_roe, h0_roe )
     un_roe = u_roe*nx + v_roe*ny
 
-    ! HLLE eigenvalues
+    ! Autovalori HLLE
     Sm = min(0.d0, unl - al, un_ROE - a_ROE)
     Sp = max(0.d0, unr + ar, un_ROE + a_ROE)
     inv_denom = 1.d0 / (Sp - Sm)
@@ -475,54 +477,54 @@ contains
     lam2_hlle = abs( (Sp+Sm)*(un_roe-a_roe)*inv_denom - 2d0*Sp*Sm*inv_denom )
     lam3_hlle = abs( (Sp+Sm)*(un_roe+a_roe)*inv_denom - 2d0*Sp*Sm*inv_denom )
 
-    ! Roe eigenvalues (with Harten-Hyman entropy fix on acoustic waves)
+    ! Autovalori di Roe (con correzione entropica di Harten-Hyman sulle onde acustiche)
     eps = 0.3d0*(abs(un_ROE) + a_roe)
-    lam1_roe = abs(un_ROE)                            ! preserve shear (no max with a_ROE)
+    lam1_roe = abs(un_ROE)                            ! preserva lo shear (niente max con a_ROE)
     lam2_roe = hartenHyman(un_roe - a_roe, eps)
     lam3_roe = hartenHyman(un_roe + a_roe, eps)
 
-    ! HLLE++ blend via beta (SD weighting)
+    ! Blend HLLE++ tramite beta (peso dato dal rilevatore d'urto)
     lam1_pp = beta*lam1_roe + (1.d0 - beta)*lam1_hlle
     lam2_pp = beta*lam2_roe + (1.d0 - beta)*lam2_hlle
     lam3_pp = beta*lam3_roe + (1.d0 - beta)*lam3_hlle
 
-    ! Inviscid fluxes left/right
+    ! Flussi inviscidi sinistro/destro
     call fluxes_helper ( pl, dl, ul, vl, nx, ny, Frl, Ful, Fvl, Fel )
     call fluxes_helper ( pr, dr, ur, vr, nx, ny, Frr, Fur, Fvr, Fer )
 
-    ! Centered average
+    ! Media centrata
     F_r = 0.5d0*(Frl + Frr)
     F_u = 0.5d0*(Ful + Fur)
     F_v = 0.5d0*(Fvl + Fvr)
     F_E = 0.5d0*(Fel + Fer)
 
-    ! Diffusion correction (jumps + waves)
+    ! Correzione diffusiva (salti + onde)
     drho = drtot - dltot
     dp   = pr - pl
     du   = ur - ul
     dv   = vr - vl
     dun  = unr - unl
 
-    ! Tangent in 2D
+    ! Tangente 2D
     tx = -ny
     ty =  nx
 
-    ! Wave strengths: 1 contact + 1 shear + 2 acoustic (vs the 3D peer's 1+2+2)
+    ! Intensità d'onda: 1 contatto + 1 shear + 2 acustiche (in 2D lo shear è unico)
     alpha_m = (dp - rho_ROE*a_ROE*dun) / (2d0*a_ROE*a_ROE)
     alpha_c = drho - dp/(a_ROE*a_ROE)
     alpha_s = rho_ROE*(du*tx + dv*ty)
     alpha_p = (dp + rho_ROE*a_ROE*dun) / (2d0*a_ROE*a_ROE)
 
-    ! Mass
+    ! Massa
     F_r = F_r - 0.5d0*( alpha_c*lam1_pp + alpha_m*lam2_pp + alpha_p*lam3_pp )
 
-    ! Momentum: contact + shear + acoustic
+    ! Quantità di moto: contatto + shear + acustiche
     F_u = F_u - 0.5d0*( alpha_c*lam1_pp*u_ROE + alpha_s*lam1_pp*tx                       &
                       + alpha_m*lam2_pp*(u_roe - a_ROE*nx) + alpha_p*lam3_pp*(u_roe + a_ROE*nx) )
     F_v = F_v - 0.5d0*( alpha_c*lam1_pp*v_ROE + alpha_s*lam1_pp*ty                       &
                       + alpha_m*lam2_pp*(v_roe - a_ROE*ny) + alpha_p*lam3_pp*(v_roe + a_ROE*ny) )
 
-    ! Energy: contact + shear + acoustic
+    ! Energia: contatto + shear + acustiche
     F_E = F_E - 0.5d0*( alpha_c*lam1_pp*0.5d0*(u_ROE*u_ROE + v_ROE*v_ROE)                &
                       + alpha_s*lam1_pp*(u_ROE*tx + v_ROE*ty)                            &
                       + alpha_m*lam2_pp*(h0_roe - a_ROE*un_ROE)                          &
@@ -533,7 +535,7 @@ contains
 
   subroutine riemann_HLLEMSD ( dl, ul, vl, pl, al, dltot, dr, ur, vr, pr, ar, drtot, &
                                beta, nx, ny, F_r, F_u, F_v, F_E )
-    ! Hybrid HLLEM + HLLE blended via shock-detector beta.
+    ! Ibrido HLLEM + HLLE con blending tramite il beta del rilevatore d'urto.
     use Q2D_Global_m, only: nsc
     implicit none
     real(R8), intent(in)  :: dl(nsc), ul, vl, pl, al
@@ -569,7 +571,7 @@ contains
 
   subroutine riemann_HLLCSD ( dl, ul, vl, pl, al, dltot, dr, ur, vr, pr, ar, drtot, &
                               beta, nx, ny, F_r, F_u, F_v, F_E )
-    ! Hybrid HLLC + HLLE blended via shock-detector beta (Tramel HLLC+).
+    ! Ibrido HLLC + HLLE con blending tramite il beta del rilevatore d'urto (HLLC+ di Tramel).
     use Q2D_Global_m, only: nsc
     implicit none
     real(R8), intent(in)  :: dl(nsc), ul, vl, pl, al

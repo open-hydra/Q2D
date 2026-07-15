@@ -1,5 +1,4 @@
 # CMake project file for 'Q2D'
-# Mirror strutturale di /data07/montanari/Codes/open-hydra/MOSE/CMakeLists.txt.
 
 cmake_minimum_required(VERSION 3.23)
 

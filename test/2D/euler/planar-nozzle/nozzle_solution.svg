@@ -1827,7 +1827,7 @@ z
     </g>
    </g>
    <g id="text_3">
-    <!-- Planar q2D area-variation nozzle: CFD vs quasi-1D area law  ($\gamma=1.400$) -->
+    <!-- Planar Q2D area-variation nozzle: CFD vs quasi-1D area law  ($\gamma=1.400$) -->
     <g transform="translate(19.355 16.32)scale(0.12 -0.12)">
      <defs>
       <path d="M 24.703125 37.109375 

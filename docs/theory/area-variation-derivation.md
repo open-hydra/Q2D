@@ -12,7 +12,7 @@ Every claim in this page is labelled **EXACT** (identity, no asymptotics),
 **LEADING** (leading-order along the declared path, controlled remainder),
 **POSTULATE** (assumed, with declared role), or **CONJECTURE**.  Every step
 cites the hypotheses it uses.  Every algebraic claim has a machine-verifiable
-twin in `tools/audit/` (Appendix B).
+SymPy twin (Appendix B).
 
 ---
 
@@ -1305,9 +1305,9 @@ the $\tau_{nn}$ transmission.
 | Face $\mathbf V\!\cdot\!\mathbf G$ | `V_dot_G_face_avg` $\to$ diffusive fluxes/BCs | structural + planar $G=0$ bit-exact |
 | Slope monitor $\sigma_{\rm loc}=h|\mathbf G|$ (§10.1) | **to be implemented** (`Cross_Section`$\times$`area_geom_term`) | — |
 
-Code-verification record: `docs/review/area_variation_vv_campaign.md`
-(12/12 symbolic, planar-limit bit-exact, conservation $O(\Delta x^{3.2})$,
-nozzle Richardson, in-solver viscous MMS order 2 at stressed source weight).
+Code-verification record (internal V&V campaign): 12/12 symbolic,
+planar-limit bit-exact, conservation $O(\Delta x^{3.2})$,
+nozzle Richardson, in-solver viscous MMS order 2 at stressed source weight.
 Physical validation against a 3D slip-wall reference ($\varepsilon^2$
 scaling in $\varepsilon$) remains the open Phase-C item.
 
@@ -1351,7 +1351,9 @@ block-triangularises). $\square$ (SymPy twin F-6.)
 
 ## Appendix B — Machine verification inventory
 
-All scripts under `tools/audit/`, runnable without the solver unless noted.
+Standalone SymPy scripts developed during the derivation campaign
+(internal verification artefacts, not shipped with the repository),
+runnable without the solver unless noted.
 
 | ID | Script | Verifies |
 |---|---|---|
@@ -1403,7 +1405,9 @@ labels: **EXACT / LEADING / POSTULATE / CONJECTURE**.
 ## References
 
 1. A. Matsumura, T. Nishida, *J. Math. Kyoto Univ.* **20**(1):67–104, 1980.
-2. A. Valli, *Ann. Sc. Norm. Super. Pisa* (compressible NS, bounded domains), 1982.
+2. A. Valli, "Periodic and stationary solutions for compressible
+   Navier–Stokes equations via a stability method", *Ann. Sc. Norm.
+   Super. Pisa Cl. Sci.* (4) **10**:607–647, 1983.
 3. T. Kato, "The Cauchy problem for quasi-linear symmetric hyperbolic
    systems", *Arch. Rational Mech. Anal.* **58**:181–205, 1975.
 4. A. Majda, *Compressible Fluid Flow and Systems of Conservation Laws in

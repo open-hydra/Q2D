@@ -2,7 +2,7 @@
 
 This page gives the RANS closures of the Q2D geometric regimes in their
 **consolidated, sign-consistent form**.  Sections 1–5 cover the
-eddy-viscosity closures of the q2D area-variation regime — the Boussinesq
+eddy-viscosity closures of the Q2D area-variation regime — the Boussinesq
 two-equation stress tensor with the turbulent kinetic energy in the
 diagonal, the Menter SST $k$–$\omega$ (2003m) equations, the
 Spalart–Allmaras model, and the energy-coupling term — each inheriting the
@@ -17,12 +17,12 @@ correction $2(\mathbf{V}\!\cdot\!\mathbf{G})^2$.
 Section 6 gives the **full second-moment closure** — the SSG/LRR-$\omega$
 Reynolds-stress model (RSM), which transports the Reynolds-stress tensor
 $\rho R_{ij}$ itself (no Boussinesq hypothesis) — reduced to **all three**
-Q2D regimes (2D-plane, 2D-axi, q2D area-variation).  Its rigorous
+Q2D regimes (2D-plane, 2D-axi, Q2D area-variation).  Its rigorous
 top-down derivation (coordinate-free model → cylindrical projection /
 $z$-averaging → the $7\!\to\!5$ reduction) is given in
 [Appendix A](#appendix-a-coordinate-free-rsm-derivation),
-and is confirmed symbolically term-by-term by
-`tools/audit/ssglrr_regime_reduction_sympy.py`.
+and is confirmed symbolically term-by-term by a SymPy reduction
+audit (internal verification artefact, referenced below as §S$n$).
 
 Throughout, the depth-averaged primitives are written without an
 overbar, $\mu_{\text{eff}} = \mu_l + \mu_t$, the planar divergence is
@@ -85,7 +85,7 @@ $\tau_{\theta\theta} = 2\mu_{\text{eff}}\,u_r/r + \lambda\,(\nabla\!\cdot\!\math
 $$
 \boxed{\;
 \partial_t(\rho k) + \partial_x(\rho u k - D_k\,\partial_x k) + \partial_y(\rho v k - D_k\,\partial_y k)
-= \rho k(\mathbf{V}\!\cdot\!\mathbf{G}) - D_k(\mathbf{G}\!\cdot\!\nabla k) + P_k^{\text{q2D}} - \beta^\ast\rho\omega k
+= \rho k(\mathbf{V}\!\cdot\!\mathbf{G}) - D_k(\mathbf{G}\!\cdot\!\nabla k) + P_k^{\text{Q2D}} - \beta^\ast\rho\omega k
 \;}
 $$
 
@@ -101,7 +101,7 @@ $\mathbf{G}\!\cdot\!\mathbf{F}^k_{\text{diff}} = -D_k(\mathbf{G}\!\cdot\!\nabla 
 
 $$
 \boxed{\;
-P_k^{\text{q2D}} = \mu_t\bigl[\,|S|^2_{\text{2D}} + 2(\mathbf{V}\!\cdot\!\mathbf{G})^2\bigr],
+P_k^{\text{Q2D}} = \mu_t\bigl[\,|S|^2_{\text{2D}} + 2(\mathbf{V}\!\cdot\!\mathbf{G})^2\bigr],
 \qquad
 |S|^2_{\text{2D}} = 2\bigl[(\partial_x u)^2 + (\partial_y v)^2\bigr] + (\partial_y u + \partial_x v)^2.
 \;}
@@ -118,7 +118,7 @@ The production is limited by $P_k \leftarrow \min(P_k, 10\,\beta^\ast\rho\omega 
 $$
 \boxed{\;
 \partial_t(\rho\omega) + \partial_x(\rho u\omega - D_\omega\partial_x\omega) + \partial_y(\rho v\omega - D_\omega\partial_y\omega)
-= \rho\omega(\mathbf{V}\!\cdot\!\mathbf{G}) - D_\omega(\mathbf{G}\!\cdot\!\nabla\omega) + \frac{\gamma\rho}{\mu_t}P_k^{\text{q2D}} - \beta\rho\omega^2 + \langle\mathrm{CD}_{k\omega}\rangle
+= \rho\omega(\mathbf{V}\!\cdot\!\mathbf{G}) - D_\omega(\mathbf{G}\!\cdot\!\nabla\omega) + \frac{\gamma\rho}{\mu_t}P_k^{\text{Q2D}} - \beta\rho\omega^2 + \langle\mathrm{CD}_{k\omega}\rangle
 \;}
 $$
 
@@ -174,7 +174,7 @@ sources unchanged:
   by $f_{r1}(r^\ast, \tilde r)$ with $r^\ast = S/\Omega$ a scalar ratio.
 - **SAcomp** (compressibility, Paciorri–Sabetta): a scalar correction
   factor.
-- **SAR** (with curvature via the strain magnitude): uses
+- **SA-R** (with curvature via the strain magnitude): uses
   $|S|^2 = |S|^2_{\text{2D}} + 2(\mathbf{V}\!\cdot\!\mathbf{G})^2$ and so
   automatically inherits the area-variation production correction.
 
@@ -229,7 +229,7 @@ $k = \tfrac12(R_{11}+R_{22}+R_{33})$.
 The results below are stated in their consolidated per-regime form; every
 curvature/dilatation and geometric-source term is **derived top-down** in
 [Appendix A](#appendix-a-coordinate-free-rsm-derivation)
-and confirmed symbolically by `tools/audit/ssglrr_regime_reduction_sympy.py`.
+and confirmed symbolically by the SymPy reduction audit (§S$n$).
 
 ### 6.1 Transported variables and the unified regime structure
 
@@ -512,7 +512,7 @@ five variables at `nt` ($\rho R_{11},\rho R_{22},\rho R_{33},\rho R_{12},\rho\om
 $\texttt{nrans}=5$); `Mod_RANS` dispatches `SSGLRR` (and the
 stress-dependent `SSGLRR-SD` variant) directly.  The model is verified
 per regime: 2D-plane against the NASA Turbulence Modeling Resource, and
-2D-axisymmetric and q2D area-variation by per-regime wiring sweeps,
+2D-axisymmetric and Q2D area-variation by per-regime wiring sweeps,
 method-of-manufactured-solutions instruments, and running
 verification-and-validation cases.
 
@@ -528,7 +528,7 @@ general model in coordinate-free (basis-free) differential form, then
 project into cylindrical coordinates (2D-axi) and depth-average
 (area-variation); the 3D-Cartesian MOSE code is only the **cross-check of
 the Cartesian/plane limit**, never the starting point.  The reduction is
-verified term-by-term by `tools/audit/ssglrr_regime_reduction_sympy.py`
+verified term-by-term by the SymPy reduction audit
 (referenced as §S$n$).
 
 !!! note "Derivation panel (multi-perspective)"
@@ -728,7 +728,7 @@ the depth-compression production of $\langle w'w'\rangle$ (sympy §S3, §S5).
     modelling assumption**, not an exact identity: a $z$-dependent
     $R_{33}$ profile would add $O(\varepsilon^2)$ corrections outside the
     closure — exactly the status of every other turbulence quantity in the
-    q2D regime, and consistent with the $O(\varepsilon^2)$ model error of
+    Q2D regime, and consistent with the $O(\varepsilon^2)$ model error of
     the area-variation derivation §1.4.
 
 ### A.6 The $7\to5$ reduction — mirror-symmetry proof
@@ -783,12 +783,13 @@ the MOSE code in the plane limit, and only there is MOSE used as a check.
    consistent (sympy §S2 keeps the full traces).
 3. *Reviewer:* "the depth-averaged $\langle w'w'\rangle$ is not rigorous."
    *Resolution:* conceded as a **leading-order** closure (A.5 note), with
-   the same $O(\varepsilon^2)$ status as every q2D turbulence quantity —
+   the same $O(\varepsilon^2)$ status as every Q2D turbulence quantity —
    stated, not hidden (Legge #4).
-4. *Reviewer:* "absolute vorticity in $C_5$ needs the frame term in
-   2D-axi."  *Resolution:* rotating-frame 2D-axi is **out of scope**
-   (CLAUDE.md); the base regimes use the relative vorticity, with the frame
-   term reserved for a future extension.
+4. *Reviewer:* "absolute vorticity in $C_5$ needs the frame term."
+   *Resolution:* the in-plane vorticity entering $C_5$ is shifted to
+   the absolute frame ($+2\boldsymbol\Omega$) whenever the rotating
+   frame is enabled (`Lib_SSGLRR`); without frame rotation the base
+   regimes use the relative vorticity.
 
 | # | Assertion | Type | Source |
 |---|---|---|---|

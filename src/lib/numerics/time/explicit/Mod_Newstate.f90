@@ -5,10 +5,10 @@ module Q2D_Mod_Newstate
   private
   public :: Assign_Integration_Variables
 
-  !> Concrete procedure pointing to one of the function realizations
+  !> Puntatore a procedura concreta: punta a una delle realizzazioni di Newstate
   procedure(newstate_if), pointer, public :: RK_Newstate
 
-  !> Abstract interface relative to the "Newstate" procedure
+  !> Interfaccia astratta della procedura "Newstate"
   abstract interface
     subroutine Newstate_if ( domain, irk )
       use Q2D_Advanced_Types_m, only: Q2D_domain_type

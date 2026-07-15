@@ -46,14 +46,14 @@ contains
     integer, intent(out) :: nprobes, nlineprobes, nmgl
     character(len=16),   allocatable, intent(out) :: probes_name(:)
     character(len=llen), allocatable, intent(out) :: lineprobes_names(:)
-    ! Local
+    ! Local variables
     character(len=llen) :: wholestring
     integer :: error, i
 
-    ! Read the MGL — the HYDRA_MG branch mirrors MOSE. ATLAS may set
+    ! Read the number of multigrid levels. ATLAS may set
     ! `obj_sim_param%HYDRA_MG = .true.` to read the `[HYDRA-Multigrid]` section
-    ! instead of `[<codename>-Multigrid]`. Default `.false.` preserves the Q2D
-    ! standalone-build INI parsing.
+    ! instead of `[<codename>-Multigrid]`. The default `.false.` corresponds to
+    ! the INI parsing of the standalone Q2D run.
     nmgl = 1
     if (.not. obj_sim_param%HYDRA_MG) then
       call fini%get(section_name=trim(codename)//'-Multigrid', option_name='levels', val=nmgl, error=error)
@@ -61,7 +61,7 @@ contains
       call fini%get(section_name='HYDRA-Multigrid', option_name='levels', val=nmgl, error=error)
     end if
 
-    ! Count the probes
+    ! Probe count
     nprobes = 0
     do
       call fini%get(section_name=trim(codename)//'-Probes', option_name='probe'//trim(str(.true.,nprobes+1)), val=wholestring, error=error)
@@ -74,9 +74,10 @@ contains
       call fini%get(section_name=trim(codename)//'-Probes', option_name='probe'//trim(str(.true.,i)), val=probes_name(i), error=error)
     enddo
 
-    ! Count the line-probes (Q2D-extra, peculiarità #5; MOSE has none) — mirror the
-    ! probe count. The per-line-probe config is registry-driven (Register_LineProbes);
-    ! only the count + section names + the section-level restart are scanned here.
+    ! Line-probe count, with the same logic as the probe count.
+    ! The configuration of the individual line-probes goes through the registry
+    ! (Register_LineProbes); here only the count, the section names and the
+    ! section-level restart are read.
     nlineprobes = 0
     do
       call fini%get(section_name=trim(codename)//'-LineProbes', option_name='lineprobe'//trim(str(.true.,nlineprobes+1)), val=wholestring, error=error)
@@ -89,9 +90,8 @@ contains
       call fini%get(section_name=trim(codename)//'-LineProbes', option_name='lineprobe'//trim(str(.true.,i)), val=lineprobes_names(i), error=error)
     enddo
 
-    ! Line-probe restart/newrun (section-level): the `restart` key takes priority,
-    ! else `newrun` inverted, default .false. — verbatim-preserved from the legacy
-    ! Q2D_IO_LineProbes::Setup_LineProbes parsing (peculiarità #5).
+    ! Line-probe restart/newrun (section level): the `restart` key takes
+    ! priority; in its absence, negated `newrun` is used; default .false.
     obj_io%lineprobe_restart = .false.
     call fini%get(section_name=trim(codename)//'-LineProbes', option_name='restart', val=obj_io%lineprobe_restart, error=error)
     if (error /= 0) then
@@ -99,7 +99,7 @@ contains
       if (error == 0) obj_io%lineprobe_restart = .not. obj_io%lineprobe_restart
     end if
 
-    ! Count the stationary faces for the rotating frame
+    ! Count of the stationary faces for the rotating frame
     obj_rot%n_stationary = 0
     i = 0
     do
@@ -110,25 +110,26 @@ contains
     i = i + 1
     if (obj_rot%n_stationary > 0) allocate(obj_rot%stationary_face_str(obj_rot%n_stationary))
 
-    ! No-chemistry block list: unbounded read (no length/count/digit cap), mirror of
-    ! legacy Q2D_IO_chemistry::read_ini. The standalone path reaches it through here.
+    ! List of blocks excluded from chemistry: read without constraints on length,
+    ! count or number of digits. The standalone path reaches it from here.
     call Scan_NoChem(fini)
 
   end subroutine Scan_Ini
 
 
-  ! Reads the unbounded [<codename>-Chemistry] exclude-blocks integer list from the
-  ! FiNeR object. The block COUNT is unlimited (count_values sizes the token array;
-  ! no fixed cap, unlike a Registry string param capped at llen). Tokens are read as
-  ! a character array (FiNeR's array get supports character(*), not type(string)) and
-  ! each non-empty token is validated with StringiFor's is_integer before conversion:
-  ! FiNeR's integer get silently returns garbage on a non-integer token (to_number
-  ! skips the read, errd stays 0), so this guard is stricter than the legacy
-  ! fini%get(integer-array) path it mirrors. count_values is an upper bound (it counts
-  ! raw separators, so multiple blanks leave empty trailing slots); empty tokens are
-  ! benign and skipped, while a non-empty non-integer token rejects the whole list.
-  ! Per-token width clen (16) covers any valid integer block id; the number of blocks
-  ! is unbounded. Called from BOTH INI read paths (standalone + runtime/coupled).
+  ! Reads from the FiNeR object the exclude-blocks integer list of the
+  ! [<codename>-Chemistry] section, with no limit on the number of blocks (count_values
+  ! sizes the token array; no fixed cap, unlike a Registry string parameter truncated
+  ! to llen). Tokens are read as a character array (FiNeR's array get supports
+  ! character(*), not type(string)) and each non-empty token is validated with
+  ! StringiFor's is_integer before conversion: FiNeR's integer get silently returns
+  ! spurious values on a non-integer token (to_number skips the read, errd stays 0),
+  ! so this guard prevents unreported wrong reads.
+  ! count_values is an upper bound (it counts raw separators, so multiple blanks
+  ! leave empty trailing slots); empty tokens are harmless and are skipped, while a
+  ! non-empty non-integer token makes the whole list be rejected. The per-token width
+  ! clen (16) covers any valid integer block id; the number of blocks is unlimited.
+  ! Called by BOTH INI reading paths (standalone + runtime/coupled).
   subroutine Scan_NoChem(fini)
     use Finer,              only: file_ini
     use StringiFor,         only: string
@@ -151,13 +152,15 @@ contains
       nochem_count = fini%count_values(section_name=trim(codename)//'-Chemistry', option_name='exclude-blocks')
 
     if (nochem_count > 0) then
-      ! Pre-init empty: count_values over-counts when blanks repeat, and FiNeR's get
-      ! writes only the real tokens (current finer_option_t get_a_option behaviour:
-      ! it loops to size(split tokens), not size(val) — not a documented API contract),
-      ! leaving the surplus upper-bound slots at the pre-init ''. Empty slots are then
-      ! the multiple-blank artefact (skipped), distinct from a genuinely non-integer
-      ! token (rejected). If FiNeR ever filled the surplus slots, the garbage would be
-      ! non-empty and would trip is_integer below -> safe rejection, never silent.
+      ! Pre-initialization to the empty string: count_values overestimates in the
+      ! presence of repeated blanks and FiNeR's get writes only the real tokens
+      ! (current behavior of get_a_option in finer_option_t: it loops over
+      ! size(separated tokens), not over size(val) — not a documented API contract),
+      ! leaving the excess slots at the pre-initialized value ''. Empty slots are
+      ! therefore the artifact of multiple blanks (skipped), distinct from a truly
+      ! non-integer token (rejected). If FiNeR filled the excess slots, the spurious
+      ! content would be non-empty and would trigger is_integer below -> safe
+      ! rejection, never silent.
       allocate(tokens(nochem_count))
       tokens = ''
       call fini%get(section_name=trim(codename)//'-Chemistry', option_name='exclude-blocks', &
@@ -165,12 +168,12 @@ contains
       allocate(nochem_tmp(nochem_count), source=0_I4)
       reject_list = (error /= 0)
       do v = 1, nochem_count
-        if (len_trim(tokens(v)) == 0) cycle   ! empty upper-bound slot (collapsed blanks)
+        if (len_trim(tokens(v)) == 0) cycle   ! empty slot from the upper bound (collapsed blanks)
         tok = trim(adjustl(tokens(v)))
         if (tok%is_integer()) then
           nochem_tmp(v) = tok%to_number(kind=1_I4)
         else
-          reject_list = .true.                ! non-empty non-integer token -> reject list
+          reject_list = .true.                ! non-empty non-integer token -> list rejected
         end if
       end do
       if (reject_list) then

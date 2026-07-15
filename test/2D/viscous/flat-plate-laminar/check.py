@@ -1,6 +1,6 @@
 """flat-plate-laminar 2D viscous regression check (Sess 9 Step C.2).
 
-Blasius self-similar boundary layer acceptance ±5% along x>0 plate region.
+Blasius self-similar boundary layer acceptance: max pointwise |u/U_inf - Blasius| <= 0.15 over eta in [0.5, 4.5] (NASA TMR coarse-grid acceptance; see check_blasius tol=0.15 rationale below).
 
 Physics: subsonic Mach 0.2, T=300 K, p=97250 Pa air (gamma=1.4 R=287), mil=1e-3,
 Pr=1.0; laminar Navier-Stokes; flat plate adiabatic wall x in [0, 0.3048] m;
@@ -20,11 +20,22 @@ may diverge). FAIL if non-converged (max u/U_inf < 0.5 at eta>3) or non-monotoni
 Sess 9: NO external-code (MOSE) cross-comparison (MOSE FP-laminar bc.txt
 legacy format incompatible with current MOSE IO_BC; MOSE does NOT run this
 test in ctest, verified Sess 8). Acceptance: analytical-only (Blasius).
+
+Exit semantics (2026-07 hardening): exit 0 only when the smoke gate (field
+output exists, no NaN/Inf) AND the Blasius +/-15% gate both ran and passed;
+exit 1 on any missing output (OUTPUT/field*.tec, INPUT/transport.dat),
+NaN/Inf, invalid freestream, zero points falling in the eta comparison
+window (a silent-pass guard), or gate violation. This script never exits 77
+(no legitimate skip condition — the gate is analytical, always available).
 """
 
 import os
 import sys
 import math
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "common" / "pycheck"))
+from q2d_check_lib import fail, require_file, assert_finite
 
 
 # Blasius f'(eta) from Howarth 1938 (Schlichting 1979 Tab. 7.1, subset)
@@ -254,6 +265,7 @@ def check_blasius(field_path, tol=0.15):
 
     # Compute eta(y) at this probe x, compare u/U_inf vs Blasius table.
     fail_count = 0
+    n_compared = 0
     max_err = 0.0
     print("[FP-lam check] eta   u/U_inf  Blasius  err")
     for y, u in zip(profile_y, profile_u):
@@ -266,10 +278,18 @@ def check_blasius(field_path, tol=0.15):
         bla = blasius_interp(eta)
         err = abs(ratio - bla)
         max_err = max(max_err, err)
+        n_compared += 1
         if err > tol:
             fail_count += 1
         print(f"  eta={eta:.3f}  u/U={ratio:.4f}  bla={bla:.4f}  err={err:.4f}")
-    print(f"[FP-lam check] max_err={max_err:.4f} (tol={tol})")
+    print(f"[FP-lam check] max_err={max_err:.4f} (tol={tol}, points={n_compared})")
+    if n_compared == 0:
+        # Silent-pass guard: zero points in the eta window means the gate did
+        # NOT run (mesh/nondimensionalization regression) -> hard FAIL, never
+        # a vacuous pass.
+        print("[FP-lam check] FAIL: no profile points fell in eta [0.5, 4.5] "
+              "(Blasius gate did not actually compare anything)")
+        return 1
     if fail_count > 0:
         print("[FP-lam check] FAIL: {0} points exceed +/-{1:.0f}%".format(fail_count, tol * 100))
         return 1
@@ -281,20 +301,15 @@ def main():
     import glob
     out = "OUTPUT"
     if not os.path.isdir(out):
-        print(f"[FP-lam check] OUTPUT/ missing")
-        return 1
+        fail("OUTPUT/ missing (solver did not run)")
     candidates = sorted(glob.glob(os.path.join(out, "field*.tec")))
     if not candidates:
-        print("[FP-lam check] no field*.tec in OUTPUT/")
-        return 1
+        fail("no field*.tec in OUTPUT/ (solver produced no field output)")
     field_path = candidates[-1]
+    require_file(field_path)
     print(f"[FP-lam check] using {field_path}")
-    # Sess 10: smoke acceptance (no NaN, rho>0, p>0). Blasius ±5% Tier 2 V&V
-    # deferred Sess 11. B-11 third-layer fix (MOSE upstream f76c5ca) enabled
-    # this test to RUN without SIGSEGV. Tier 2 quantitative acceptance requires
-    # full convergence (~100k+ iter) + Cf extraction at wall — Sess 11 V&V.
-    nnan = 0
-    n_tot = 0
+    # Smoke gate: no NaN/Inf in the field output (lib assert_finite, NaN-safe).
+    values = []
     with open(field_path, "r") as fh:
         for line in fh:
             tok = line.strip()
@@ -302,19 +317,13 @@ def main():
                 continue
             for x in tok.split():
                 try:
-                    v = float(x)
+                    values.append(float(x))
                 except ValueError:
                     continue
-                n_tot += 1
-                if v != v:
-                    nnan += 1
-    print(f"[FP-lam check] smoke: n_tot={n_tot} nnan={nnan}")
-    if nnan > 0:
-        print(f"[FP-lam check] FAIL: {nnan} NaN values in output")
-        return 1
-    if n_tot == 0:
-        print(f"[FP-lam check] FAIL: empty output")
-        return 1
+    print(f"[FP-lam check] smoke: n_tot={len(values)}")
+    if not values:
+        fail(f"no numeric data parsed from {field_path} (truncated output?)")
+    assert_finite(f"{field_path} values", values)
     # Blasius theory +/-15% ENFORCED Sess 14 F-12-L (Sess 13 +/-5% loosened
     # after root-cause Sess 14: tolerance +/-5% required mu BUG fix +
     # acknowledged 65×65 coarse-mesh CFD V&V realism). Analytical reference

@@ -15,7 +15,7 @@ essentials of each regime, and points to the full formal derivations.
 - [2D Axisymmetric Derivation](axisymmetric-derivation.md) — the complete
   cylindrical Navier–Stokes reduction, the radial-momentum
   pressure-cancellation proof, and the axis treatment.
-- [q2D Area-Variation Derivation](area-variation-derivation.md) — the
+- [Q2D Area-Variation Derivation](area-variation-derivation.md) — the
   full depth-averaging derivation: hypotheses, asymptotic scaling with the
   order of every term, the algebraic properties of the mean operator, the
   transverse-velocity profile, the tensor machinery, and the
@@ -46,12 +46,13 @@ V_i\,\frac{\mathrm{d}\mathbf{U}_i}{\mathrm{d}t}
 $$
 
 carrying the out-of-plane physics no longer represented by face fluxes
-after the dimensional reduction.  A single regime is active per block,
-selected via the `geometry` parameter in `[Q2D-Numerics]`.  The two
+after the dimensional reduction.  A single regime is active,
+selected via the `active` parameter in `[Q2D-Sources]`
+(`none | axisymmetric | area_variation`).  The two
 regimes yield **structurally different** sources, with **opposite signs**
 for the same physical flux:
 
-| | 2D axisymmetric (residual $-F_r/r$) | q2D area-variation (residue $+\mathbf{G}\!\cdot\!\langle\mathbf{F}\rangle$) |
+| | 2D axisymmetric (residual $-F_r/r$) | Q2D area-variation (residue $+\mathbf{G}\!\cdot\!\langle\mathbf{F}\rangle$) |
 |---|---|---|
 | convective | $-\rho_\phi u_r/r$ | $+\rho_\phi(\mathbf{V}\!\cdot\!\mathbf{G})$ |
 | diffusive ($\phi$) | $+D_\phi\,\partial_r\phi/r$ | $-D_\phi(\mathbf{G}\!\cdot\!\nabla\phi)$ |
@@ -163,7 +164,7 @@ For the hypotheses, the asymptotic scaling with the order of every term,
 the algebraic properties of the mean operator, the transverse-velocity
 profile, the complete tensor machinery, and the step-by-step
 $z$-integration, see the
-[q2D Area-Variation Derivation](area-variation-derivation.md).  For the
+[Q2D Area-Variation Derivation](area-variation-derivation.md).  For the
 turbulence closures, see [Q2D RANS Closures](q2d-rans-closures.md).
 
 ---

@@ -38,14 +38,12 @@ space-reconstruction = MUSCL
 
 ## Section namespacing
 
-All Q2D configuration sections share the prefix `[Q2D-...]`.  A
-single bootstrap parameter `codename = Q2D` must be set in a bare
-`[Parameters]` section to activate this namespace:
+All Q2D configuration sections share the prefix `[Q2D-...]`.  The
+prefix comes from the solver **codename**, a compile-time constant
+(`Q2D_Parameters_m`): nothing needs to be set in `input.ini` to
+activate the namespace.
 
 ```ini
-[Parameters]
-codename = Q2D
-
 [Q2D-Parameters]
 res-threshold = 1.0e-8
 ```
@@ -63,11 +61,13 @@ line probes (see [Line probes](../development/structure.md#line-probes)).
 | `[Q2D-Physics]` | Equations, turbulence, chemistry, soot, rotating frame | [→](registry.md#q2d-physics) |
 | `[Q2D-IO]` | Output formats, frequencies, and variables | [→](registry.md#q2d-io) |
 | `[Q2D-Probes]` | Point probes for time-history recording | [→](registry.md#q2d-probes) |
+| `[Q2D-LineProbes]` | Line probes: 1D profiles along fixed-index grid lines | [→](registry.md#q2d-lineprobes) |
 | `[Q2D-Numerics]` | Spatial/temporal discretization, Riemann solver, CFL | [→](registry.md#q2d-numerics) |
 | `[Q2D-Multigrid]` | Multigrid acceleration settings | [→](registry.md#q2d-multigrid) |
 | `[Q2D-Chemistry]` | ODE solver and tolerances for finite-rate chemistry | [→](registry.md#q2d-chemistry) |
 | `[Q2D-Turbulence]` | Turbulent Prandtl/Schmidt numbers | [→](registry.md#q2d-turbulence) |
 | `[Q2D-Rotating-Frame]` | Rotating reference frame parameters | [→](registry.md#q2d-rotating-frame) |
+| `[Q2D-Sources]` | Geometric source selection (axisymmetric / area-variation) | [→](registry.md#q2d-sources) |
 
 ---
 

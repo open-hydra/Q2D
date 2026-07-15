@@ -1,16 +1,17 @@
-!>@brief: Fluid mechanics relations (Q2D 2D-reduced + Definition A).
+!>@brief: Fluid-mechanics relations (Q2D 2D reduction + Definition A).
 !
-! Q2D superset features:
-!   - 4×Stress_Vector + 4×Stress_Tensor + 2×Strain_Tensor realizations (Q2D
-!     superset for the axisymmetric and Definition A regimes);
+! Features:
+!   - multiple realizations 4×Stress_Vector + 4×Stress_Tensor + 2×Strain_Tensor,
+!     covering the axisymmetric and Definition A regimes;
 !   - Stress_t(3,3) and Strain E(3,3) even in 2D — a legitimate exception to the
 !     No-w principle (S_33 = -V·G is dilatational, NOT an out-of-plane velocity
 !     component);
-!   - V_dot_G optional: present -> Definition A (S_33 = -V·G); absent ->
-!     Definition B (default 0, backward compat).
+!   - optional V_dot_G: present -> Definition A (S_33 = -V·G); absent ->
+!     Definition B (default 0, compatible with call sites that do not pass it).
 !
-! Theory: S_33 = -⟨∂w/∂z⟩ = -(V·G), the BC-consistent depth-averaged out-of-plane
-! strain (Definition A); see the q2D area-variation derivation.
+! Theory: S_33 = -⟨∂w/∂z⟩ = -(V·G), the depth-averaged out-of-plane strain
+! consistent with the boundary conditions (Definition A); see
+! docs/theory/area-variation-derivation.md.
 module Q2D_Lib_Fluid
   use iso_fortran_env, only: I4 => int32, R8 => real64
 
@@ -19,7 +20,7 @@ module Q2D_Lib_Fluid
 
   real(R8), private, parameter :: negativetwothird = -2.d0/3.d0
 
-  ! Procedure pointers (3 — vs the MOSE peer's single Stress_Vector)
+  ! Procedure pointers (3: Stress_Vector, Stress_Tensor, Strain_Tensor)
   procedure(Stress_Vector_if), pointer, public :: Stress_Vector
   procedure(Stress_Tensor_if), pointer, public :: Stress_Tensor
   procedure(Strain_Tensor_if), pointer, public :: Strain_Tensor
@@ -31,12 +32,12 @@ module Q2D_Lib_Fluid
   public :: Stress_Tensor_2eq_Std, Stress_Tensor_2eq_Axi
   public :: Stress_Tensor_RSM_Std, Stress_Tensor_RSM_Axi
   public :: Strain_Tensor_Std, Strain_Tensor_Axi
-  public :: Vorticity_Vector, Vorticity_Tensor   ! used by Lib_Spalart/Lib_SST (Q2D legacy esponeva come accessibili)
+  public :: Vorticity_Vector, Vorticity_Tensor   ! used by the turbulence modules (Lib_Spalart, Lib_SST, Lib_SpalartShur, ...)
   public :: V_dot_G_face_avg
 
   ! Abstract interface Stress_Vector:
-  ! V_dot_G optional: present -> Definition A (rigorous z-reduction with S_33 = -V·G);
-  ! absent -> Definition B (default 0, backward compat with legacy call sites).
+  ! optional V_dot_G: present -> Definition A (rigorous z reduction with S_33 = -V·G);
+  ! absent -> Definition B (default 0 for call sites that do not pass it).
   abstract interface
     pure function Stress_Vector_if ( Gradvel, Normal, mi_l, mi_t, var, r_ave, vr, V_dot_G ) result ( Stress )
       use iso_fortran_env, only: R8 => real64
@@ -70,8 +71,8 @@ module Q2D_Lib_Fluid
 contains
 
   pure function Stress_Vector_Std ( Gradvel, Normal, mi_l, mi_t, var, r_ave, vr, V_dot_G ) result ( Stress )
-    ! Q2D Definition A: V_dot_G correction enables (V·G) terms in Divervel and tau_zz.
-    ! Default V_dot_G = 0 preserves Definition B (legacy backward compat).
+    ! Q2D Definition A: the V_dot_G correction activates the (V·G) terms in Divervel and tau_zz.
+    ! The default V_dot_G = 0 keeps Definition B.
     implicit none
     real(R8), intent(in) :: Gradvel(2,2), Normal(2), mi_t, mi_l, var(:), r_ave, vr
     real(R8), intent(in), optional :: V_dot_G
@@ -97,8 +98,8 @@ contains
 
 
   pure function Stress_Vector_Axi ( Gradvel, Normal, mi_l, mi_t, var, r_ave, vr, V_dot_G ) result ( Stress )
-    ! V_dot_G optional argument for interface uniformity (NOT used in Axi:
-    ! axisymmetric flows have no virtual top/bot wall in Def A sense).
+    ! Optional argument V_dot_G for interface uniformity (NOT used in Axi:
+    ! axisymmetric flows have no top/bot virtual walls in the Definition A sense).
     implicit none
     real(R8), intent(in) :: Gradvel(2,2), Normal(2), mi_t, mi_l, var(:), r_ave, vr
     real(R8), intent(in), optional :: V_dot_G
@@ -111,7 +112,7 @@ contains
     if (r_ave .le. 1.d-6) then
       Divervel = Gradvel(1,1) + Gradvel(2,2) + Gradvel(2,2) ! de l'Hopital vr/r --> dv/dr = Gradvel(2,2)
     else
-      Divervel = Gradvel(1,1) + Gradvel(2,2) + vr/r_ave     ! cylindrical coordinate divergence
+      Divervel = Gradvel(1,1) + Gradvel(2,2) + vr/r_ave     ! divergence in cylindrical coordinates
     endif
     lamDivervel = lam*Divervel
 
@@ -125,9 +126,9 @@ contains
 
 
   pure function Stress_Tensor_Std ( Gradvel, mi_l, mi_t, var, r_ave, vr, V_dot_G ) result ( Stress_t )
-    ! Q2D Definition A (when V_dot_G present): tau_zz = -(4/3)*mi*V_dot_G - (2/3)*mi*div_2D
+    ! Q2D Definition A (with V_dot_G present): tau_zz = -(4/3)*mi*V_dot_G - (2/3)*mi*div_2D
     ! and Divervel = div_2D - V_dot_G to capture the z-divergence contribution.
-    ! V_dot_G absent (default 0) recovers Definition B (legacy: tau_zz = lam*div_2D).
+    ! V_dot_G absent (default 0) recovers Definition B (tau_zz = lam*div_2D).
     implicit none
     real(R8), intent(in) :: Gradvel(2,2), mi_t, mi_l, var(:), r_ave, vr
     real(R8), intent(in), optional :: V_dot_G
@@ -163,9 +164,9 @@ contains
 
 
   pure function Stress_Tensor_Axi ( Gradvel, mi_l, mi_t, var, r_ave, vr, V_dot_G ) result ( Stress_t )
-    ! V_dot_G optional argument for interface uniformity (NOT used in Axi).
-    ! Tensor evaluated cell-center (r=dr/2 > 0 by primal/dual mesh construction)
-    ! -> no de l'Hopital fallback needed.
+    ! Optional argument V_dot_G for interface uniformity (NOT used in Axi).
+    ! Tensor evaluated at the cell center (r=dr/2 > 0 by construction of the
+    ! primal/dual mesh) -> no de l'Hopital fallback needed.
     implicit none
     real(R8), intent(in) :: Gradvel(2,2), mi_t, mi_l, var(:), r_ave, vr
     real(R8), intent(in), optional :: V_dot_G
@@ -175,7 +176,7 @@ contains
 
     mi = mi_l + mi_t
     lam = negativetwothird * mi
-    Divervel = Gradvel(1,1) + Gradvel(2,2) + vr/r_ave ! cylindrical coordinate divergence
+    Divervel = Gradvel(1,1) + Gradvel(2,2) + vr/r_ave ! divergence in cylindrical coordinates
     lamDivervel = lam*Divervel
 
     Tau_xx = lamDivervel + 2d0 * mi * Gradvel(1,1)
@@ -199,8 +200,8 @@ contains
 
   pure function Stress_Vector_2eq_Std ( Gradvel, Normal, mi_l, mi_t, rhok, r_ave, vr, V_dot_G ) result ( Stress )
     ! Q2D Definition A (V_dot_G present): Divervel = div_2D - V_dot_G to capture
-    ! z-divergence at top/bot walls. Boussinesq-2eq adds rhokdelta = -(2/3)ρk to
-    ! diagonal. V_dot_G absent (default 0) recovers Definition B (legacy).
+    ! the z divergence at the top/bot walls. The two-equation Boussinesq closure adds
+    ! rhokdelta = -(2/3)ρk to the diagonal. V_dot_G absent (default 0) recovers Definition B.
     implicit none
     real(R8), intent(in) :: Gradvel(2,2), Normal(2), mi_t, mi_l, rhok(:), r_ave, vr
     real(R8), intent(in), optional :: V_dot_G
@@ -227,7 +228,7 @@ contains
 
 
   pure function Stress_Vector_2eq_Axi ( Gradvel, Normal, mi_l, mi_t, rhok, r_ave, vr, V_dot_G ) result ( Stress )
-    ! V_dot_G optional argument for interface uniformity (NOT used in Axi).
+    ! Optional argument V_dot_G for interface uniformity (NOT used in Axi).
     implicit none
     real(R8), intent(in) :: Gradvel(2,2), Normal(2), mi_t, mi_l, rhok(:), r_ave, vr
     real(R8), intent(in), optional :: V_dot_G
@@ -255,9 +256,9 @@ contains
 
 
   pure function Stress_Tensor_2eq_Std ( Gradvel, mi_l, mi_t, rhok, r_ave, vr, V_dot_G ) result ( Stress_t )
-    ! Q2D Definition A: Divervel = div_2D - V_dot_G,
+    ! Q2D Definizione A: Divervel = div_2D - V_dot_G,
     ! Tau_zz = lam*Divervel - 2*mi*VG + rhokdelta = -(4mi/3)*VG -(2mi/3)*div_2D -(2/3)rhok.
-    ! Boussinesq-2eq adds rhokdelta = -(2/3)rho*k to diagonal.
+    ! Il Boussinesq a 2 equazioni aggiunge rhokdelta = -(2/3)rho*k alla diagonale.
     implicit none
     real(R8), intent(in) :: Gradvel(2,2), mi_t, mi_l, rhok(:), r_ave, vr
     real(R8), intent(in), optional :: V_dot_G
@@ -293,7 +294,7 @@ contains
 
 
   pure function Stress_Tensor_2eq_Axi ( Gradvel, mi_l, mi_t, rhok, r_ave, vr, V_dot_G ) result ( Stress_t )
-    ! V_dot_G optional argument for interface uniformity (NOT used in Axi).
+    ! Argomento opzionale V_dot_G per uniformità di interfaccia (NON usato in Axi).
     implicit none
     real(R8), intent(in) :: Gradvel(2,2), mi_t, mi_l, rhok(:), r_ave, vr
     real(R8), intent(in), optional :: V_dot_G
@@ -326,11 +327,12 @@ contains
 
 
   pure function Stress_Vector_RSM_Std ( Gradvel, Normal, mi_l, mi_t, var, r_ave, vr, V_dot_G ) result ( Stress )
-    ! SSG/LRR-omega RSM momentum coupling (no Boussinesq, theory §6.8): the total
-    ! face stress is the LAMINAR Newtonian tensor (mi_l only, mi_t ignored) MINUS
-    ! the transported Reynolds stress rho*R_ij. var = Prim(nt:) so
-    ! var(1)=rho*R11, var(2)=rho*R22, var(4)=rho*R12 (in-plane block; R13=R23=0).
-    ! Definition A: Divervel = div_2D - V·G (z-divergence at virtual walls).
+    ! Accoppiamento RSM SSG/LRR-omega con la quantità di moto (niente Boussinesq,
+    ! docs/theory/q2d-rans-closures.md §6.8): lo sforzo totale alla faccia è il
+    ! tensore newtoniano LAMINARE (solo mi_l, mi_t ignorato) MENO lo sforzo di
+    ! Reynolds trasportato rho*R_ij. var = Prim(nt:) quindi var(1)=rho*R11,
+    ! var(2)=rho*R22, var(4)=rho*R12 (blocco nel piano; R13=R23=0).
+    ! Definizione A: Divervel = div_2D - V·G (divergenza in z alle pareti virtuali).
     implicit none
     real(R8), intent(in) :: Gradvel(2,2), Normal(2), mi_t, mi_l, var(:), r_ave, vr
     real(R8), intent(in), optional :: V_dot_G
@@ -355,9 +357,9 @@ contains
 
 
   pure function Stress_Vector_RSM_Axi ( Gradvel, Normal, mi_l, mi_t, var, r_ave, vr, V_dot_G ) result ( Stress )
-    ! Axisymmetric RSM momentum coupling: laminar (mi_l) cylindrical divergence
-    ! (de l'Hopital at the axis) MINUS rho*R_ij. V_dot_G accepted for interface
-    ! uniformity, NOT used in Axi.
+    ! Accoppiamento RSM assialsimmetrico con la quantità di moto: divergenza
+    ! cilindrica laminare (mi_l, de l'Hopital sull'asse) MENO rho*R_ij. V_dot_G
+    ! accettato per uniformità di interfaccia, NON usato in Axi.
     implicit none
     real(R8), intent(in) :: Gradvel(2,2), Normal(2), mi_t, mi_l, var(:), r_ave, vr
     real(R8), intent(in), optional :: V_dot_G
@@ -369,7 +371,7 @@ contains
     if (r_ave .le. 1.d-6) then
       Divervel = Gradvel(1,1) + Gradvel(2,2) + Gradvel(2,2) ! de l'Hopital vr/r --> dv/dr
     else
-      Divervel = Gradvel(1,1) + Gradvel(2,2) + vr/r_ave     ! cylindrical divergence
+      Divervel = Gradvel(1,1) + Gradvel(2,2) + vr/r_ave     ! divergenza cilindrica
     endif
     lamDivervel = lam*Divervel
 
@@ -383,9 +385,10 @@ contains
 
 
   pure function Stress_Tensor_RSM_Std ( Gradvel, mi_l, mi_t, var, r_ave, vr, V_dot_G ) result ( Stress_t )
-    ! 3x3 total stress for the RSM geometric momentum source (Source_Area_Visc_Blk
-    ! G·(tau_33 - tau_ii) and Source_Axi_Visc_Blk (tau_rr - tau_theta)/r): laminar
-    ! (mi_l) tensor MINUS rho*R_ij. var(3)=rho*R33 enters tau_33. Definition A:
+    ! Sforzo totale 3x3 per la sorgente geometrica RSM della quantità di moto
+    ! (Source_Area_Visc_Blk: G·(tau_33 - tau_ii); Source_Axi_Visc_Blk:
+    ! (tau_rr - tau_theta)/r): tensore laminare (mi_l) MENO rho*R_ij. var(3)=rho*R33
+    ! entra in tau_33. Definizione A:
     ! tau_33^lam = lam*Divervel - 2*mi_l*VG, Divervel = div_2D - V·G.
     implicit none
     real(R8), intent(in) :: Gradvel(2,2), mi_t, mi_l, var(:), r_ave, vr
@@ -419,9 +422,9 @@ contains
 
 
   pure function Stress_Tensor_RSM_Axi ( Gradvel, mi_l, mi_t, var, r_ave, vr, V_dot_G ) result ( Stress_t )
-    ! Axisymmetric 3x3 total stress: laminar (mi_l) cylindrical tensor MINUS
+    ! Sforzo totale 3x3 assialsimmetrico: tensore cilindrico laminare (mi_l) MENO
     ! rho*R_ij; tau_33^lam = 2*mi_l*vr/r + lam*Divervel (theta-theta). V_dot_G
-    ! accepted for interface uniformity, NOT used in Axi.
+    ! accettato per uniformità di interfaccia, NON usato in Axi.
     implicit none
     real(R8), intent(in) :: Gradvel(2,2), mi_t, mi_l, var(:), r_ave, vr
     real(R8), intent(in), optional :: V_dot_G
@@ -430,7 +433,7 @@ contains
     real(R8) :: lam, Divervel, lamDivervel
 
     lam = negativetwothird * mi_l
-    Divervel = Gradvel(1,1) + Gradvel(2,2) + vr/r_ave ! cylindrical divergence
+    Divervel = Gradvel(1,1) + Gradvel(2,2) + vr/r_ave ! divergenza cilindrica
     lamDivervel = lam*Divervel
 
     Tau_xx = lamDivervel + 2d0 * mi_l * Gradvel(1,1) - var(1)
@@ -451,7 +454,7 @@ contains
 
 
   pure function Vorticity_Vector ( Gradvel ) result ( omega )
-    ! 2D-reduced: omega(1)=omega(2)=0; only omega(3) = G(2,1)-G(1,2).
+    ! Riduzione 2D: omega(1)=omega(2)=0; solo omega(3) = G(2,1)-G(1,2).
     implicit none
     real(R8), intent(in), dimension(2,2) :: Gradvel
     real(R8), dimension(3) :: omega
@@ -463,8 +466,11 @@ contains
 
 
   pure function Vorticity_Tensor ( omega ) result ( W )
-    ! Convention: W_ij = (du_i/dx_j - du_j/dx_i)/2. Sign-flipped Hodge skew-symmetric;
-    ! W is used only via |W|^2 = 2*sum(W_ij^2) in RANS models, sign convention immaterial.
+    ! Convenzione: W_ij = (du_i/dx_j - du_j/dx_i)/2 (tensore antisimmetrico costruito
+    ! da omega con segni opposti rispetto al duale di Hodge). Il SEGNO CONTA: SSGLRR
+    ! consuma W linearmente nel termine rapido di pressione-strain C5
+    ! (a_ik W_jk + a_jk W_ik) e QCR2000 in O_ik; solo SA/SST/Wilcox lo riducono a
+    ! |W|^2. Convenzione verificata rispetto allo skew(grad u) esatto.
     implicit none
     real(R8), intent(in), dimension(3) :: omega
     real(R8), dimension(3,3) :: W
@@ -483,12 +489,14 @@ contains
 
 
   pure function Strain_Tensor_Std ( Gradvel, vr, r_ave, V_dot_G ) result ( E )
-    ! Q2D Definition A (Model A, BC-consistent depth-averaged): S_33 = -V·G
-    ! represents <∂w/∂z> from depth-averaging the 3D continuity equation under
-    ! (H4) impermeability + slip at virtual top/bot walls. The formal identity
-    ! <∂w/∂z> = -(V·G) follows from Leibniz + impermeability BC, without
-    ! specifying any z-profile of w. When V_dot_G absent (default 0), reduces to
-    ! Definition B (free-slip plug, no z-divergence correction).
+    ! Q2D Definizione A (modello A, media in profondità consistente con le BC):
+    ! S_33 = -V·G rappresenta <∂w/∂z> dalla media in profondità dell'equazione di
+    ! continuità 3D sotto le ipotesi di impermeabilità + free-slip alle pareti
+    ! virtuali top/bot ((P2)-(P4) in docs/theory/area-variation-derivation.md).
+    ! L'identità formale <∂w/∂z> = -(V·G) segue da Leibniz + BC di impermeabilità,
+    ! senza specificare alcun profilo in z di w. Con V_dot_G assente (default 0)
+    ! si riduce alla Definizione B (profilo plug free-slip, nessuna correzione di
+    ! divergenza in z).
     implicit none
     real(R8), intent(in) :: Gradvel(2,2), r_ave, vr
     real(R8), intent(in), optional :: V_dot_G
@@ -513,9 +521,9 @@ contains
 
 
   pure function Strain_Tensor_Axi ( Gradvel, vr, r_ave, V_dot_G ) result ( E )
-    ! Axisymmetric variant: E(3,3) = vr/r_ave (theta-theta strain, with de l'Hopital
-    ! fallback at axis). V_dot_G optional accepted for interface uniformity but NOT
-    ! used in Axi.
+    ! Variante assialsimmetrica: E(3,3) = vr/r_ave (strain theta-theta, con fallback
+    ! de l'Hopital sull'asse). V_dot_G opzionale accettato per uniformità di
+    ! interfaccia ma NON usato in Axi.
     implicit none
     real(R8), intent(in) :: Gradvel(2,2), r_ave, vr
     real(R8), intent(in), optional :: V_dot_G
@@ -540,11 +548,11 @@ contains
 
 
   pure function V_dot_G_face_avg ( V_loc, V_neigh, G_loc, G_neigh ) result ( VG )
-    ! Canonical convention for V·G at the face (Q2D Def A).
-    ! Two-average approximation: ⟨V⟩_face · ⟨G⟩_face, with ⟨V⟩=½(V_loc+V_neigh) and idem G.
-    ! On a slip-symmetry BC (V_n_face=0 exactly), a cell-centered average would introduce
-    ! a spurious O(1) term V_n_loc·G_n_loc; this convention gives exactly
-    ! V_tan·G_tan (rigorous independently of h at the boundary).
+    ! Convenzione canonica per V·G alla faccia (Q2D Def A).
+    ! Approssimazione a due medie: ⟨V⟩_faccia · ⟨G⟩_faccia, con ⟨V⟩=½(V_loc+V_neigh) e idem G.
+    ! Su una BC di slip-simmetria (V_n_faccia=0 esatto), la media dei prodotti valutati al
+    ! centro cella introdurrebbe un termine spurio O(1) V_n_loc·G_n_loc; questa convenzione
+    ! dà esattamente V_tan·G_tan (rigorosa indipendentemente da h al contorno).
     implicit none
     real(R8), intent(in) :: V_loc(2), V_neigh(2), G_loc(2), G_neigh(2)
     real(R8) :: VG

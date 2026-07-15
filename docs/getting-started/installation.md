@@ -65,6 +65,7 @@ configuration used for the most recent `build` invocation.
 **Global options**
 
 * `-v`, `--verbose` — enable verbose logging.
+* `-h`, `--help` — print the usage summary and exit.
 
 **`build` command**
 
@@ -72,18 +73,19 @@ Performs a clean configure + build cycle.  Example usage:
 
 ```bash
 # minimal GNU build with OpenMP enabled
-./install.sh build --compiler=gnu --use-openmp
+./install.sh build --compilers=gnu --use-openmp
 
 # full configuration with Intel compilers and all optional features
-./install.sh build --compiler=intel \
+./install.sh build --compilers=intel \
                   --use-openmp --use-mpi \
                   --use-tecio --use-sundials --use-cantera
 ```
 
 Options accepted by `build`:
 
-* `--compiler=<gnu|intel>` — select the compiler family (default:
-  `gnu`).
+* `--compilers=<gnu|intel>` — select the compiler family.  If
+  omitted, no `FC`/`CC`/`CXX` exports are made and CMake auto-detects
+  the system compilers.
 * `--use-openmp` — enable OpenMP parallelisation.
 * `--use-mpi` — enable MPI parallelisation.
 * `--use-tecio` — enable TecIO support (requires a C++ compiler).
@@ -145,10 +147,11 @@ cmake .. \
 cmake --build . --parallel
 ```
 
-The resulting artefacts are placed in `build/` by default.  The
-static library is `lib/libQ2D.a` and the main executable is `bin/Q2D`
-(inside the build directory unless you set
-`CMAKE_INSTALL_PREFIX`).
+CMake build artefacts (objects, modules, the static `Q2DL` library)
+stay inside `build/`, but the main executable is emitted to the
+**repository-root** `bin/Q2D` (`src/app/CMakeLists.txt` sets
+`CMAKE_RUNTIME_OUTPUT_DIRECTORY` to `<source-root>/bin`) — this is
+the path the test drivers (`Q2D.sh`) expect.
 
 ## CMake presets
 
@@ -224,16 +227,17 @@ CMake variables such as `CMAKE_INSTALL_PREFIX` and by running
 ## Activate in-tree git hooks (recommended for contributors)
 
 After cloning, contributors should activate the in-tree hooks that
-enforce the No-$w$ principle and run the four sympy-based audit
-scripts before each push:
+enforce the No-$w$ principle and run the validation tests before
+each push:
 
 ```bash
 git config core.hooksPath .githooks
 ```
 
-The pre-commit hook runs the No-$w$ grep audit on staged sources;
-the pre-push hook runs the four scripts in `tools/audit/*.py` plus
-the CTest validation suite.  See [Testing](../development/testing.md#pre-push-hooks-and-audit-scripts).
+The pre-commit hook runs grep-based invariant checks (No-$w$
+principle, orphan TODO markers) on staged sources; the pre-push hook
+runs the CTest validation suite against the `build/` directory.  See
+[Testing](../development/testing.md#pre-push-hooks).
 
 ## Next steps
 

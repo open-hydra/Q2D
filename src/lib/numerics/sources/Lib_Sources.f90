@@ -1,9 +1,8 @@
 module Q2D_Lib_Sources
-  ! Q2D-extra: MOSE has no numerics/sources/.
-  ! Q2D-specific OO pattern (MOSE-style):
+  ! Pattern a oggetti per i termini sorgente:
   !   type, abstract :: SourceTerm + class(SourceTerm), allocatable :: source_realized
-  !   2 type extensions: AxisymmetricSource, AreaVariationSource
-  !   SourceArray container for polymorphic storage in Q2D_Mod_Sources.
+  !   2 estensioni di tipo: AxisymmetricSource, AreaVariationSource
+  !   container SourceArray per lo storage polimorfico in Q2D_Mod_Sources.
   use iso_fortran_env, only: I4 => int32, R8 => real64
   use Q2D_Advanced_Types_m, only: Q2D_domain_type
   implicit none
@@ -14,7 +13,7 @@ module Q2D_Lib_Sources
   public :: AreaVariationSource
   public :: SourceArray
 
-  ! Abstract base class
+  ! Classe base astratta
   type, abstract :: SourceTerm
   contains
     procedure(source_if), deferred, pass :: compute
@@ -28,7 +27,7 @@ module Q2D_Lib_Sources
     end subroutine source_if
   end interface
 
-  ! Type extensions
+  ! Estensioni di tipo
   type, extends(SourceTerm) :: AxisymmetricSource
   contains
     procedure, pass(this) :: compute => source_axisymmetric
@@ -39,7 +38,7 @@ module Q2D_Lib_Sources
     procedure, pass(this) :: compute => source_area_variation
   end type AreaVariationSource
 
-  ! Polymorphic container (wrapper for an array of class allocatable in Mod_Sources)
+  ! Container polimorfico (wrapper per un array di class allocatable in Mod_Sources)
   type :: SourceArray
     class(SourceTerm), allocatable :: source_realized
   end type SourceArray
@@ -53,7 +52,7 @@ contains
     implicit none
     class(AxisymmetricSource), intent(inout) :: this
     type(Q2D_domain_type),     intent(inout) :: domain
-    ! Local
+    ! Variabili locali
     integer :: b
 
     do b = 1, domain%nb
@@ -89,7 +88,7 @@ contains
     implicit none
     class(AreaVariationSource), intent(inout) :: this
     type(Q2D_domain_type),      intent(inout) :: domain
-    ! Local
+    ! Variabili locali
     integer :: b
 
     do b = 1, domain%nb

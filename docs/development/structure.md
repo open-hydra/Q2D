@@ -16,8 +16,6 @@ Q2D/
 ├── CMakePresets.json        # Developer presets (compilers, paths)
 ├── install.sh               # Build / compile / update helper
 ├── mkdocs.yml               # Documentation site configuration
-├── CLAUDE.md                # Five immutable laws + per-phase workflow
-├── piano_refactoring_Q2D.md # Authoritative refactoring plan
 │
 ├── src/
 │   ├── app/
@@ -33,7 +31,7 @@ Q2D/
 │       ├── numerics/        # Numerical methods
 │       │   ├── fluxes/      #   Mod_Fluxes (do/task dispatcher), Lib_Convective,
 │       │   │   ├── bc/      #     16 BC handlers (MOSE-form one-to-one)
-│       │   │   └── riemann/ #     12 Riemann solvers (MOSE-form one-to-one + Glaister 1988)
+│       │   │   └── riemann/ #     11 selectable Riemann solvers (MOSE-form one-to-one)
 │       │   ├── multigrid/   #   Mod_Multigrid, Lib_Multigrid
 │       │   ├── space/       #   Limiters (incl. LIMO3), Reconstruction,
 │       │   │                #     Metrics, Mod_Space, Lib_Ghost
@@ -45,7 +43,7 @@ Q2D/
 │       └── physics/         # Lib_Chemistry, Lib_GSI (incl. GSI_Paraffin),
 │                            #   Lib_Soot, Lib_RotatingFrame
 │           └── turbulence/  # Lib_Fluid, Mod_RANS, Lib_RANS, Lib_Spalart, Lib_SST,
-│                            #   Lib_Wilcox2006, Lib_QCR2000, Lib_SpalartShur
+│                            #   Lib_Wilcox2006, Lib_SSGLRR, Lib_QCR2000, Lib_SpalartShur
 │
 ├── lib/                     # External dependencies (git submodules)
 │   ├── FLINT/               # Thermochemistry library
@@ -55,16 +53,15 @@ Q2D/
 │       └── ExactPack/       # Exact Riemann solver (Python, for V&V)
 │
 ├── test/                    # Validation test suite
-│   ├── 1D/                  # 1-D shock tube cases (Sod79, Tor99, Ein91, Noh87)
-│   ├── 2D/                  # 2-D steady and unsteady cases
+│   ├── 1D/                  # 1-D shock tube cases (Sod79, Tor99, Ein91, Noh87,
+│   │                        #   ShuOsher-LIMO3)
+│   ├── 2D/                  # 2-D steady and unsteady cases (euler/, viscous/)
 │   └── common/              # Shared thermodynamic databases
 │
 ├── docs/                    # MkDocs documentation source
-│   └── review/              # Internal refactoring audit trail
-├── tools/                   # Audit + migration scripts
-│   ├── audit/               #   4 sympy-based audit scripts (cyl_ops, topology, ...)
-│   └── migrate_bc.py        #   Q2D legacy → MOSE BC code migration
-├── .githooks/               # pre-commit (No-w grep) + pre-push (audit + ctest)
+├── tools/                   # Helper scripts (gen_coarse_bc.py,
+│                            #   gen_riemann_exact.py, gen_noh_exact.py)
+├── .githooks/               # pre-commit (No-w grep) + pre-push (ctest)
 ├── cmake/                   # CMake modules (flags, OpenMP, etc.)
 ├── bin/                     # Built executable Q2D
 └── build/                   # Build artefacts
@@ -79,7 +76,7 @@ additions are:
 
 | Q2D addition | Description |
 |---|---|
-| `numerics/sources/` directory | Geometric source terms `Source_Axisymmetry` and `Source_Areavariation` for the axisymmetric and q2D area-variation regimes. |
+| `numerics/sources/` directory | Geometric source terms `Source_Axisymmetry` and `Source_Areavariation` for the axisymmetric and Q2D area-variation regimes. |
 | `Lib_BC_Fluxes_Inflow_Nozzle.f90` `BC_Nozzle_Borda_Flow` branch | Glaister 1988 generalised Riemann invariant for choked-nozzle inflow (Fievisohn 2016/2017). |
 | `io/IO_LineProbes.f90` | Line-sampling probes: 1D profiles along fixed-index lines. |
 | `numerics/fluxes/Mod_Fluxes.f90` `Assign_Fluxes('do' \| 'task')` | OMP runtime-selectable loop dispatcher; the `do` variant is the default. |
@@ -92,7 +89,7 @@ Two **strict reductions** apply across the entire codebase:
   block are i_min, i_max, j_min, j_max only.
 - **`Stress_t(3,3)` storage preserved** — the stress tensor is 3×3
   even in 2D, to carry the Definition A out-of-plane component
-  $S_{33} = -\mathbf{V}\!\cdot\!\mathbf{G}$ of the q2D area-variation
+  $S_{33} = -\mathbf{V}\!\cdot\!\mathbf{G}$ of the Q2D area-variation
   regime.  This is a required storage for that component, **not** a 3D
   leftover.
 
@@ -219,7 +216,7 @@ from a 4-point stencil:
    one of 6 flux limiters (5 standard TVD limiters + LIMO3).
 3. **Interface states** — left and right primitive-variable states
    at the face.
-4. **Riemann solver** — one of 12 selectable solvers (see
+4. **Riemann solver** — one of 11 selectable solvers (see
    [Riemann Solvers](../theory/riemann-solvers.md)).
 5. **Numerical flux** — result multiplied by the interface length
    vector (face length, not face area).
@@ -228,24 +225,27 @@ from a 4-point stencil:
 
 ## RANS Turbulence Models
 
-At run time `Assign_Setup` reads `turbulence_model` from the input
-file and binds the selected implementation to four procedure
-pointers in `Mod_RANS`: `Eddy_Viscosity`, `RANS_Diffusive_Flux`
-(12-argument signature), `Stress_Vector` (`_Std` or `_Axi`), and
-`RANS_Set_Wall_Values`.
+At run time the `[Q2D-Physics] turbulence` model string is parsed
+and the selected implementation is bound to procedure pointers in
+`Mod_RANS`: `Eddy_Viscosity`, `RANS_Diffusive_Flux`,
+`Stress_Vector` (`_Std` or `_Axi`), `RANS_Set_Wall_Values`, and the
+source/realizability hooks.
 
 | Key | Implementation | Description |
 |-----|---------------|-------------|
 | `SA` | `Lib_Spalart` | Baseline Spalart–Allmaras |
 | `SAcomp` | `Lib_Spalart` | + compressibility correction |
-| `SAR` | `Lib_Spalart` | + rotation correction |
+| `SA-R` | `Lib_Spalart` | + rotation correction |
 | `SA-RC` | `Lib_SpalartShur` | Rotation–curvature (Shur) correction |
 | `SST` | `Lib_SST` | Menter k-ω SST |
 | `Wilcox2006` | `Lib_Wilcox2006` | Wilcox k-ω (2006 revision) |
-| `QCR2000` | `Lib_QCR2000` | Quadratic constitutive correction |
+| `SSGLRR` | `Lib_SSGLRR` | SSG/LRR-ω Reynolds-stress model (4 stresses + ω) |
+| `SSGLRR-SD` | `Lib_SSGLRR` | SSG/LRR-ω with shock-detector diffusive flux |
 
-`SSGLRR` (Reynolds-stress closure) is **not supported** in Q2D
-(out-of-scope, reserved for a follow-up activity).
+Optional corrections are activated as **suffixes of the model
+string**, not separate INI keys: `-QCR2000` (quadratic constitutive
+relation, `Lib_QCR2000`; SA family only, e.g. `SA-QCR2000`) and
+`-blowcorr` (wall-blowing correction, e.g. `SST-blowcorr`).
 
 ---
 
@@ -253,36 +253,39 @@ pointers in `Mod_RANS`: `Eddy_Viscosity`, `RANS_Diffusive_Flux`
 
 The `IO_LineProbes` module provides periodic sampling of the solution
 along **fixed-index lines** (constant $i$ or constant $j$ in
-computational coordinates).  Each line probe records the full
-primitive state plus derived quantities at every cell along the
-line and writes to a dedicated text file.
+computational coordinates).  Each line probe records the requested
+variables at every cell along the line and writes to a dedicated
+Tecplot file.
 
 ### Configuration
 
-Line probes are declared in a numbered family of INI sections:
+Line probes are declared as numbered `lineprobeN = <name>` entries,
+each pointing to its own named section:
 
 ```ini
 [Q2D-LineProbes]
-nlineprobes = 2
-restart     = false           ; true to append, false to overwrite
+lineprobe1 = bl_x10
+lineprobe2 = radial_profile
+restart    = false            ; true to append, false to overwrite
 
-[Q2D-lineprobe-1]
-name      = bl_x10
-block     = 1
-direction = j_const           ; sample along constant-j line
-index     = 50                ; line at j = 50
-nprint    = 100               ; write every 100 iterations
+[bl_x10]
+variables      = rho(1) u v p T M
+diter          = 100          ; write every 100 iterations
+index-position = 1 1          ; block 1, direction 1 (i fixed, sample along j)
+fixed-index    = 50           ; wall-normal line at i = 50
 
-[Q2D-lineprobe-2]
-name      = radial_profile
-block     = 2
-direction = i_const
-index     = 1
-nprint    = 50
+[radial_profile]
+variables      = rho(1) u v p T
+diter          = 50
+index-position = 2 2          ; block 2, direction 2 (j fixed, sample along i)
+fixed-index    = 1
 ```
 
-Each probe writes to `OUTPUT/lineprobe_<name>.dat` with a header
-block followed by one ASCII row per cell.  The section prefix
+`index-position` takes the block index and the line direction
+(`1` = $i$ fixed, sample along $j$; `2` = $j$ fixed, sample along
+$i$); `fixed-index` is the constant index defining the line.  Both
+are mandatory.  Each probe writes to `OUTPUT/<name>.tec` (one
+Tecplot zone per output instant).  The section prefix
 follows the codename bootstrap convention described in
 [Input File](../user/input.md#section-namespacing).
 
@@ -363,6 +366,19 @@ Q2D_simulation_type
 |--------|------|-------------|
 | `Q2D_lib` | Static library | Core solver + all physics/numerics; links FLINT, ORION, FiNeR |
 | `Q2D` | Executable | Standalone solver (`src/app/main.f90`) |
+| `DocGen` | Executable | Registry documentation generator (`src/app/docgen.f90`) — regenerates `docs/user/registry.md` from the compiled parameter registry |
+
+### Dependency paths
+
+Submodule paths are set via CMake cache variables (falling back to the
+in-tree submodules; see the root `CMakeLists.txt`):
+
+| Variable | Default | Library |
+|----------|---------|---------|
+| `ORION_PATH` | `lib/ORION/` | ORION multi-format I/O |
+| `FLINT_PATH` | `lib/FLINT/` | FLINT thermochemistry (bundles OSLO ODE solvers under `lib/FLINT/lib/OSLO/`) |
+| `FINER_PATH` | `lib/third_party/FiNeR/` | FiNeR INI parser |
+| — | `lib/third_party/ExactPack/` | LANL ExactPack (analytic references for the offline `verify.py` studies; not linked into the solver) |
 
 ### Build workflow
 

@@ -156,7 +156,7 @@ The procedure-pointer interface in `Mod_RANS` requires four routines:
 
 When binding `Stress_Vector` for the new model, choose either
 `Stress_Vector_Std` (2D planar) or `Stress_Vector_Axi` (2D
-axisymmetric / q2D area-variation with optional Definition A
+axisymmetric / Q2D area-variation with optional Definition A
 `V_dot_G`) — see [Turbulence Modelling](../theory/turbulence.md#general-rans-features).
 
 ---
@@ -198,7 +198,7 @@ Before submitting a PR, please verify:
 - [ ] No `do k` indices, no `(:, :, 1)` slices, no `Nk` / `nz`
       references in the new code (the `.githooks/pre-commit` hook
       flags violations).
-- [ ] Existing tests pass (`test/test.sh`).
+- [ ] Existing tests pass (`ctest --test-dir build --output-on-failure`).
 - [ ] New functionality has at least one test case.
 - [ ] Documentation updated if user-facing behaviour changed
       (`docs/`, in English — mirror MOSE).

@@ -1,6 +1,6 @@
 """planar-nozzle 2D steady-state acceptance check (ctest).
 
-q2D area-variation converging-diverging nozzle, constant-gamma air (oblique-shock
+Q2D area-variation converging-diverging nozzle, constant-gamma air (oblique-shock
 thermo table, gamma=1.4). The out-of-plane thickness h(x)=Cross_Section plays the role
 of the quasi-1D area A(x): h-weighted continuity for y-uniform flow is d/dx(h*rho*u)=0,
 so the converged inviscid solution must match the analytic isentropic area-law (Shapiro).
@@ -18,6 +18,10 @@ import os
 import sys
 import math
 import numpy as np
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "common" / "pycheck"))
+from q2d_check_lib import fail, require_file, assert_positive, assert_finite
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 FIELD = os.path.join(HERE, "OUTPUT", "field.tec")
@@ -60,19 +64,15 @@ def parse_field(path):
     return (NI, 0.5*(xn[0, :-1]+xn[0, 1:]),
             m(rho), m(u), m(p), m(T), float(np.median(g)), float(np.median(R)))
 
-def fail(msg):
-    print(f"[planar-nozzle] FAIL: {msg}")
-    sys.exit(1)
-
-if not os.path.isfile(FIELD):
-    fail(f"missing {FIELD} (did ./Q2D.sh solve run?)")
+require_file(FIELD, "did ./Q2D.sh solve run?")
 
 NI, xc, rho, u, p, T, g, R = parse_field(FIELD)
 
-# positivity (hard)
-for nm, a in (("rho", rho), ("p", p), ("T", T)):
-    if np.min(a) <= 0.0:
-        fail(f"non-physical min({nm}) = {np.min(a):.3e}")
+# positivity (hard, NaN-safe via q2d_check_lib)
+assert_positive("rho", rho)
+assert_positive("p", p)
+assert_positive("T", T)
+assert_finite("u", u)
 
 M_q = u/np.sqrt(g*R*T)
 M_a = np.array([M_of_AR(area(x)/AT, g, x > XT) for x in xc])
@@ -95,5 +95,5 @@ if whole_max  > 1.5e-2: ok = False; print(f"  whole-domain max rel err {whole_ma
 if not ok:
     fail("Mach distribution does not match the quasi-1D area law within tolerance")
 
-print("[planar-nozzle] PASS (q2D area-variation matches quasi-1D area law within tolerance)")
+print("[planar-nozzle] PASS (Q2D area-variation matches quasi-1D area law within tolerance)")
 sys.exit(0)

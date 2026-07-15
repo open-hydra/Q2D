@@ -1,9 +1,9 @@
 module Q2D_Lib_BC_Fluxes_Symmetry
-  ! 2D reduction: 4 faces, no Km, Normal(2).
+  ! BC di simmetria (formulazione 2D: 4 facce, Normal(2)).
   !
-  ! Axis 2D-axi r→0: the reflection `Vel2 = Vel1 - 2(V·n)n` leaves ⟨V⟩·n = 0
-  ! exactly, so the canonical V·G_face convention uses ⟨V⟩·G_loc (no spurious
-  ! normal term even if G_n_face != 0).
+  ! Asse 2D-axi r→0: la riflessione `Vel2 = Vel1 - 2(V·n)n` lascia ⟨V⟩·n = 0
+  ! esatto, quindi la convenzione canonica per V·G di faccia usa ⟨V⟩·G_loc
+  ! (nessun termine normale spurio anche se G_n_face != 0).
   use iso_fortran_env,            only: I4 => int32, R8 => real64
   use Q2D_Advanced_Types_m,       only: Q2D_block_type
   use Q2D_Global_m,               only: nsc, nu, nv, np, nt, nprim, nRANS, model
@@ -26,16 +26,17 @@ contains
 
 
   subroutine BC_Symmetry_Eul ( Bm, Im, Jm, Fm, Blk )
-    ! For a stationary wall in a rotating
-    ! frame (non-cylindrical casing/shroud): computes
-    ! `Un_wall = (Ω × r_face) · Normal`, non-zero when the wall is not perfectly
-    ! cylindrical around the rotation axis → enters the Ghost_Prim mirror +
-    ! Riemann L/R state. For a cylindrical wall (default, including pure
-    ! symmetry): Un_wall = 0 → reverts to standard mirror.
+    ! Per una parete stazionaria in un sistema di riferimento rotante
+    ! (casing/shroud non cilindrico): calcola
+    ! `Un_wall = (Ω × r_face) · Normal`, non nullo quando la parete non è
+    ! perfettamente cilindrica attorno all'asse di rotazione → entra nel mirror
+    ! di Ghost_Prim e nello stato L/R del problema di Riemann. Per parete
+    ! cilindrica (default, inclusa la simmetria pura): Un_wall = 0 → mirror
+    ! standard.
     implicit none
     integer, intent(in) :: Bm, Im, Jm, Fm
     type(Q2D_block_type), intent(inout) :: Blk
-    ! Local
+    ! Locali
     integer :: modfm, modfm1, modfm2, modfm3, Int_i, Int_j, dir, Face_i, Face_j, s
     real(R8) :: Normal(2), int_l, Bound_Dl, Int_Dl, Un, Un_wall, Velt(2), Dist12, Dist23, Dist
     real(R8), dimension(nprim) :: Bound_Prim, Int_Prim, Ghost_Prim, Prim1, Prim3
@@ -58,9 +59,9 @@ contains
     Bound_Prim = Blk % P(:,Im,Jm)
     Int_Prim = Blk % P(:,Int_i,Int_j)
 
-    ! Normal velocity of wall face in rotating frame.
-    ! Hub rotating with frame OR pure symmetry plane: Un_wall = 0.
-    ! Stationary non-cylindrical casing/shroud: Un_wall = -(Ω × r_face) · n ≠ 0.
+    ! Velocità normale della faccia di parete nel sistema di riferimento rotante.
+    ! Hub rotante col riferimento O piano di pura simmetria: Un_wall = 0.
+    ! Casing/shroud stazionario non cilindrico: Un_wall = -(Ω × r_face) · n ≠ 0.
     Un_wall = 0.0_R8
     if ( obj_rot%enabled .and. RF_Is_Stationary_Face(Bm, Fm) ) then
       call RF_Face_Center ( Blk%node, Im, Jm, Fm, r_fc )
@@ -70,7 +71,7 @@ contains
     Un = dot_product ( Bound_Prim (nu:nv), Normal )
     Velt = Bound_Prim (nu:nv) - Un * Normal
 
-    ! Ghost cell mirror velocity.
+    ! Velocità mirror della cella ghost.
     Ghost_Prim = Bound_Prim
     if ( Un_wall /= 0.0_R8 ) then
       Ghost_Prim (nu:nv) = Ghost_Prim (nu:nv) - 2d0 * (Un - Un_wall) * Normal
@@ -98,9 +99,9 @@ contains
     Sound = f_ss ( Face_Prim(1:nsc), Face_Prim(np), rotot, Rtot )
     Un  = dot_product ( Face_Prim(nu:nv), Normal )
     Velt = ( Face_Prim(nu:nv) - Un*Normal )
-    ! Riemann L/R state construction with stationary-wall normal velocity shift.
-    ! Un_wall ≠ 0 → shift L+R by Un_wall*Normal; standard symmetric mirror
-    ! otherwise.
+    ! Costruzione dello stato L/R di Riemann con shift della velocità normale
+    ! per parete stazionaria: Un_wall ≠ 0 → shift di L e R di Un_wall*Normal;
+    ! mirror simmetrico standard altrimenti.
     if ( Un_wall /= 0.0_R8 ) then
       Un1 = (Un - Un_wall) * modFm2
       U1  =  Un_wall * Normal + Un1 * Normal + Velt
@@ -110,8 +111,7 @@ contains
       U1  =  Un1 * Normal + Velt
       U4  = -Un1 * Normal + Velt
     end if
-    ! beta = 1d0 (SD-coupled blending, full HLLC weight). Q2D legacy 0d0 was the
-    ! pre-SD default.
+    ! beta = 1d0: blending accoppiato allo schema SD, peso HLLC pieno.
     call Riemann ( Face_Prim(1:nsc), U1(1), U1(2), Face_Prim(np), Sound, rotot, &
                    Face_Prim(1:nsc), U4(1), U4(2), Face_Prim(np), Sound, rotot, &
                    1d0, Normal(1), Normal(2), F_r, F_u, F_v, F_e )
@@ -126,16 +126,16 @@ contains
 
 
   subroutine BC_Symmetry_Visc ( Im, Jm, Fm, Blk, RSM )
-    ! RSM (Reynolds-Stress-Model SSGLRR gating, passed from Mod_BC_Fluxes):
-    ! for RSM the in-plane Reynolds shear R12 is ODD across the symmetry line,
-    ! so it carries a non-zero GGDH diffusive flux that must enter the residual
-    ! (mirror MOSE Lib_BC_Fluxes_Symmetry `if (RSM)` block). SA/SST scalars are
-    ! even -> zero flux -> block skipped, identical to MOSE.
+    ! RSM (gating del modello agli sforzi di Reynolds SSGLRR, passato da
+    ! Mod_BC_Fluxes): per l'RSM lo sforzo di Reynolds nel piano R12 è DISPARI
+    ! attraverso la linea di simmetria, quindi porta un flusso diffusivo GGDH
+    ! non nullo che deve entrare nel residuo. Gli scalari SA/SST sono pari ->
+    ! flusso nullo -> blocco saltato.
     implicit none
     integer, intent(in) :: Im, Jm, Fm
     logical, intent(in) :: RSM
     type(Q2D_block_type), intent(inout) :: Blk
-    ! Local
+    ! Locali
     integer :: modfm, modfm1, modfm2, modfm3, dir, Face_i, Face_j, a, b, ig, jg
     real(R8) :: Normal(2), int_l, M(2,2), Prim(nprim), rho, Rgas, mil, mie
     real(R8) :: Prim_Wall(nprim), dist, Gradrij(nRANS,2)
@@ -194,8 +194,8 @@ contains
 
     Vel = 0.5d0 * ( Vel1 + Vel2 )
 
-    ! Q2D Def A: V·G at the symmetry face (r→0; canonical convention ⟨V⟩·G_loc —
-    ! V_n_face=0 exact for the reflection).
+    ! V·G alla faccia di simmetria (r→0; convenzione canonica ⟨V⟩·G_loc —
+    ! V_n_face=0 esatto per la riflessione).
     G_loc(1) = Blk%area_geom_term_x(Im,Jm)
     G_loc(2) = Blk%area_geom_term_y(Im,Jm)
     VG_face = V_dot_G_face_avg ( V_loc=Vel1, V_neigh=Vel2, G_loc=G_loc, G_neigh=G_loc )
@@ -215,10 +215,10 @@ contains
     Flux(nu:nv) = int_l * Stress
     Flux(np) = int_l * dot_product ( Vel, Stress )
 
-    ! Reynolds-stress diffusive flux at the symmetry plane (RSM only), mirror
-    ! MOSE Lib_BC_Fluxes_Symmetry: RSM_Symmetry sets the face value (R12=0) and
-    ! the odd ghost (-R12); the wall-normal gradient (Prim-Prim_Wall) feeds the
-    ! GGDH flux RANS_Diffusive_Flux, integrated into the RANS residual.
+    ! Flusso diffusivo degli sforzi di Reynolds al piano di simmetria (solo
+    ! RSM): RSM_Symmetry impone il valore di faccia (R12=0) e il ghost dispari
+    ! (-R12); il gradiente normale alla parete (Prim-Prim_Wall) alimenta il
+    ! flusso GGDH RANS_Diffusive_Flux, integrato nel residuo RANS.
     if ( RSM ) then
       Gradrij = 0d0
       ig = Im - guide(Fm,1)

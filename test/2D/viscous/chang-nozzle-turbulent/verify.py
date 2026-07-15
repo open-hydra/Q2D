@@ -5,7 +5,7 @@
 Mirror of the test-family standalone verify.py pattern (matplotlib, console
 gates, PNG figure). Code-verification evidence, NOT validation (no independent
 axi RSM reference exists; the model/term/discretisation correctness is
-established by tools/audit/{ssglrr_regime_reduction_sympy, ssglrr_term_level_
+established by {ssglrr_regime_reduction_sympy, ssglrr_term_level_
 check, mms_ssglrr_axi} — this script verifies the RUNNING case exercises the
 axi-RSM machinery and behaves physically):
 
@@ -25,6 +25,14 @@ axi-RSM machinery and behaves physically):
       turbulence) — the RSM discriminator vs the Boussinesq sibling.
 
 Run:  python3 verify.py   (after both kw/ and rsm/ have been solved)
+
+Exit semantics: every gate G1-G5 is HARD — any violation -> exit 1; exit 0
+only when all five gates ran and passed. Missing/empty required inputs
+({kw,rsm}/OUTPUT/residual-history.dat, {kw,rsm}/OUTPUT/field.tec) -> exit 1
+with an explicit FAIL message (never a silent pass). All parsed fields are
+NaN/Inf-guarded via the shared q2d_check_lib.assert_finite before the gates
+run. The PNG figure is the only optional artifact: it is best-effort and
+never affects the exit code.
 """
 import re
 import sys
@@ -32,24 +40,36 @@ from pathlib import Path
 
 import numpy as np
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "common" / "pycheck"))
+from q2d_check_lib import fail, require_file, assert_finite
+
 HERE = Path(__file__).resolve().parent
 C_MU = 0.09
 
 
 def read_field(case):
     p = HERE / case / "OUTPUT" / "field.tec"
+    require_file(p, "solver did not write the {0} field output".format(case))
     lines = p.read_text().splitlines()
     names = re.findall(r'"([^"]+)"', lines[0])
+    if len(lines) < 2:
+        fail("{0}: truncated (no ZONE record)".format(p))
     m = re.search(r"I\s*=\s*(\d+).*?J\s*=\s*(\d+)", lines[1])
+    if m is None:
+        fail("{0}: no I=/J= zone record (truncated output?)".format(p))
     ni, nj = int(m.group(1)), int(m.group(2))
     n_nodal, n_cc = ni * nj, (ni - 1) * (nj - 1)
     vals = []
     for ln in lines[2:]:
         vals.extend(float(t) for t in ln.split())
     out, o = {}, 0
+    if len(vals) < 2 * n_nodal + (len(names) - 2) * n_cc:
+        fail("{0}: {1} values parsed, expected {2} (truncated output?)".format(
+            p, len(vals), 2 * n_nodal + (len(names) - 2) * n_cc))
     for k, name in enumerate(names):
         n = n_nodal if k < 2 else n_cc
         a = np.array(vals[o:o + n]); o += n
+        assert_finite("{0} '{1}'".format(p, name), a)
         if k < 2:
             out[name] = a.reshape(nj, ni)
         else:
@@ -78,7 +98,12 @@ def main():
     # G1 convergence
     res = {}
     for case in ("kw", "rsm"):
-        h = np.loadtxt(HERE / case / "OUTPUT" / "residual-history.dat")
+        hp = HERE / case / "OUTPUT" / "residual-history.dat"
+        require_file(hp, "solver did not write the {0} residual history".format(case))
+        h = np.loadtxt(hp)
+        if h.ndim == 1:
+            h = h.reshape(1, -1)
+        assert_finite("{0} residual history".format(case), h)
         res[case] = h
         gate(f"G1 {case} converged", h[-1, 2] < 1e-8,
              f"iter {int(h[-1,0])}, density residual {h[-1,2]:.2e}")

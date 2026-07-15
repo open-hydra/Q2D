@@ -7,7 +7,7 @@
 #
 #   DESCRIPTION: Compile/run script for the planar-nozzle 2D steady-state test
 #                (Q2D_new). Q2D-specific: peculiarita' #2 area-variation source
-#                active=area_variation — q2D thickness h(x)=Cross_Section plays the
+#                active=area_variation — Q2D thickness h(x)=Cross_Section plays the
 #                role of the quasi-1D area A(x); the converged inviscid solution
 #                validates against the analytic isentropic area-law (Shapiro).
 #                Constant-gamma air (oblique-shock thermo table, gamma=1.4).
@@ -54,6 +54,7 @@ DIR=$(pwd)
 
 if [[ $1 == solve ]]; then
   mkdir -p OUTPUT bin
+  rm -f OUTPUT/*
   ulimit -s unlimited
   export KMP_STACKSIZE=100M
   export OMP_NUM_THREADS=$NTHREADS
@@ -61,7 +62,7 @@ if [[ $1 == solve ]]; then
     cp $MASTER $LOCAL
   fi
   if [[ $BG == 0 ]]; then
-    $LOCAL
+    $LOCAL || exit 1
   else
     $LOCAL 2>errors_file >logfile &
     echo $! > .ID

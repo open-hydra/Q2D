@@ -23,7 +23,7 @@ contains
     use Q2D_IO_BC,                only: Setup_BC
     use Q2D_Mod_Metrics,          only: Setup_Metrics
     use Q2D_IO_Probes,            only: Setup_Probes
-    use Q2D_IO_LineProbes,        only: Setup_LineProbes   ! Q2D-extra
+    use Q2D_IO_LineProbes,        only: Setup_LineProbes
     use Q2D_IO_Wall,              only: Initialize_Wall_File
     use Q2D_Lib_Ghost,            only: Fill_Ghost_Cell
     use Q2D_Mod_MPI,              only: mpi_is_root, partition_blocks
@@ -31,25 +31,25 @@ contains
     use Q2D_Mod_Diagnostic,       only: Print_Header, Check_Tables, Check_Input, &
                                         Check_IC, Check_BC, Print_Warnings, &
                                         Stop_Simulation, Print_Shell_Info
-    use Q2D_Mod_Sources,          only: Initialize_Sources  ! setup-time geometric sources
+    use Q2D_Mod_Sources,          only: Initialize_Sources  ! sorgenti geometriche (inizializzazione a setup)
     use Q2D_Lib_Source_Areavariation, only: Read_Block_Q2D_Area
     implicit none
     type(Q2D_simulation_type), intent(inout) :: simulation
-    ! Local
+    ! Locali
     integer :: m, ios
 
-    ! ---- Setup skeleton ----------------------------------------------------------
+    ! ---- Struttura del setup -------------------------------------------------------
     !
-    ! The bootstrap-file guard now lives in Q2D_Read_Inifile.
-    ! The Q2D-extra calls are homed as follows:
-    !   - Read_Block_Q2D_Area (area-var) → read ONCE on domain(1) below
-    !     (post-Setup_Data_Structure / pre-Setup_Multigrid); fine→coarse
-    !     restriction via Coarse_Cross_Section in Setup_Multigrid.
-    !   - Precompute_Area_Geometry (area-var) → Q2D_Lib_Source_Areavariation +
-    !     hook in Setup_Metrics.
-    !   - Precompute_Axisymmetric_Geometry (axisymmetric) →
-    !     Q2D_Lib_Source_Axisymmetry + hook in Setup_Metrics.
-    !   - Setup_LineProbes (LineProbes) → Q2D_IO_LineProbes::Setup_LineProbes.
+    ! Il guard sul file di bootstrap risiede in Q2D_Read_Inifile.
+    ! Collocazione delle inizializzazioni delle sorgenti geometriche e delle probe:
+    !   - Read_Block_Q2D_Area (area-variation) → lettura UNICA su domain(1) più
+    !     sotto (dopo Setup_Data_Structure, prima di Setup_Multigrid); la
+    !     restrizione fine→coarse avviene via Coarse_Cross_Section in Setup_Multigrid.
+    !   - Precompute_Area_Geometry (area-variation) → Q2D_Lib_Source_Areavariation,
+    !     invocata dall'hook in Setup_Metrics.
+    !   - Precompute_Axisymmetric_Geometry (assialsimmetria) →
+    !     Q2D_Lib_Source_Axisymmetry, invocata dall'hook in Setup_Metrics.
+    !   - Setup_LineProbes (line-probes) → Q2D_IO_LineProbes::Setup_LineProbes.
 
     if (mpi_is_root) call Print_Header()
 
@@ -58,11 +58,11 @@ contains
     if (mpi_is_root) call Check_Tables()
 
     call Read_Inifile()
-    if (obj_sim_param%TODO == 3) return   ! bootstrap guard fired in Read_Inifile (no input.ini)
+    if (obj_sim_param%TODO == 3) return   ! guard di bootstrap scattato in Read_Inifile (input.ini assente)
     if (mpi_is_root) call Check_Input()
 
-    ! Bind the Q2D-extra dispatcher (axisymmetry / area-variation) after the INI
-    ! parse, before Allocate.
+    ! Aggancia il dispatcher delle sorgenti geometriche (assialsimmetria /
+    ! area-variation) dopo il parse dell'INI e prima delle allocazioni.
     call Initialize_Sources()
 
     allocate(simulation%domain (obj_multigrid%MGL))
@@ -77,9 +77,9 @@ contains
     call Setup_Data_Structure(simulation%domain(1), simulation%IOfield(1))
     allocate(obj_sim_param%residuotot(nres))
 
-    ! area_variation: read Cross_Section ONCE on the fine mesh (domain(1)); the
-    ! fine→coarse restriction is done in Setup_Multigrid via Coarse_Cross_Section
-    ! (R1 sub-sampling).
+    ! area_variation: Cross_Section letta UNA sola volta sulla mesh fine
+    ! (domain(1)); la restrizione fine→coarse avviene in Setup_Multigrid via
+    ! Coarse_Cross_Section (sotto-campionamento R1).
     if (obj_source%area_variation) call Read_Block_Q2D_Area(simulation%domain(1))
 
     if (obj_multigrid%MGL > 1) call Setup_Multigrid(simulation)
@@ -103,7 +103,6 @@ contains
     end do
 
     call Setup_Probes(simulation%domain(1), obj_sim_param%newrun)
-    ! Line-probes (Q2D-extra).
     call Setup_LineProbes(simulation%domain(1))
     call Setup_Output_Solution(simulation%IOfield)
 

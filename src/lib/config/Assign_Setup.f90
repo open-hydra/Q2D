@@ -24,7 +24,7 @@ contains
     use Q2D_Lib_RotatingFrame, only: Setup_RotatingFrame
     implicit none
 
-    ! Setting simulation type
+    ! Set the simulation type
     if (obj_sim_param%simulation_type=='euler') then
       model = 0
     elseif (obj_sim_param%simulation_type=='navier-stokes') then
@@ -36,15 +36,15 @@ contains
       end if
     endif
 
-    ! Setting input solution
+    ! Set up the input solution
     call Setup_Input_Solution()
 
     ! Space
     call Setup_Space_Scheme()
     call Assign_Riemann_Solver()
-    ! Q2D-extra OMP dispatcher: assigns the `Fluxes` procedure pointer to
-    ! Fluxes_omp_do or Fluxes_omp_task according to obj_time_scheme%omp_strategy
-    ! ('do' default, 'task' Q2D-extra block-level + intra-block taskloop).
+    ! OMP dispatcher: assigns the procedure pointer `Fluxes` to Fluxes_omp_do or
+    ! Fluxes_omp_task according to obj_time_scheme%omp_strategy ('do' default;
+    ! 'task' uses block-level parallelism + intra-block taskloop).
     call Assign_Fluxes( obj_time_scheme%omp_strategy )
     if ( obj_riemann%SD .or. obj_space_scheme%SD) then
       obj_shock_detector%SD = .true.
@@ -61,23 +61,23 @@ contains
     if (obj_irs%beta>0d0) obj_irs%enabled = .true.
     call Assign_Integration_Variables()
 
-    ! Assign Chemistry
+    ! Chemistry assignment.
     ! Setup_Chemistry must precede Setup_Strang_Splitting because it sets
     ! obj_chemistry%use_strang from obj_chemistry%model (cf. Lib_Strang).
     call Setup_Chemistry()
     call Setup_Strang_Splitting()
 
-    ! Assign soot model.
+    ! Soot model assignment.
     call Setup_Soot()
 
-    ! Assign RANS model.
-    ! Wired after Setup_Chemistry/Setup_Strang_Splitting for a consistent
+    ! RANS model assignment.
+    ! Called after Setup_Chemistry/Setup_Strang_Splitting to keep a consistent
     ! setup ordering.
     call Setup_RANS_Model()
 
-    ! Assign Rotating frame. Ordering: after Setup_RANS_Model.
-    ! Setup_RotatingFrame applies a dual-check (axisymmetric=.false. + axis=[0,0,1]);
-    ! RotatingFrame 2D-axi is out of scope.
+    ! Rotating-frame assignment. Order: after Setup_RANS_Model.
+    ! Setup_RotatingFrame applies a double check (axisymmetric=.false. + axis=[0,0,1]);
+    ! the rotating frame in 2D axisymmetric mode is not supported.
     call Setup_RotatingFrame()
 
     !! Descriptions, warnings and errors
@@ -110,7 +110,7 @@ contains
         obj_riemann%error_message = '[ERROR] AUSM+-up solver selected. Minf must be defined in input.'
       end if
     endif
-    ! Transport
+    ! Transport properties
     if (model>0 .and. obj_transport%description=='Unavailable') &
     write(*,'(A)') '[ERROR] Transport properties are unavailable for the selected phase: cannot run Navier-Stokes simulation'
 

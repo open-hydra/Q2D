@@ -7,8 +7,15 @@ theory.  Verification is performed by comparison with the exact
 Blasius solution for skin-friction coefficient and velocity profiles.
 
 **Reference:** Blasius similarity solution for the laminar boundary
-layer over a flat plate (see _e.g._ Anderson, _Introduction to
-Flight_, McGraw-Hill).
+layer over a flat plate; the tabulated $f'(\eta)$ profile enforced by
+`check.py` is per Howarth (1938) [1], with the theory as in
+Schlichting [2] — see the References below.
+
+**Feature exercised:** laminar Navier–Stokes (viscous fluxes, no
+turbulence model) in the 2D-plane regime; no-slip adiabatic wall +
+symmetry leading edge; analytical-only acceptance (Blasius/Howarth
+table, no external-code reference); heavy-tier ctest
+(`./Q2D.sh -p 20 solve`, 20 OpenMP threads, label `heavy`).
 
 
 
@@ -49,9 +56,9 @@ source.
 |---|---|
 | Mach number | 0.2 |
 | Temperature | 300 K |
-| Pressure | 0.97250 Pa |
-| Viscosity | 1.0 × 10⁻³ Pa·s |
-| Re/m | 80.65 m⁻¹ |
+| Pressure | 97 250 Pa (`input.ini` / `INPUT/bc.txt`) |
+| Viscosity | 1.0 × 10⁻³ Pa·s (`mil` in `input.ini`) |
+| Re/m | ρ∞U∞/μ ≈ 7.84 × 10⁴ m⁻¹ |
 
 ## Numerical setup
 
@@ -77,6 +84,20 @@ Boundary conditions:
 - **Adiabatic wall** ($x \ge 0$): no-slip, no-heat-flux.
 - **Symmetry** ($x < 0$): symmetry boundary condition upstream.
 - **Outlets:** atmospheric ambient conditions.
+
+## Acceptance gates (`check.py`, ctest `flat-plate-laminar`)
+
+The ctest gate (heavy tier) enforces, after `./Q2D.sh -p 20 solve`:
+
+| Gate | Threshold | Notes |
+|---|---|---|
+| Solver outputs present, finite (NaN/Inf scan) | hard fail | missing output = FAIL, never skip |
+| $u/U_\infty$ profile vs Blasius (Howarth 1938 table) at $x \approx 0.15$ m | max pointwise error $\le$ **0.15** over $\eta \in [0.5, 4.5]$ | measured 0.115 on the committed coarse grid; 0.15 is the NASA TMR coarse-grid acceptance (a $\pm 5\%$ gate requires a much finer grid) |
+| Profile-point coverage | $\ge 1$ point in the $\eta$ window | anti-vacuous-pass guard |
+
+The viscosity is read from the committed `INPUT/transport.dat` (no
+hard-coded $\mu$; the historical mu-source bug that motivated the
+tolerance revision is documented in the script).
 
 ## Results and verification
 
@@ -105,3 +126,11 @@ the Blasius similarity coordinate $\eta$ at $x = 0.29$ m:
 The numerical velocity profile shows excellent collapse onto the
 Blasius self-similar solution, confirming that the boundary layer
 develops according to classical theory.
+
+## References
+
+1. L. Howarth, "On the solution of the laminar boundary layer
+   equations," *Proc. R. Soc. Lond. A*, 164(919), 1938, 547–579
+   (tabulated Blasius profile used by `check.py`).
+2. H. Schlichting, *Boundary-Layer Theory*, 7th ed., McGraw-Hill,
+   1979, ch. 7.

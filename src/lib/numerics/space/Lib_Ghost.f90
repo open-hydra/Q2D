@@ -9,7 +9,7 @@ module Q2D_Lib_Ghost
 
   public :: Fill_Ghost_Cell
   public :: Ghost_Wall_Extrapolation
-  public :: Is_Wall   ! relocated from Q2D_Lib_Metrics.
+  public :: Is_Wall   ! single definition; Q2D_Lib_Metrics imports it from here.
 
 contains
 
@@ -21,37 +21,37 @@ contains
                                      Ghost_Interrank, exchange_ghost_Pg, ghost_sched
     implicit none
     type(Q2D_domain_type), intent(inout) :: domain
-    ! Local
+    ! Locals
     integer :: ii, i, Bm, Im, Jm, Fm, Bs, Is, Js, Fs, d11s, d12s, d21s, d22s
     integer :: fg
 
-    ! 2D-reduced: 4 faces, no Km/Ks.
-    ! MPI exchange interleaved with local computation: pack/post send during
-    ! local processing, then wait/unpack inter-rank entries.
+    ! 2D formulation: 4 faces per block, no Km/Ks indices.
+    ! MPI exchange overlapped with local computation: pack/post sends during
+    ! local processing, then wait/unpack of the inter-rank entries.
     !
-    ! NB: this routine does NOT open `!$omp parallel`. The parallel region is
-    ! opened by the callers (Mod_Explicit in the main loop, Wrap_Setup
-    ! single-threaded setup context); the inner `!$omp single`/`!$omp do` act as
-    ! sequential no-ops when called outside an `!$omp parallel`.
+    ! NB: this routine does NOT open an `!$omp parallel`. The parallel region is
+    ! opened by the callers (Mod_Explicit in the main loop, Wrap_Setup in the
+    ! single-threaded setup context); the inner `!$omp single`/`!$omp do`
+    ! degrade to sequential no-ops when invoked outside an `!$omp parallel`.
 
-    ! MPI: post persistent receives, pack buffer in parallel, then post sends
+    ! MPI: post the persistent receives, pack the buffer in parallel, then post the sends
     !$omp single
     call exchange_ghost_P_post_recv(domain)
     !$omp end single
 
-    ! Pack send buffer in parallel over face groups
+    ! Pack the send buffer in parallel over the face groups
     !$omp do schedule(static) private(fg)
     do fg = 1, ghost_sched%n_send_faces
       call exchange_ghost_P_pack(domain, fg, fg)
     end do
 
-    ! Post sends (must wait for all packing to complete — implicit barrier from !$omp do)
+    ! Post the sends (requires all packing to be complete — implicit barrier of the !$omp do)
     !$omp single
     call exchange_ghost_P_post_send(domain)
     !$omp end single nowait
 
-    ! Process LOCAL BC entries while MPI communication is in flight.
-    ! Uses pre-filtered local_bc_idx to avoid scanning all nbound entries.
+    ! Process the LOCAL BC entries while the MPI communication is in flight.
+    ! Uses the pre-filtered index local_bc_idx to avoid scanning all nbound entries.
     !$omp do schedule(dynamic) private(ii, i, Bm, Im, Jm, Fm, Bs, Is, Js, Fs)
     do ii = 1, domain%n_local_bc
       i  = domain%local_bc_idx(ii)
@@ -60,9 +60,9 @@ contains
       Jm = domain%bc(i)%j
       Fm = domain%bc(i)%f
       select case (domain%bc(i)%type)
-        case(101, 201) ! block connection (101) + translational/rotational periodic (201)
+        case(101, 201) ! block-to-block connection (101) + translational/rotational periodicity (201)
           Bs = domain%bc(i)%bs
-          if (.not. is_local_block(Bs)) cycle  ! inter-rank handled after MPI completes
+          if (.not. is_local_block(Bs)) cycle  ! inter-rank entries are processed after the MPI exchange completes
           Is = domain%bc(i)%is
           Js = domain%bc(i)%js
           Fs = domain%bc(i)%fs
@@ -75,13 +75,13 @@ contains
           call Ghost_ZG_Extrapolate ( Im, Jm, Fm, domain%blk(Bm) )
         case(102) ! chimera
           call Ghost_Chimera ( domain%nb, domain%blk, domain%bc(i) )
-        case default ! 2nd order extrapolation
+        case default ! 2nd-order extrapolation
           call Ghost_Extrapolate ( Im, Jm, Fm, domain%blk(Bm) )
       end select
     end do
 
-    ! Compute Pg(:,3:4) for type-1 connections where source block is local.
-    ! This only reads local blk%P data, so it can run before the MPI exchange.
+    ! Compute Pg(:,3:4) for type-1 connections with a local source block.
+    ! Reads only local blk%P data, so it can run before MPI completion.
     !$omp do schedule(dynamic) private(ii, i, Bs, Is, Js, Fs, d11s, d12s, d21s, d22s)
     do ii = 1, domain%n_local_bs
       i    = domain%local_bs_idx(ii)
@@ -97,7 +97,7 @@ contains
                                       domain%blk(Bs), domain%bc(i)%Pg )
     end do
 
-    ! Compute Pg for chimera (102) connections where Bm is local.
+    ! Compute Pg for chimera connections (102) with local Bm.
     !$omp do schedule(dynamic) private(ii, i, Bm, Im, Jm, Fm)
     do ii = 1, domain%n_local_bc
       i  = domain%local_bc_idx(ii)
@@ -111,17 +111,17 @@ contains
       end select
     end do
 
-    ! MPI: wait for P receives to complete
+    ! MPI: wait for completion of the P receives
     !$omp single
     call exchange_ghost_P_wait_unpack(domain)
     !$omp end single
 
-    ! Process INTER-RANK type-1 entries (Bm local, Bs remote).
-    ! Ghost_Interrank fills Pg(:,1:gc) ghost layer using P data received via MPI.
+    ! Process the INTER-RANK type-1 entries (local Bm, remote Bs).
+    ! Ghost_Interrank fills the ghost layer Pg(:,1:gc) with the P data received via MPI.
     !$omp do schedule(dynamic) private(ii, i, Bm, Im, Jm, Fm, Bs)
     do ii = 1, domain%n_local_bc
       i  = domain%local_bc_idx(ii)
-      if (domain%bc(i)%type /= 101 .and. domain%bc(i)%type /= 201) cycle  ! 201 cross-rank halo = pure copy like 101 (§1 div.)
+      if (domain%bc(i)%type /= 101 .and. domain%bc(i)%type /= 201) cycle  ! inter-rank 201 halo = plain copy, same as a 101
       Bs = domain%bc(i)%bs
       if (is_local_block(Bs)) cycle  ! already processed above
       Bm = domain%bc(i)%b
@@ -131,7 +131,7 @@ contains
       call Ghost_Interrank(Im, Jm, Fm, domain%blk(Bm), domain%bc(i)%Pg)
     end do
 
-    ! Wait for P sends to complete before reusing buffers; exchange Pg(:,3:4) stencil.
+    ! Wait for the P sends to complete before reusing the buffers; exchange the Pg(:,3:4) stencil.
     !$omp single
     call exchange_ghost_P_wait_send(domain)
     call exchange_ghost_Pg(domain)
@@ -146,7 +146,7 @@ contains
     type(Q2D_block_type), intent(in)    :: blks
     type(Q2D_block_type), intent(inout) :: blkm
     real(R8),             intent(inout) :: Pg(:,:)
-    ! Local
+    ! Locals
     integer :: g, Ig, Jg
 
     do g = 1, gc
@@ -164,7 +164,7 @@ contains
     implicit none
     integer,              intent(in)    :: Im, Jm, Fm
     type(Q2D_block_type), intent(inout) :: blk
-    ! Local
+    ! Locals
     integer  :: Ig, Jg, Ic, Jc
     real(R8) :: normal(2), vel(2), udotn
 
@@ -187,11 +187,11 @@ contains
     blk%P(1:nsc,    Ig, Jg) = blk%P(1:nsc,    Im, Jm)
     blk%P(np:nprim, Ig, Jg) = blk%P(np:nprim, Im, Jm)
 
-    ! RSM (SSGLRR): np:nprim stays zero-gradient here, mirroring MOSE
-    ! Ghost_Symmetry. The odd in-plane shear R12 ghost (-R12) is set in the
-    ! viscous BC flux Lib_BC_Fluxes_Symmetry::BC_Symmetry_Visc (RSM_Symmetry),
-    ! where the symmetry Reynolds-stress diffusive flux is also assembled —
-    ! canonical MOSE placement (setting it here too would diverge from MOSE).
+    ! RSM (SSGLRR): the np:nprim band stays zero-gradient here. The odd ghost
+    ! value of the in-plane shear stress R12 (-R12) is imposed in the viscous
+    ! BC flux Lib_BC_Fluxes_Symmetry::BC_Symmetry_Visc (RSM_Symmetry), where
+    ! the diffusive flux of the Reynolds stresses at the symmetry plane is also
+    ! assembled; imposing it here as well would duplicate it.
 
   end subroutine Ghost_Symmetry
 
@@ -200,7 +200,7 @@ contains
     implicit none
     integer,              intent(in)    :: Im, Jm, Fm
     type(Q2D_block_type), intent(inout) :: blk
-    ! Local
+    ! Locals
     integer :: g
 
     do g = 1, gc
@@ -225,7 +225,7 @@ contains
     integer,              intent(in)    :: nb
     type(Q2D_block_type), intent(inout) :: blk(nb)
     type(Q2D_bc_type),    intent(inout) :: bc
-    ! Local
+    ! Locals
     integer  :: Bm, Im, Jm, Fm, Ig, Jg, Ig2, Jg2, Bs, Is, Js, c
     real(R8) :: rho, Rgas, temperature, consi(nprim), consg(nprim)
 
@@ -271,7 +271,7 @@ contains
     implicit none
     integer,              intent(in)    :: Im, Jm, Fm
     type(Q2D_block_type), intent(inout) :: blk
-    ! Local
+    ! Locals
     integer :: g
 
     ! 2nd-order Taylor extrapolation: x4 = 3*x3 - 3*x2 + x1.
@@ -304,7 +304,7 @@ contains
     integer,              intent(in)    :: Is, Js, Fs, d11s, d12s, d21s, d22s
     type(Q2D_block_type), intent(in)    :: blks
     real(R8),             intent(inout) :: Pg(:,:)
-    ! Local
+    ! Locals
     integer :: i1, j1, i2, j2
 
     select case (Fs)
@@ -331,7 +331,7 @@ contains
     integer,              intent(in)    :: Im, Jm, Fm
     type(Q2D_block_type), intent(inout) :: blk
     real(R8),             intent(inout) :: Pg(:,:)
-    ! Local
+    ! Locals
     integer :: i1, j1, i2, j2
     integer :: dim2(2), Ig, Jg
 
@@ -364,16 +364,16 @@ contains
 
 
   subroutine Ghost_Wall_Extrapolation ( domain )
-    ! 2D-reduced (drop km/kg/nw). MPI: iterates only over local BC via
+    ! 2D formulation (i,j indices only). MPI: iterates only over the local BCs via
     ! domain%n_local_bc / domain%local_bc_idx (populated by build_local_bc_index).
     implicit none
     type(Q2D_domain_type), intent(inout) :: domain
-    ! Local
+    ! Locals
     integer :: ii, i, ig, jg
     integer :: bm, im, jm, fm
 
     !$omp do private(ii, i, bm, im, jm, fm, ig, jg)
-    ! BC array processing — iterate only over local BC entries
+    ! Scan the BC array — local entries only
     do ii = 1, domain%n_local_bc
       i = domain%local_bc_idx(ii)
       bm = domain%bc(i)%b
@@ -384,11 +384,12 @@ contains
       jg = jm - guide(fm,2)
 
       if ( Is_Wall(domain%bc(i)%type) ) then
-        ! Invert velocity; copy species + pressure + scalar tail (soot/passive/RANS) by
-        ! zero-gradient, mirroring MOSE P(np:nprim). The RANS sub-band nt:nprim is then
-        ! overwritten by RANS_Extrapolate_Wall in the wall BC routines (as in MOSE); the
-        ! soot/passive sub-band np+1:nt-1 is set ONLY here — copying only P(np) (the
-        ! pre-Sess-35 form) left it stale when nsoot/npass>0 (Q2D-only porting loss).
+        ! Reversed velocity (no-slip); species, pressure and the tail of the transported
+        ! scalars (soot/passive/RANS, band np:nprim) copied with zero gradient. The RANS
+        ! sub-band nt:nprim is later overwritten by RANS_Extrapolate_Wall in the wall BC
+        ! routines; the soot/passive sub-band np+1:nt-1 is set ONLY here, so the copy
+        ! must cover the whole np:nprim band: copying P(np) alone would leave it
+        ! stale when nsoot/npass>0.
         domain%blk(bm)%P(nu:nv,    ig, jg) = -domain%blk(bm)%P(nu:nv,    im, jm)
         domain%blk(bm)%P(1:nsc,    ig, jg) =  domain%blk(bm)%P(1:nsc,    im, jm)
         domain%blk(bm)%P(np:nprim, ig, jg) =  domain%blk(bm)%P(np:nprim, im, jm)
@@ -398,7 +399,7 @@ contains
   end subroutine Ghost_Wall_Extrapolation
 
 
-  ! Wall BC type test (single definition; Q2D_Lib_Metrics imports from here).
+  ! Test for wall BC types (single definition; Q2D_Lib_Metrics imports it from here).
   pure function Is_Wall(type) result(ans)
     implicit none
     integer, intent(in) :: type

@@ -1,15 +1,14 @@
 module Q2D_Lib_BC_Fluxes_FarField
-  ! BC 407 ambient T0+p0+pback with a
-  ! Riemann-based dispatch on the sign of the normal velocity (inflow
-  ! Stagn_Inflow vs outflow back-pressure).
+  ! BC 407, ambient condition T0+p0+pback: dispatch based on the sign of the
+  ! normal velocity (inflow → Stagn_Inflow; outflow → back pressure).
   !
-  ! Rigid 2D reduction (No-w principle):
-  !   * drop Km argument; drop beta usage in the Stagn_Inflow call (Q2D
-  !     Stagn_Inflow 17-args vs the 3D peer's 18-args, beta dropped).
-  !   * Normal(2), t_Vec(2), Bound_Prim(nprim) with velocity nu:nv only.
-  !   * Area→int_l rename.
-  !   * rank-3 residual.
-  !   * RF_Convert_BC_Inflow Q2D-form 11-args (no Km, no beta).
+  ! Strict 2D reduction (no out-of-plane component w):
+  !   * no Km metric; the Stagn_Inflow call does not receive the out-of-plane
+  !     elevation angle beta.
+  !   * Normal(2), t_Vec(2), Bound_Prim(nprim) with only the in-plane velocity nu:nv.
+  !   * the face measure is int_l.
+  !   * rank-3 residual (variable, i, j).
+  !   * RF_Convert_BC_Inflow with 11 arguments (no Km, no beta).
   use iso_fortran_env,            only: I4 => int32, R8 => real64
   use Q2D_Advanced_Types_m,       only: Q2D_block_type
   use Q2D_Global_m,               only: nsc, nu, nv, np, nt, nprim
@@ -24,8 +23,8 @@ contains
 
 
   !─────────────────────────────────────────────────────────────────────────────
-  ! BC 407: Ambient BC — T0 + p0 (inflow) or back pressure BC_pback (outflow).
-  ! Flow direction is determined from the interior velocity field.
+  ! BC 407: ambient condition — T0 + p0 (inflow) or back pressure BC_pback (outflow).
+  ! The flow direction is determined by the interior velocity field.
   subroutine BC_FarField ( Bm, Im, Jm, Fm, Blk, BC_T0, BC_p0, BC_pback, &
                             BC_rel_fac, BC_alpha, BC_beta, BC_ci, BC_RANS, BC_mdot )
     use Q2D_Config_Types_m,        only: obj_rot
@@ -39,7 +38,7 @@ contains
     real(R8), intent(in)    :: BC_T0, BC_p0, BC_pback, BC_rel_fac, BC_alpha, BC_beta
     real(R8), intent(in)    :: BC_ci(nsc), BC_RANS(1:)
     real(R8), intent(out)   :: BC_mdot
-    ! Local
+    ! Local variables
     integer  :: modfm, modfm1, modfm2, modfm3, Int_i, Int_j
     real(R8) :: Normal(2), int_l, t_Vec(2), BC_Sign
     real(R8) :: Bound_Prim(nprim), Int_Prim(nprim)
@@ -47,10 +46,11 @@ contains
     real(R8) :: T0_loc, p0_loc, Mach_loc, alpha_loc, Face_Rgas_loc
     real(R8) :: Flux(nprim)
 
-    ! NB: BC_beta `intent(in)` unused in the body — the No-w principle drops the
-    ! out-of-plane elevation angle. The argument is preserved for signature
-    ! alignment. ifx remark #7712 (unused intent(in)) is accepted (cf. the
-    ! Lib_BC_Fluxes_Rotational Symmetry_Eul stub, same pattern).
+    ! NB: BC_beta `intent(in)` is not used in the body — the 2D reduction
+    ! removes the out-of-plane elevation angle. The argument is kept for
+    ! signature uniformity. The ifx remark #7712 (unused intent(in)) is
+    ! accepted (cf. the Symmetry_Eul stub in Lib_BC_Fluxes_Rotational, same
+    ! pattern).
 
     call Setup_Inflow_Geometry ( Blk, Im, Jm, Fm, modfm, modfm1, modfm2, modfm3, &
                                   Int_i, Int_j, Normal, int_l, t_Vec, BC_Sign,    &
@@ -65,10 +65,10 @@ contains
     Flux = 0d0
 
     if (BC_Sign * Un >= 0d0) then
-      ! Outflow: apply back-pressure outlet treatment (Q2D Outflow kernel takes BC_rel_fac).
+      ! Outflow: exit treatment with back pressure (the Outflow kernel receives BC_rel_fac).
       call Outflow ( Bound_Prim, BC_Sign, Un, Normal, int_l, BC_pback, BC_rel_fac, Flux, BC_mdot )
     else
-      ! Inflow
+      ! Inflow: inlet at stagnation conditions
       if (obj_rot%enabled) then
         Face_Rgas_loc = f_Rtot(BC_ci)
         call RF_Convert_BC_Inflow ( Blk=Blk, Fm=Fm, Im=Im, Jm=Jm,                &

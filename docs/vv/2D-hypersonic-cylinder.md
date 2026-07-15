@@ -9,15 +9,37 @@ valuable for validating Riemann-solver behaviour in high-speed flows
 known to be prone to the generation of numerical instabilities such
 as carbuncle phenomena.
 
-**Reference:** normal shock relations (_e.g._ Anderson, _Modern
-Compressible Flow_, McGraw-Hill).
+**Reference:** normal shock relations (Anderson [1]) and the
+Billig (1967) bow-shock standoff correlation [2] — see the
+References below.
+
+**Feature exercised:** 2D-plane Euler on an O-grid (wall at j=0,
+farfield at j=jmax); carbuncle-prone M=8.1 bow shock captured with
+the carbuncle-stable HLLE solver; no geometric source
+(`[Q2D-Sources]` omitted).
 
 !!! success "V&V status"
 
-    Wired into CTest as `hypersonic-cylinder` and passes on the default
-    mesh.  Numerical solution is cross-checked against MOSE and shows
-    agreement to 7e-13 (relative L∞ error).  Riemann-solver comparison tables
-    are generated against the analytical normal-shock solution.
+    Wired into CTest as `hypersonic-cylinder` and passes on the
+    default mesh.  `check.py` gates (all hard, NaN-safe;
+    min(ρ), min(p), min(T) > 0):
+
+    1. **Normal-shock + isentropic-stagnation theory** at the
+       stagnation-line probe (M₁ = 8.1, γ = 1.4): total pressure p₀
+       within **5 %** and total temperature T₀ within **1 %** of the
+       analytical values.
+    2. **Symmetry**: the case is mirror-symmetric about the
+       stagnation line; the ρ asymmetry between mirrored O-grid cells
+       (scaled by the local max) is gated max < **4e-1**, mean <
+       **1e-2** (measured 1.9e-1 max — a single shock-band cell — and
+       1.8e-3 mean on the committed run).  A carbuncle-type breakdown
+       produces O(1) asymmetry over wide regions and blows the mean
+       gate immediately.
+    3. **Bow-shock standoff sanity**: the standoff distance of the
+       density jump (ρ crossing 2ρ∞) along the stagnation line must
+       fall within **±40 %** of the Billig (1967) cylinder
+       correlation Δ/R = 0.386·exp(4.67/M²) = 0.414 at M = 8.1
+       (measured 0.423 on the committed run).
 
 ---
 
@@ -96,8 +118,11 @@ non-dimensional density contours flow field and wall trend:
     Riemann solvers (HLLE, HLLC, HLLC+, SLAU). HC-slice overlays the
     stagnation-line density profiles for the four solvers on a single 1D
     plot, demonstrating the carbuncle behaviour discussed below. The
-    underlying field data is validated against MOSE (agreement to
-    7e-13 relative L∞ error) for each of the four solvers.
+    underlying field data was cross-checked against the MOSE twin
+    solver during development (agreement to 7e-13 relative L∞ error for
+    each of the four solvers) — a one-off code-to-code study requiring
+    the MOSE repository, not gated by this repo's ctest (the runnable
+    gates are those listed above).
 
 All Riemann solvers capture the fundamental shock structure, but
 exhibit varying levels of accuracy in preserving a smooth post-shock
@@ -123,3 +148,11 @@ analytical normal-shock solution:
 Notwithstanding only HLLE and HLLC+ provide smooth post-shock
 solutions, all solvers exhibit errors well within engineering
 tolerances.
+
+## References
+
+1. J. D. Anderson, *Modern Compressible Flow with Historical
+   Perspective*, 3rd ed., McGraw-Hill, 2003 (normal shock relations).
+2. F. S. Billig, "Shock-wave shapes around spherical- and
+   cylindrical-nosed bodies," *J. Spacecraft Rockets*, 4(6), 1967,
+   822–823 (bow-shock standoff correlation).

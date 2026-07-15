@@ -7,27 +7,47 @@ on:
     branches: [main]
   workflow_dispatch:
 
+# A new push supersedes any in-flight run on the same ref.
+concurrency:
+  group: ctest-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # The heavy tier (multi-hour RANS/viscous cases pinned to 20 threads) cannot
+  # run on 2-core hosted runners: it is excluded here and exercised locally /
+  # on self-hosted hardware (see docs/development/testing.md).
+  # --timeout 600 is only the default for tests without an explicit TIMEOUT
+  # property (all Q2D tests set one; see test/CMakeLists.txt with per-case
+  # measured-runtime derivations).
+  CTEST_ARGS: >-
+    -LE heavy
+    --output-on-failure
+    --timeout 600
+    --output-junit junit.xml
+    --no-tests=error
+
 jobs:
-  test-gfortran:
+  # -------------------------------------------------------------------------
+  # Compiler matrix: gfortran 12/13/14 with the production config (OpenMP).
+  # 12 = development-machine version, 13 = ubuntu-24.04 default (and the one
+  # mpich's mpi.mod is built with), 14 = newest available in ubuntu-24.04 apt.
+  # NOTE: 14 is NOT the newest GCC (16.1 released 2026-04); covering 15/16
+  # needs a container job (e.g. docker image gcc:16) -- tracked as a future
+  # improvement, kept out of this matrix to stay on cached apt toolchains.
+  # MPI is deliberately NOT part of this matrix: Ubuntu's mpich/openmpi
+  # Fortran modules are built with the distro-default gfortran, and gfortran
+  # cannot read mpi.mod files produced by a different major version (this is
+  # what broke the gfortran-14 + MPI builds). MPI gets its own job below,
+  # pinned to the default toolchain.
+  # -------------------------------------------------------------------------
+  test:
+    name: gfortran-${{ matrix.gfortran }} · OpenMP
     runs-on: ubuntu-latest
+    timeout-minutes: 90
     strategy:
       fail-fast: false
       matrix:
-        gfortran-version: [12, 13, 14]
-        use-openmp: [true, false]
-        use-mpi: [false, true]
-        exclude:
-          # Skip pure-serial (no-OMP no-MPI) — uncommon production config; covered
-          # by gfortran-13 default-only via test-baseline below.
-          - use-openmp: false
-            use-mpi: false
-        include:
-          # Single deterministic baseline (gfortran-13 + serial) for fail-fast
-          # smoke detection independent of matrix expansion.
-          - gfortran-version: 13
-            use-openmp: false
-            use-mpi: false
-            baseline: true
+        gfortran: [12, 13, 14]
 
     steps:
       - name: Checkout repository
@@ -35,38 +55,39 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Install gfortran-${{ matrix.gfortran-version }}
+      - name: Install gfortran-${{ matrix.gfortran }}
         run: |
           sudo apt-get update
-          sudo apt-get install -y gfortran-${{ matrix.gfortran-version }} gcc-${{ matrix.gfortran-version }} g++-${{ matrix.gfortran-version }}
-          # Ensure correct version selected
-          sudo update-alternatives --install /usr/bin/gfortran gfortran /usr/bin/gfortran-${{ matrix.gfortran-version }} 100
-          sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-${{ matrix.gfortran-version }} 100
-          sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-${{ matrix.gfortran-version }} 100
+          sudo apt-get install -y gfortran-${{ matrix.gfortran }} gcc-${{ matrix.gfortran }} g++-${{ matrix.gfortran }}
 
-      - name: Install MPI (if matrix cell needs it)
-        if: matrix.use-mpi == true
-        run: |
-          sudo apt-get install -y mpich libmpich-dev
+      - name: Set up ccache
+        uses: hendrikmuhs/ccache-action@v1.2
+        with:
+          key: gfortran-${{ matrix.gfortran }}-omp
+          max-size: 500M
 
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.x"
+          cache: pip
+          cache-dependency-path: .github/workflows/ctest.yml
 
       - name: Install Python dependencies
-        run: |
-          pip install numpy sympy
+        run: pip install numpy sympy
 
       - name: Configure
         run: |
           cmake -B build \
             -DCMAKE_BUILD_TYPE=TESTING \
-            -DCMAKE_Fortran_COMPILER=gfortran-${{ matrix.gfortran-version }} \
-            -DCMAKE_C_COMPILER=gcc-${{ matrix.gfortran-version }} \
-            -DCMAKE_CXX_COMPILER=g++-${{ matrix.gfortran-version }} \
-            -DUSE_OPENMP=${{ matrix.use-openmp }} \
-            -DUSE_MPI=${{ matrix.use-mpi }} \
+            -DCMAKE_Fortran_COMPILER=gfortran-${{ matrix.gfortran }} \
+            -DCMAKE_C_COMPILER=gcc-${{ matrix.gfortran }} \
+            -DCMAKE_CXX_COMPILER=g++-${{ matrix.gfortran }} \
+            -DCMAKE_Fortran_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+            -DUSE_OPENMP=ON \
+            -DUSE_MPI=OFF \
             -DUSE_TECIO=OFF \
             -DUSE_SUNDIALS=OFF \
             -DUSE_CANTERA=OFF
@@ -74,5 +95,179 @@ jobs:
       - name: Build
         run: cmake --build build --parallel $(nproc)
 
-      - name: Run tests
-        run: ctest --test-dir build --output-on-failure --timeout 300
+      - name: Run tests (fast tier)
+        run: ctest --test-dir build ${{ env.CTEST_ARGS }} --parallel $(nproc)
+
+      - name: Test summary
+        if: always()
+        run: |
+          python3 .github/scripts/junit_summary.py build/junit.xml >> "$GITHUB_STEP_SUMMARY" || true
+
+      - name: Upload failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ctest-gfortran-${{ matrix.gfortran }}-omp
+          path: |
+            build/junit.xml
+            build/Testing/Temporary/LastTest.log
+            test/**/OUTPUT/residual-history.dat
+            test/**/logfile
+            test/**/errors_file
+          retention-days: 7
+          if-no-files-found: ignore
+
+  # -------------------------------------------------------------------------
+  # Serial baseline: no OpenMP, no MPI, default toolchain. Catches
+  # parallelization-independent regressions with a deterministic build.
+  # -------------------------------------------------------------------------
+  test-serial:
+    name: gfortran (default) · serial
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gfortran
+
+      - name: Set up ccache
+        uses: hendrikmuhs/ccache-action@v1.2
+        with:
+          key: gfortran-default-serial
+          max-size: 500M
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+          cache: pip
+          cache-dependency-path: .github/workflows/ctest.yml
+
+      - name: Install Python dependencies
+        run: pip install numpy sympy
+
+      - name: Configure
+        run: |
+          cmake -B build \
+            -DCMAKE_BUILD_TYPE=TESTING \
+            -DCMAKE_Fortran_COMPILER=gfortran \
+            -DCMAKE_C_COMPILER=gcc \
+            -DCMAKE_CXX_COMPILER=g++ \
+            -DCMAKE_Fortran_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+            -DUSE_OPENMP=OFF \
+            -DUSE_MPI=OFF \
+            -DUSE_TECIO=OFF \
+            -DUSE_SUNDIALS=OFF \
+            -DUSE_CANTERA=OFF
+
+      - name: Build
+        run: cmake --build build --parallel $(nproc)
+
+      - name: Run tests (fast tier)
+        run: ctest --test-dir build ${{ env.CTEST_ARGS }} --parallel $(nproc)
+
+      - name: Test summary
+        if: always()
+        run: |
+          python3 .github/scripts/junit_summary.py build/junit.xml >> "$GITHUB_STEP_SUMMARY" || true
+
+      - name: Upload failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ctest-serial
+          path: |
+            build/junit.xml
+            build/Testing/Temporary/LastTest.log
+            test/**/OUTPUT/residual-history.dat
+            test/**/logfile
+            test/**/errors_file
+          retention-days: 7
+          if-no-files-found: ignore
+
+  # -------------------------------------------------------------------------
+  # MPI smoke: hybrid MPI+OpenMP build with the distro-default gfortran (the
+  # only version compatible with Ubuntu's mpich mpi.mod). Runs the fast tier
+  # through the MPI-initialized binary.
+  # -------------------------------------------------------------------------
+  test-mpi:
+    name: gfortran (default) · MPI+OpenMP
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install toolchain + MPICH
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gfortran mpich libmpich-dev
+
+      - name: Set up ccache
+        uses: hendrikmuhs/ccache-action@v1.2
+        with:
+          key: gfortran-default-mpi
+          max-size: 500M
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+          cache: pip
+          cache-dependency-path: .github/workflows/ctest.yml
+
+      - name: Install Python dependencies
+        run: pip install numpy sympy
+
+      - name: Configure
+        run: |
+          cmake -B build \
+            -DCMAKE_BUILD_TYPE=TESTING \
+            -DCMAKE_Fortran_COMPILER=gfortran \
+            -DCMAKE_C_COMPILER=gcc \
+            -DCMAKE_CXX_COMPILER=g++ \
+            -DCMAKE_Fortran_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+            -DUSE_OPENMP=ON \
+            -DUSE_MPI=ON \
+            -DUSE_TECIO=OFF \
+            -DUSE_SUNDIALS=OFF \
+            -DUSE_CANTERA=OFF
+
+      - name: Build
+        run: cmake --build build --parallel $(nproc)
+
+      - name: Run tests (fast tier)
+        run: ctest --test-dir build ${{ env.CTEST_ARGS }} --parallel $(nproc)
+
+      - name: Test summary
+        if: always()
+        run: |
+          python3 .github/scripts/junit_summary.py build/junit.xml >> "$GITHUB_STEP_SUMMARY" || true
+
+      - name: Upload failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ctest-mpi
+          path: |
+            build/junit.xml
+            build/Testing/Temporary/LastTest.log
+            test/**/OUTPUT/residual-history.dat
+            test/**/logfile
+            test/**/errors_file
+          retention-days: 7
+          if-no-files-found: ignore

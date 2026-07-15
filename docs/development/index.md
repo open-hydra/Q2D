@@ -16,12 +16,12 @@ src/
 │   │   ├── space/    # Limiters, Reconstruction, Metrics, Mod_Space
 │   │   ├── fluxes/   # Mod_Fluxes, Lib_Convective, Lib_Diffusive, Lib_Shock_Detector
 │   │   │   ├── bc/    # 16 BC handlers
-│   │   │   └── riemann/  # 12 Riemann solvers
+│   │   │   └── riemann/  # 11 selectable Riemann solvers
 │   │   ├── time/     # Mod_dt, time/explicit/{Mod_Explicit, Lib_Newstate, Lib_RK, Lib_IRS, Lib_Strang}
 │   │   ├── multigrid/# Mod_Multigrid, Lib_Multigrid
 │   │   └── sources/  # Q2D-extra: Source_Axisymmetry + Source_Areavariation
 │   ├── physics/      # Lib_Chemistry, Lib_GSI, Lib_Soot, Lib_RotatingFrame
-│   │   └── turbulence/  # Lib_Fluid, Mod_RANS, Lib_RANS, Lib_Spalart, Lib_SST, Lib_Wilcox2006, Lib_QCR2000, Lib_SpalartShur
+│   │   └── turbulence/  # Lib_Fluid, Mod_RANS, Lib_RANS, Lib_Spalart, Lib_SST, Lib_Wilcox2006, Lib_SSGLRR, Lib_QCR2000, Lib_SpalartShur
 │   ├── parallel/     # Mod_MPI, Mod_GhostExchange
 │   ├── io/           # IO_Setup, IO_BC, IO_Solution, IO_Wall, IO_Probes, IO_LineProbes (Q2D-extra), Load_Chemistry, Load_ThermoTransport
 │   └── diagnostic/   # Mod_Diagnostic
@@ -38,13 +38,19 @@ cd build
 ctest --output-on-failure
 ```
 
-Test cases:
+Test cases (see [Testing](testing.md) for the full list):
 
-- 1D: Sod 1979, Einfeldt 1991.
-- 2D steady: Prandtl-Meyer expansion, Chang 1996.
-- 2D unsteady: shock diffraction, supersonic forward step.
+- 1D: Sod 1979, Toro 1999, Einfeldt 1991, Noh 1987, Shu–Osher (LIMO3).
+- 2D inviscid: Prandtl–Meyer expansion (+ line-probe variant),
+  oblique shock, ramp channel, hypersonic cylinder, supersonic
+  forward step, Chang nozzle, planar nozzle (+ multigrid and
+  turbulent variants), Borda channel, rocket nozzle
+  (frozen/equilibrium/finite-rate), SRM rocket motor, rotating
+  channel, multi-solver BC 103.
+- 2D viscous: SWBLI, laminar and turbulent flat plate, turbulent
+  Chang nozzle (SSGLRR).
 
-Reference solutions (Q2D legacy `OUTREF/`) are the ground truth for bit-per-bit (`-O0`) and tolerance-bounded (`-O3`) regression. See [`docs/vv/regression_tolerance.md`](../vv/regression_tolerance.md).
+Reference solutions (Q2D legacy `OUTREF/`) are the ground truth for bit-per-bit (`-O0`) and tolerance-bounded (`-O3`) regression.
 
 ## Pre-Push Hooks
 

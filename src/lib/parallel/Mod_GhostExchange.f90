@@ -1,16 +1,16 @@
-!>@brief Ghost cell MPI communication for inter-block boundaries (2D-reduced).
-!> Builds a communication schedule from the BC connectivity array,
-!> then provides non-blocking exchange routines for P and R arrays.
+!>@brief MPI communication of ghost cells across inter-block boundaries (2D).
+!> Builds a communication schedule from the BC connectivity array, then
+!> provides non-blocking exchange routines for the P and R arrays.
 !> Messages are aggregated per remote rank to minimize latency.
-!> In serial mode (USE_MPI not defined), all routines are no-ops.
+!> In serial mode (USE_MPI not defined) all routines are no-ops.
 !>
-!> 2D-reduced:
-!> - `ghost_entry_type` without `src_k, dst_k`.
-!> - `face_group_type` without `dk`.
-!> - `P/R` rank-3 (nprim, i, j) instead of rank-4.
-!> - `Pg(nprim, 4)` instead of `(nprim, 6)`: 2 ghost + 2 stencil (vs the 3D peer's 2 + 4).
-!> - `PG_NCOLS = 2` (cols 3..4) instead of 4 (cols 3..6).
-!> - Persistent MPI request pattern preserved 1:1.
+!> 2D data structures:
+!> - `ghost_entry_type` with (i, j) coordinates only.
+!> - `face_group_type` with guide offsets (di, dj) only.
+!> - `P/R` of rank 3 (nprim, i, j).
+!> - `Pg(nprim, 4)`: 2 ghost columns + 2 stencil columns.
+!> - `PG_NCOLS = 2` (columns 3..4 of Pg).
+!> - P and R exchange based on persistent MPI requests.
 module Q2D_Mod_GhostExchange
   use iso_fortran_env, only: R8 => real64, I4 => int32
   use Q2D_Mod_MPI
@@ -18,45 +18,45 @@ module Q2D_Mod_GhostExchange
   implicit none
   private
 
-  !> Single ghost cell exchange entry (no src_k/dst_k).
+  !> Single ghost-cell exchange entry (2D coordinates i, j).
   type :: ghost_entry_type
     integer :: bc_idx          !< Index into domain%bc(:)
     integer :: local_block     !< Block on this rank
     integer :: remote_block    !< Block on the remote rank
     integer :: remote_rank     !< MPI rank of the remote block
-    integer :: src_i, src_j, src_f  !< Source cell coords and face
-    integer :: dst_i, dst_j, dst_f  !< Destination cell coords and face
+    integer :: src_i, src_j, src_f  !< Source cell coordinates and face
+    integer :: dst_i, dst_j, dst_f  !< Destination cell coordinates and face
   end type ghost_entry_type
 
-  !> Per-rank aggregation info
+  !> Per-rank aggregation data
   type :: rank_group_type
     integer :: rank = -1       !< Remote MPI rank
-    integer :: offset = 0      !< Start index in entry list (1-based)
+    integer :: offset = 0      !< Starting index in the entry list (1-based)
     integer :: count  = 0      !< Number of entries for this rank
   end type rank_group_type
 
-  !> Face group: contiguous run of entries sharing (block, face).
-  !> Precomputes guide offsets; for 2D faces no `dk`.
+  !> Face group: contiguous sequence of entries sharing (block, face).
+  !> Precomputes the guide offsets (di, dj).
   type :: face_group_type
     integer :: block            !< Local block index
     integer :: face             !< Face number (1-4)
-    integer :: entry_start      !< First entry index in send/recv list
+    integer :: entry_start      !< Index of the first entry in the send/recv list
     integer :: entry_count      !< Number of entries
     integer :: di, dj           !< Precomputed guide(face,1..2)
   end type face_group_type
 
-  !> Communication schedule: entries grouped by remote rank for aggregated messaging.
+  !> Communication schedule: entries grouped by remote rank for aggregated messages.
   type :: ghost_schedule_type
     integer :: n_send = 0, n_recv = 0
     type(ghost_entry_type), allocatable :: send_list(:)
     type(ghost_entry_type), allocatable :: recv_list(:)
     logical :: built = .false.
 
-    ! Per-rank aggregation for sends
+    ! Per-rank aggregation of sends
     integer :: n_send_ranks = 0
     type(rank_group_type), allocatable :: send_groups(:)
 
-    ! Per-rank aggregation for receives
+    ! Per-rank aggregation of receives
     integer :: n_recv_ranks = 0
     type(rank_group_type), allocatable :: recv_groups(:)
 
@@ -66,15 +66,15 @@ module Q2D_Mod_GhostExchange
     integer :: n_recv_faces = 0
     type(face_group_type), allocatable :: recv_faces(:)
 
-    ! Pre-allocated MPI buffers (one contiguous buffer per rank group)
+    ! Preallocated MPI buffers (one contiguous buffer per rank group)
     real(R8), allocatable :: P_send_buf(:)   !< (nprim*gc * n_send)
     real(R8), allocatable :: P_recv_buf(:)   !< (nprim*gc * n_recv)
-    real(R8), allocatable :: Pg_send_buf(:)  !< (nprim*PG_NCOLS * n_send) — 2 cols
+    real(R8), allocatable :: Pg_send_buf(:)  !< (nprim*PG_NCOLS * n_send) — 2 columns
     real(R8), allocatable :: Pg_recv_buf(:)  !< (nprim*PG_NCOLS * n_recv)
     integer, allocatable  :: send_req(:)     !< (n_send_ranks)
     integer, allocatable  :: recv_req(:)     !< (n_recv_ranks)
     integer, allocatable  :: mpi_stat(:,:)   !< (MPI_STATUS_SIZE, max(n_send_ranks, n_recv_ranks))
-    ! Persistent MPI requests for P exchange (initialized once, started each step)
+    ! Persistent MPI requests for the exchanges (initialized once, started at every step)
     integer, allocatable  :: P_send_req_pers(:)  !< (n_send_ranks)
     integer, allocatable  :: P_recv_req_pers(:)  !< (n_recv_ranks)
     integer, allocatable  :: R_send_req_pers(:)  !< (n_send_ranks)
@@ -102,19 +102,19 @@ module Q2D_Mod_GhostExchange
 contains
 
 
-  !> Build the communication schedule by scanning all BC entries of type 101
-  !> (block connection). Entries are sorted by remote rank for aggregated MPI
-  !> messaging. BC 103 (multi-solver coupling) was removed from the
-  !> block-connection dispatch; BC 103 is now handled
-  !> separately as a coupled multi-solver stub.
-  !> Must be called after partition_blocks and domain setup.
+  !> Builds the communication schedule by scanning BC entries of type 101
+  !> (block-to-block connection) and 201 (periodic). Entries are sorted by
+  !> remote rank for aggregated MPI sends. BC 103 (multi-solver coupling)
+  !> does not take part in the inter-block ghost exchange: it is handled
+  !> separately as a multi-solver coupling stub in the BC dispatch.
+  !> To be called after partition_blocks and the domain construction.
   subroutine build_ghost_schedule(domain)
     use Q2D_Advanced_Types_m, only: Q2D_domain_type
     use Q2D_Global_m,         only: gc, nprim
 
     implicit none
     type(Q2D_domain_type), intent(in) :: domain
-    ! Local
+    ! Local variables
     integer :: i, ns, nr, bm, bs
 
     if (mpi_size_ <= 1) then
@@ -123,18 +123,18 @@ contains
     end if
 
 #ifdef USE_MPI
-    ! Count send and recv entries
+    ! Count send and receive entries
     ns = 0; nr = 0
     do i = 1, domain%nbound
-      if (domain%bc(i)%type /= 101 .and. domain%bc(i)%type /= 201) cycle  ! 201 cross-rank halo = pure copy like 101 (§1 div.)
+      if (domain%bc(i)%type /= 101 .and. domain%bc(i)%type /= 201) cycle  ! inter-rank BC 201 (periodic) is a plain copy like 101
       bm = domain%bc(i)%b   ! destination block
       bs = domain%bc(i)%bs  ! source block
       if (.not. allocated(block_owner)) cycle
-      ! If I own the destination but not the source => I need to RECV
+      ! If the rank owns the destination but not the source => it must RECEIVE
       if (is_local_block(bm) .and. (.not. is_local_block(bs))) then
         nr = nr + 1
       end if
-      ! If I own the source but not the destination => I need to SEND
+      ! If the rank owns the source but not the destination => it must SEND
       if (is_local_block(bs) .and. (.not. is_local_block(bm))) then
         ns = ns + 1
       end if
@@ -147,10 +147,10 @@ contains
     allocate(ghost_sched%send_list(ns))
     allocate(ghost_sched%recv_list(nr))
 
-    ! Fill send and recv lists (no src_k/dst_k)
+    ! Fill the send and receive lists
     ns = 0; nr = 0
     do i = 1, domain%nbound
-      if (domain%bc(i)%type /= 101 .and. domain%bc(i)%type /= 201) cycle  ! 201 cross-rank halo = pure copy like 101 (§1 div.)
+      if (domain%bc(i)%type /= 101 .and. domain%bc(i)%type /= 201) cycle  ! inter-rank BC 201 (periodic) is a plain copy like 101
       bm = domain%bc(i)%b
       bs = domain%bc(i)%bs
 
@@ -183,26 +183,26 @@ contains
       end if
     end do
 
-    ! Sort entries by remote rank and build rank groups
+    ! Sort the entries by remote rank and build the rank groups
     call sort_entries_by_rank(ghost_sched%send_list, ns)
     call sort_entries_by_rank(ghost_sched%recv_list, nr)
     call build_rank_groups(ghost_sched%send_list, ns, ghost_sched%send_groups, ghost_sched%n_send_ranks)
     call build_rank_groups(ghost_sched%recv_list, nr, ghost_sched%recv_groups, ghost_sched%n_recv_ranks)
 
-    ! Build face groups for aggregated pack/unpack
+    ! Build the face groups for aggregated pack/unpack
     call build_face_groups_send(ghost_sched%send_list, ns, &
                                 ghost_sched%send_faces, ghost_sched%n_send_faces)
     call build_face_groups_recv(ghost_sched%recv_list, nr, &
                                 ghost_sched%recv_faces, ghost_sched%n_recv_faces)
 
-    ! Pre-allocate MPI buffers (reused every RK step). PG_NCOLS=2 in 2D.
+    ! Preallocate the MPI buffers (reused at every RK step). PG_NCOLS=2 in 2D.
     ns = ghost_sched%n_send
     nr = ghost_sched%n_recv
     if (ns > 0 .or. nr > 0) then
       block
         use mpi, only: MPI_STATUS_SIZE
         integer :: max_ranks
-        integer, parameter :: PG_NCOLS = 2   ! Pg cols 3..4 (2D-reduced vs 4 in 3D)
+        integer, parameter :: PG_NCOLS = 2   ! columns 3..4 of Pg
         max_ranks = max(ghost_sched%n_send_ranks, ghost_sched%n_recv_ranks, 1)
         allocate(ghost_sched%P_send_buf(nprim*gc * max(ns,1)))
         allocate(ghost_sched%P_recv_buf(nprim*gc * max(nr,1)))
@@ -214,15 +214,16 @@ contains
       end block
     end if
 
-    ! Initialize persistent MPI requests for P and R exchanges
+    ! Initialize the persistent MPI requests for the P and R exchanges
     call init_persistent_P_requests()
     call init_persistent_R_requests()
 
-    ! Diagnostic: n_send_ranks/n_recv_ranks are PER-RANK (number of distinct
-    ! neighbours of THIS rank). Printing only root's value is misleading -- it
-    ! reads as "only N ranks communicate" when in fact every rank communicates,
-    ! root just happens to have N neighbours. Reduce across ALL ranks and report
-    ! min/max/avg + how many ranks have zero neighbours (the real red flag).
+    ! Diagnostics: n_send_ranks/n_recv_ranks are PER-RANK values (number of
+    ! distinct neighbours of THIS rank). Printing only the root value would be
+    ! misleading: it would read as "only N ranks communicate" whereas every
+    ! rank communicates and root simply has N neighbours. Hence reduce over
+    ! ALL ranks and report min/max/average + how many ranks have zero
+    ! neighbours (the actual red flag).
     block
       use mpi, only: MPI_INTEGER, MPI_MIN, MPI_MAX, MPI_SUM, MPI_COMM_WORLD
       integer :: nloc, nmin, nmax, nsum, nzero, nzloc, ierr
@@ -249,17 +250,17 @@ contains
   end subroutine build_ghost_schedule
 
 
-  !> Build pre-filtered list of BC indices where Bm is local to this rank.
-  !> Avoids O(nbound) loop scanning in hot paths (Fill_Ghost_Cell, etc.).
+  !> Builds the prefiltered list of BC indices with Bm local to this rank.
+  !> Avoids the O(nbound) scan in hot paths (Fill_Ghost_Cell, etc.).
   subroutine build_local_bc_index(domain)
     use Q2D_Advanced_Types_m, only: Q2D_domain_type
 
     implicit none
     type(Q2D_domain_type), intent(inout) :: domain
-    ! Local
+    ! Local variables
     integer :: i, n, ns
 
-    ! Count local BC entries (Bm is local) and local source entries (Bs is local, type-1)
+    ! Count local BC entries (local Bm) and local source entries (local Bs, type 101/201)
     n = 0; ns = 0
     do i = 1, domain%nbound
       if (is_local_block(domain%bc(i)%b)) n = n + 1
@@ -268,12 +269,12 @@ contains
       end if
     end do
 
-    ! Build local_bc_idx (Bm is local)
+    ! Build local_bc_idx (local Bm)
     domain%n_local_bc = n
     if (allocated(domain%local_bc_idx)) deallocate(domain%local_bc_idx)
     allocate(domain%local_bc_idx(n))
 
-    ! Build local_bs_idx (Bs is local, type-1 only — for Pg computation)
+    ! Build local_bs_idx (local Bs, type 101/201 only — for the Pg computation)
     domain%n_local_bs = ns
     if (allocated(domain%local_bs_idx)) deallocate(domain%local_bs_idx)
     allocate(domain%local_bs_idx(ns))
@@ -295,7 +296,7 @@ contains
   end subroutine build_local_bc_index
 
 
-  !> Free persistent MPI requests and deallocate schedule arrays.
+  !> Frees the persistent MPI requests and deallocates the schedule arrays.
   subroutine cleanup_ghost_schedule()
     implicit none
 #ifdef USE_MPI
@@ -305,7 +306,7 @@ contains
 
 
 #ifdef USE_MPI
-  !> Initialize persistent MPI requests for P field exchange.
+  !> Initializes the persistent MPI requests for the P field exchange.
   !> Called once from build_ghost_schedule. Uses MPI_SEND_INIT/RECV_INIT.
   subroutine init_persistent_P_requests()
     use Q2D_Global_m, only: gc, nprim
@@ -321,7 +322,7 @@ contains
     allocate(ghost_sched%P_recv_req_pers(max(ghost_sched%n_recv_ranks, 1)))
     allocate(ghost_sched%P_send_req_pers(max(ghost_sched%n_send_ranks, 1)))
 
-    ! Initialize persistent receives
+    ! Initialize the persistent receives
     do r = 1, ghost_sched%n_recv_ranks
       buf_pos = (ghost_sched%recv_groups(r)%offset - 1) * entry_size + 1
       tag = ghost_sched%recv_groups(r)%rank
@@ -333,7 +334,7 @@ contains
       call check_mpi_error(ierr)
     end do
 
-    ! Initialize persistent sends
+    ! Initialize the persistent sends
     do r = 1, ghost_sched%n_send_ranks
       buf_pos = (ghost_sched%send_groups(r)%offset - 1) * entry_size + 1
       tag = mpi_rank_
@@ -349,7 +350,7 @@ contains
   end subroutine init_persistent_P_requests
 
 
-  !> Initialize persistent MPI requests for R field exchange.
+  !> Initializes the persistent MPI requests for the R field exchange.
   !> Reuses P_send_buf/P_recv_buf (same size). Uses distinct tags (offset 30000).
   subroutine init_persistent_R_requests()
     use Q2D_Global_m, only: gc, nprim
@@ -366,7 +367,7 @@ contains
     allocate(ghost_sched%R_recv_req_pers(max(ghost_sched%n_recv_ranks, 1)))
     allocate(ghost_sched%R_send_req_pers(max(ghost_sched%n_send_ranks, 1)))
 
-    ! Initialize persistent receives for R
+    ! Initialize the persistent receives for R
     do r = 1, ghost_sched%n_recv_ranks
       buf_pos = (ghost_sched%recv_groups(r)%offset - 1) * entry_size + 1
       tag = ghost_sched%recv_groups(r)%rank + TAG_OFFSET
@@ -378,7 +379,7 @@ contains
       call check_mpi_error(ierr)
     end do
 
-    ! Initialize persistent sends for R
+    ! Initialize the persistent sends for R
     do r = 1, ghost_sched%n_send_ranks
       buf_pos = (ghost_sched%send_groups(r)%offset - 1) * entry_size + 1
       tag = mpi_rank_ + TAG_OFFSET
@@ -394,7 +395,7 @@ contains
   end subroutine init_persistent_R_requests
 
 
-  !> Free all persistent MPI requests.
+  !> Frees all persistent MPI requests.
   subroutine cleanup_persistent_requests()
     use mpi
     implicit none
@@ -422,12 +423,12 @@ contains
   end subroutine cleanup_persistent_requests
 
 
-  !> Sort ghost entries by remote_rank using insertion sort (lists are small).
+  !> Ordina le entry ghost per remote_rank con insertion sort (le liste sono piccole).
   subroutine sort_entries_by_rank(list, n)
     implicit none
     type(ghost_entry_type), intent(inout) :: list(:)
     integer, intent(in) :: n
-    ! Local
+    ! Local variables
     integer :: i, j
     type(ghost_entry_type) :: tmp
 
@@ -443,14 +444,14 @@ contains
   end subroutine sort_entries_by_rank
 
 
-  !> Build rank groups from a sorted entry list.
+  !> Costruisce i gruppi di rank da una lista di entry ordinata.
   subroutine build_rank_groups(list, n, groups, n_groups)
     implicit none
     type(ghost_entry_type), intent(in) :: list(:)
     integer, intent(in) :: n
     type(rank_group_type), allocatable, intent(out) :: groups(:)
     integer, intent(out) :: n_groups
-    ! Local
+    ! Local variables
     integer :: i, ng
 
     if (n == 0) then
@@ -459,7 +460,7 @@ contains
       return
     end if
 
-    ! Count unique ranks
+    ! Conta i rank distinti
     ng = 1
     do i = 2, n
       if (list(i)%remote_rank /= list(i-1)%remote_rank) ng = ng + 1
@@ -484,9 +485,9 @@ contains
   end subroutine build_rank_groups
 
 
-  !> Build face groups from send entry list.
-  !> Groups consecutive entries that share (local_block, src_f).
-  !> No `dk` (only di, dj from guide(:, 1..2)).
+  !> Costruisce i gruppi di faccia dalla lista di entry di invio.
+  !> Raggruppa entry consecutive che condividono (local_block, src_f).
+  !> Offset guida di, dj presi da guide(:, 1..2).
   subroutine build_face_groups_send(list, n, groups, n_groups)
     use Q2D_Parameters_m, only: guide
     implicit none
@@ -502,7 +503,7 @@ contains
       return
     end if
 
-    ! Count face groups
+    ! Conta i gruppi di faccia
     ng = 1
     do i = 2, n
       if (list(i)%local_block /= list(i-1)%local_block .or. &
@@ -535,9 +536,8 @@ contains
   end subroutine build_face_groups_send
 
 
-  !> Build face groups from recv entry list.
-  !> Groups consecutive entries that share (local_block, dst_f).
-  !> No `dk`.
+  !> Costruisce i gruppi di faccia dalla lista di entry di ricezione.
+  !> Raggruppa entry consecutive che condividono (local_block, dst_f).
   subroutine build_face_groups_recv(list, n, groups, n_groups)
     use Q2D_Parameters_m, only: guide
     implicit none
@@ -553,7 +553,7 @@ contains
       return
     end if
 
-    ! Count face groups
+    ! Conta i gruppi di faccia
     ng = 1
     do i = 2, n
       if (list(i)%local_block /= list(i-1)%local_block .or. &
@@ -587,7 +587,7 @@ contains
 #endif
 
 
-  !> Post persistent P receives. Call from !$omp single.
+  !> Avvia le ricezioni persistenti di P. Da chiamare da !$omp single.
   subroutine exchange_ghost_P_post_recv(domain)
     use Q2D_Advanced_Types_m, only: Q2D_domain_type
     implicit none
@@ -599,8 +599,8 @@ contains
   end subroutine exchange_ghost_P_post_recv
 
 
-  !> Pack P send buffer. Call from !$omp do over face groups.
-  !> n_send_faces is accessible via ghost_sched%n_send_faces.
+  !> Impacchetta il buffer di invio di P. Da chiamare da !$omp do sui gruppi di faccia.
+  !> n_send_faces è accessibile via ghost_sched%n_send_faces.
   subroutine exchange_ghost_P_pack(domain, fg_start, fg_end)
     use Q2D_Advanced_Types_m, only: Q2D_domain_type
     implicit none
@@ -613,7 +613,7 @@ contains
   end subroutine exchange_ghost_P_pack
 
 
-  !> Post persistent P sends. Call from !$omp single after pack is complete.
+  !> Avvia gli invii persistenti di P. Da chiamare da !$omp single a pack completato.
   subroutine exchange_ghost_P_post_send(domain)
     use Q2D_Advanced_Types_m, only: Q2D_domain_type
     implicit none
@@ -625,7 +625,7 @@ contains
   end subroutine exchange_ghost_P_post_send
 
 
-  !> Wait for P receives and unpack. Call wait from !$omp single, unpack from !$omp do.
+  !> Attende le ricezioni di P e spacchetta. Wait da !$omp single, unpack da !$omp do.
   subroutine exchange_ghost_P_wait_unpack(domain)
     use Q2D_Advanced_Types_m, only: Q2D_domain_type
     implicit none
@@ -638,7 +638,7 @@ contains
   end subroutine exchange_ghost_P_wait_unpack
 
 
-  !> Wait for P sends to complete. Call from !$omp single.
+  !> Attende il completamento degli invii di P. Da chiamare da !$omp single.
   subroutine exchange_ghost_P_wait_send(domain)
     use Q2D_Advanced_Types_m, only: Q2D_domain_type
     implicit none
@@ -650,7 +650,7 @@ contains
   end subroutine exchange_ghost_P_wait_send
 
 
-  !> Exchange ghost cell R (residual) data between MPI ranks.
+  !> Scambia i dati R (residuo) delle celle ghost tra i rank MPI.
   subroutine exchange_ghost_R(domain)
     use Q2D_Advanced_Types_m, only: Q2D_domain_type
 
@@ -665,17 +665,17 @@ contains
   end subroutine exchange_ghost_R
 
 
-  !> Gather all blocks' P interior data to rank 0 for I/O.
-  !> Uses non-blocking MPI_ISEND/IRECV + WAITALL for overlap.
-  !> Temporarily allocates P on root for remote blocks if not already allocated.
-  !> P rank-3 (nprim, n1, n2) — drop n3 dim.
+  !> Raccoglie su rank 0 i dati interni di P di tutti i blocchi per l'I/O.
+  !> Usa MPI_ISEND/IRECV non bloccanti + WAITALL per sovrapporre le comunicazioni.
+  !> Su root alloca temporaneamente P per i blocchi remoti se non già allocato.
+  !> P di rango 3 (nprim, n1, n2).
   subroutine gather_P_to_root(domain)
     use Q2D_Advanced_Types_m, only: Q2D_domain_type
     use Q2D_Global_m,         only: nprim, gc
 
     implicit none
     type(Q2D_domain_type), intent(inout) :: domain
-    ! Local
+    ! Local variables
     integer :: b, n1, n2
 
     if (mpi_size_ <= 1) return
@@ -687,7 +687,7 @@ contains
       integer, allocatable :: stats(:,:)
       real(R8), allocatable :: buf(:)
 
-      ! Compute per-block sizes and total buffer size
+      ! Calcola le dimensioni per blocco e la dimensione totale del buffer
       allocate(blk_offset(domain%nb), blk_ncells(domain%nb))
       total_buf_size = 0
       do b = 1, domain%nb
@@ -705,7 +705,7 @@ contains
       allocate(reqs(domain%nb))
       allocate(stats(MPI_STATUS_SIZE, domain%nb))
 
-      ! Recompute offsets contiguously
+      ! Ricalcola gli offset in modo contiguo
       offset = 0
       do b = 1, domain%nb
         blk_offset(b) = offset
@@ -718,7 +718,7 @@ contains
 
       nreq = 0
       if (mpi_is_root) then
-        ! Root: post all receives for remote blocks
+        ! Root: avvia tutte le ricezioni per i blocchi remoti
         do b = 1, domain%nb
           if (.not. is_local_block(b)) then
             nreq = nreq + 1
@@ -728,7 +728,7 @@ contains
           end if
         end do
       else
-        ! Non-root: pack local blocks and post all sends
+        ! Non-root: impacchetta i blocchi locali e avvia tutti gli invii
         do b = 1, domain%nb
           if (is_local_block(b)) then
             n1 = domain%blk(b)%dim(1)
@@ -743,13 +743,13 @@ contains
         end do
       end if
 
-      ! Wait for all
+      ! Attende il completamento di tutte le richieste
       if (nreq > 0) then
         call MPI_WAITALL(nreq, reqs(1:nreq), stats(:,1:nreq), ierr)
         call check_mpi_error(ierr)
       end if
 
-      ! Root: unpack received data (allocate P if it was previously freed)
+      ! Root: spacchetta i dati ricevuti (alloca P se era stato deallocato)
       if (mpi_is_root) then
         do b = 1, domain%nb
           if (.not. is_local_block(b)) then
@@ -769,11 +769,11 @@ contains
   end subroutine gather_P_to_root
 
 
-  !> Gather diagnostic arrays (R, dtlocal, beta) from all ranks to root.
-  !> On root, remote blocks may have had these arrays deallocated by
-  !> deallocate_remote_computation_data, so they are re-allocated here
-  !> to receive the data.  All ranks must call this (collective).
-  !> rank-3/rank-2 instead of rank-4/rank-3.
+  !> Raccoglie su root gli array diagnostici (R, dtlocal, beta) da tutti i rank.
+  !> Su root i blocchi remoti possono avere questi array deallocati da
+  !> deallocate_remote_computation_data: qui vengono riallocati per ricevere
+  !> i dati. Tutti i rank devono chiamare questa routine (collettiva).
+  !> R di rango 3 (nprim, n1, n2); dtlocal e beta di rango 2 (n1, n2).
   subroutine gather_diagnostic_to_root(domain)
     use Q2D_Advanced_Types_m, only: Q2D_domain_type
     use Q2D_Global_m,         only: nprim
@@ -791,12 +791,12 @@ contains
       integer, allocatable :: reqs(:)
       integer, allocatable :: stats(:,:)
       real(R8), allocatable :: buf(:)
-      ! Per-block: nprim*n1*n2 for R, n1*n2 for dtlocal, n1*n2 for beta
+      ! Per blocco: nprim*n1*n2 per R, n1*n2 per dtlocal, n1*n2 per beta
       integer, allocatable :: blk_offset(:), blk_size(:)
 
       allocate(blk_offset(domain%nb), blk_size(domain%nb))
 
-      ! Compute buffer sizes
+      ! Calcola le dimensioni dei buffer
       total_buf_size = 0
       do b = 1, domain%nb
         n1 = domain%blk(b)%dim(1)
@@ -818,7 +818,7 @@ contains
       allocate(reqs(domain%nb))
       allocate(stats(MPI_STATUS_SIZE, domain%nb))
 
-      ! On root: ensure R, dtlocal, beta are allocated for remote blocks
+      ! Su root: garantisce che R, dtlocal, beta siano allocati per i blocchi remoti
       if (mpi_is_root) then
         do b = 1, domain%nb
           if (.not. is_local_block(b)) then
@@ -836,7 +836,7 @@ contains
 
       nreq = 0
       if (mpi_is_root) then
-        ! Root: post receives for remote blocks
+        ! Root: avvia le ricezioni per i blocchi remoti
         do b = 1, domain%nb
           if (.not. is_local_block(b)) then
             nreq = nreq + 1
@@ -846,7 +846,7 @@ contains
           end if
         end do
       else
-        ! Non-root: pack local blocks and send
+        ! Non-root: impacchetta i blocchi locali e invia
         do b = 1, domain%nb
           if (is_local_block(b)) then
             n1 = domain%blk(b)%dim(1)
@@ -870,13 +870,13 @@ contains
         end do
       end if
 
-      ! Wait for all
+      ! Attende il completamento di tutte le richieste
       if (nreq > 0) then
         call MPI_WAITALL(nreq, reqs(1:nreq), stats(:,1:nreq), ierr)
         call check_mpi_error(ierr)
       end if
 
-      ! Root: unpack received data
+      ! Root: spacchetta i dati ricevuti
       if (mpi_is_root) then
         do b = 1, domain%nb
           if (.not. is_local_block(b)) then
@@ -903,16 +903,16 @@ contains
   end subroutine gather_diagnostic_to_root
 
 
-  !> Scatter blocks' P data from rank 0 to owning ranks after reading.
-  !> Uses non-blocking MPI_ISEND/IRECV + WAITALL for overlap.
-  !> P rank-3 — drop n3 dim.
+  !> Distribuisce i dati P dei blocchi da rank 0 ai rank proprietari dopo la lettura.
+  !> Usa MPI_ISEND/IRECV non bloccanti + WAITALL per sovrapporre le comunicazioni.
+  !> P di rango 3 (nprim, n1, n2).
   subroutine scatter_P_from_root(domain)
     use Q2D_Advanced_Types_m, only: Q2D_domain_type
     use Q2D_Global_m,         only: nprim
 
     implicit none
     type(Q2D_domain_type), intent(inout) :: domain
-    ! Local
+    ! Local variables
     integer :: b, n1, n2
 
     if (mpi_size_ <= 1) return
@@ -924,7 +924,7 @@ contains
       integer, allocatable :: stats(:,:)
       real(R8), allocatable :: buf(:)
 
-      ! Compute per-block sizes and total buffer size
+      ! Calcola le dimensioni per blocco e la dimensione totale del buffer
       allocate(blk_offset(domain%nb), blk_ncells(domain%nb))
       total_buf_size = 0
       do b = 1, domain%nb
@@ -933,7 +933,7 @@ contains
         blk_ncells(b) = nprim * n1 * n2
       end do
 
-      ! Compute contiguous buffer offsets
+      ! Calcola gli offset contigui del buffer
       offset = 0
       do b = 1, domain%nb
         blk_offset(b) = offset
@@ -950,7 +950,7 @@ contains
 
       nreq = 0
       if (mpi_is_root) then
-        ! Root: pack remote blocks and post all sends
+        ! Root: impacchetta i blocchi remoti e avvia tutti gli invii
         do b = 1, domain%nb
           if (.not. is_local_block(b)) then
             n1 = domain%blk(b)%dim(1)
@@ -964,7 +964,7 @@ contains
           end if
         end do
       else
-        ! Non-root: post all receives for local blocks
+        ! Non-root: avvia tutte le ricezioni per i blocchi locali
         do b = 1, domain%nb
           if (is_local_block(b)) then
             nreq = nreq + 1
@@ -975,13 +975,13 @@ contains
         end do
       end if
 
-      ! Wait for all
+      ! Attende il completamento di tutte le richieste
       if (nreq > 0) then
         call MPI_WAITALL(nreq, reqs(1:nreq), stats(:,1:nreq), ierr)
         call check_mpi_error(ierr)
       end if
 
-      ! Non-root: unpack received data
+      ! Non-root: spacchetta i dati ricevuti
       if (.not. mpi_is_root) then
         do b = 1, domain%nb
           if (is_local_block(b)) then
@@ -999,9 +999,9 @@ contains
   end subroutine scatter_P_from_root
 
 
-  !> Exchange Pg(:,3:4) stencil data for inter-rank viscous connection BCs.
-  !> Messages are aggregated per remote rank.
-  !> Pg cols 3..4 (vs the 3D peer's 3..6) — PG_NCOLS=2 in 2D-reduced.
+  !> Scambia i dati di stencil Pg(:,3:4) per le BC di connessione viscose inter-rank.
+  !> I messaggi sono aggregati per rank remoto.
+  !> PG_NCOLS=2: colonne 3..4 di Pg.
   subroutine exchange_ghost_Pg(domain)
     use Q2D_Advanced_Types_m, only: Q2D_domain_type
 
@@ -1016,7 +1016,7 @@ contains
 
 
 #ifdef USE_MPI
-  !> Internal: exchange Pg(:,3:4) stencil using aggregated messaging.
+  !> Interna: scambia lo stencil Pg(:,3:4) con messaggi aggregati.
   subroutine exchange_Pg_field(domain)
     use Q2D_Advanced_Types_m, only: Q2D_domain_type
     use Q2D_Global_m,         only: nprim
@@ -1024,10 +1024,10 @@ contains
 
     implicit none
     type(Q2D_domain_type), intent(inout) :: domain
-    ! Local
+    ! Local variables
     integer :: ns, nr, i, r, ierr, tag, bc_idx, buf_pos
     integer :: entry_size
-    integer, parameter :: PG_NCOLS = 2   ! Pg cols 3..4 (2D-reduced)
+    integer, parameter :: PG_NCOLS = 2   ! colonne 3..4 di Pg
 
     ns = ghost_sched%n_send
     nr = ghost_sched%n_recv
@@ -1035,10 +1035,10 @@ contains
 
     entry_size = nprim * PG_NCOLS
 
-    ! Post one receive per remote rank (aggregated)
+    ! Avvia una ricezione per rank remoto (aggregata)
     do r = 1, ghost_sched%n_recv_ranks
       buf_pos = (ghost_sched%recv_groups(r)%offset - 1) * entry_size + 1
-      tag = ghost_sched%recv_groups(r)%rank + 10000  ! unique tag per rank for Pg
+      tag = ghost_sched%recv_groups(r)%rank + 10000  ! tag univoco per rank per Pg
       call MPI_IRECV(ghost_sched%Pg_recv_buf(buf_pos), &
                      ghost_sched%recv_groups(r)%count * entry_size, &
                      MPI_DOUBLE_PRECISION, &
@@ -1047,7 +1047,7 @@ contains
       call check_mpi_error(ierr)
     end do
 
-    ! Pack all entries per rank into contiguous buffer, then one send per rank
+    ! Impacchetta tutte le entry di ciascun rank in un buffer contiguo, poi un invio per rank
     do r = 1, ghost_sched%n_send_ranks
       do i = ghost_sched%send_groups(r)%offset, &
              ghost_sched%send_groups(r)%offset + ghost_sched%send_groups(r)%count - 1
@@ -1057,7 +1057,7 @@ contains
         ghost_sched%Pg_send_buf(buf_pos+  nprim+1 : buf_pos+2*nprim) = domain%bc(bc_idx)%Pg(:,4)
       end do
       buf_pos = (ghost_sched%send_groups(r)%offset - 1) * entry_size + 1
-      tag = mpi_rank_ + 10000  ! sender's rank as tag for Pg
+      tag = mpi_rank_ + 10000  ! rank del mittente come tag per Pg
       call MPI_ISEND(ghost_sched%Pg_send_buf(buf_pos), &
                      ghost_sched%send_groups(r)%count * entry_size, &
                      MPI_DOUBLE_PRECISION, &
@@ -1066,14 +1066,14 @@ contains
       call check_mpi_error(ierr)
     end do
 
-    ! Wait for all receives
+    ! Attende tutte le ricezioni
     if (ghost_sched%n_recv_ranks > 0) then
       call MPI_WAITALL(ghost_sched%n_recv_ranks, ghost_sched%recv_req, &
                        ghost_sched%mpi_stat(:,1:ghost_sched%n_recv_ranks), ierr)
       call check_mpi_error(ierr)
     end if
 
-    ! Unpack into bc%Pg(:,3:4)
+    ! Spacchetta in bc%Pg(:,3:4)
     do i = 1, nr
       bc_idx = ghost_sched%recv_list(i)%bc_idx
       buf_pos = (i - 1) * entry_size
@@ -1081,7 +1081,7 @@ contains
       domain%bc(bc_idx)%Pg(:,4) = ghost_sched%Pg_recv_buf(buf_pos+  nprim+1 : buf_pos+2*nprim)
     end do
 
-    ! Wait for all sends to complete
+    ! Attende il completamento di tutti gli invii
     if (ghost_sched%n_send_ranks > 0) then
       call MPI_WAITALL(ghost_sched%n_send_ranks, ghost_sched%send_req, &
                        ghost_sched%mpi_stat(:,1:ghost_sched%n_send_ranks), ierr)
@@ -1090,7 +1090,7 @@ contains
   end subroutine exchange_Pg_field
 
 
-  !> Post persistent receives for P field. Call from !$omp single.
+  !> Avvia le ricezioni persistenti per il campo P. Da chiamare da !$omp single.
   subroutine exchange_P_post_recv()
     use mpi
     implicit none
@@ -1104,15 +1104,15 @@ contains
   end subroutine exchange_P_post_recv
 
 
-  !> Pack P send buffer. Safe to call from !$omp do over face groups.
-  !> Drop Ks+dk*(g-1) — P(:, Is+di*(g-1), Js+dj*(g-1)).
+  !> Impacchetta il buffer di invio di P. Invocabile in sicurezza da !$omp do sui
+  !> gruppi di faccia. Sorgente: P(:, Is+di*(g-1), Js+dj*(g-1)).
   subroutine exchange_P_pack_faces(domain, fg_start, fg_end)
     use Q2D_Advanced_Types_m, only: Q2D_domain_type
     use Q2D_Global_m,         only: gc, nprim
     implicit none
     type(Q2D_domain_type), intent(in) :: domain
     integer, intent(in) :: fg_start, fg_end
-    ! Local
+    ! Local variables
     integer :: fg, i, g, b, buf_pos
     integer :: Is, Js, di, dj
     integer :: entry_size
@@ -1137,7 +1137,7 @@ contains
   end subroutine exchange_P_pack_faces
 
 
-  !> Post persistent sends for P field. Call from !$omp single after pack.
+  !> Avvia gli invii persistenti per il campo P. Da chiamare da !$omp single dopo il pack.
   subroutine exchange_P_post_send()
     use mpi
     implicit none
@@ -1151,7 +1151,7 @@ contains
   end subroutine exchange_P_post_send
 
 
-  !> Wait for P receives. Call from !$omp single.
+  !> Attende le ricezioni di P. Da chiamare da !$omp single.
   subroutine exchange_P_wait_recv()
     use mpi
     implicit none
@@ -1166,15 +1166,15 @@ contains
   end subroutine exchange_P_wait_recv
 
 
-  !> Unpack P receive buffer. Safe to call from !$omp do over face groups.
-  !> Drop Kd-dk*g — P(:, Id-di*g, Jd-dj*g).
+  !> Spacchetta il buffer di ricezione di P. Invocabile in sicurezza da !$omp do
+  !> sui gruppi di faccia. Destinazione: P(:, Id-di*g, Jd-dj*g).
   subroutine exchange_P_unpack_faces(domain, fg_start, fg_end)
     use Q2D_Advanced_Types_m, only: Q2D_domain_type
     use Q2D_Global_m,         only: gc, nprim
     implicit none
     type(Q2D_domain_type), intent(inout) :: domain
     integer, intent(in) :: fg_start, fg_end
-    ! Local
+    ! Local variables
     integer :: fg, i, g, b, buf_pos
     integer :: Id, Jd, di, dj
     integer :: entry_size
@@ -1199,7 +1199,7 @@ contains
   end subroutine exchange_P_unpack_faces
 
 
-  !> Wait for P sends to complete. Call from !$omp single.
+  !> Attende il completamento degli invii di P. Da chiamare da !$omp single.
   subroutine exchange_P_wait_send()
     use mpi
     implicit none
@@ -1214,8 +1214,7 @@ contains
   end subroutine exchange_P_wait_send
 
 
-  !> Internal: begin non-blocking exchange of R field using persistent requests.
-  !> Drop Ks+dk*(g-1).
+  !> Interna: avvia lo scambio non bloccante del campo R con richieste persistenti.
   subroutine exchange_R_field_begin(domain)
     use Q2D_Advanced_Types_m, only: Q2D_domain_type
     use Q2D_Global_m,         only: gc, nprim
@@ -1223,7 +1222,7 @@ contains
 
     implicit none
     type(Q2D_domain_type), intent(inout) :: domain
-    ! Local
+    ! Local variables
     integer :: ns, nr, i, g, b, fg, ierr, buf_pos
     integer :: Is, Js, di, dj
     integer :: entry_size
@@ -1234,13 +1233,13 @@ contains
 
     entry_size = nprim * gc
 
-    ! Start persistent receives for R
+    ! Avvia le ricezioni persistenti per R
     if (ghost_sched%n_recv_ranks > 0) then
       call MPI_STARTALL(ghost_sched%n_recv_ranks, ghost_sched%R_recv_req_pers, ierr)
       call check_mpi_error(ierr)
     end if
 
-    ! Pack using face groups (reads R instead of P)
+    ! Impacchetta usando i gruppi di faccia (legge R invece di P)
     do fg = 1, ghost_sched%n_send_faces
       b  = ghost_sched%send_faces(fg)%block
       di = ghost_sched%send_faces(fg)%di
@@ -1257,7 +1256,7 @@ contains
       end do
     end do
 
-    ! Start persistent sends for R
+    ! Avvia gli invii persistenti per R
     if (ghost_sched%n_send_ranks > 0) then
       call MPI_STARTALL(ghost_sched%n_send_ranks, ghost_sched%R_send_req_pers, ierr)
       call check_mpi_error(ierr)
@@ -1265,8 +1264,7 @@ contains
   end subroutine exchange_R_field_begin
 
 
-  !> Internal: complete non-blocking exchange and unpack R into ghost cells.
-  !> Drop Kd-dk*g.
+  !> Interna: completa lo scambio non bloccante e spacchetta R nelle celle ghost.
   subroutine exchange_R_field_end(domain)
     use Q2D_Advanced_Types_m, only: Q2D_domain_type
     use Q2D_Global_m,         only: gc, nprim
@@ -1274,7 +1272,7 @@ contains
 
     implicit none
     type(Q2D_domain_type), intent(inout) :: domain
-    ! Local
+    ! Local variables
     integer :: nr, i, g, b, fg, ierr, buf_pos
     integer :: Id, Jd, di, dj
     integer :: entry_size
@@ -1290,7 +1288,7 @@ contains
       call check_mpi_error(ierr)
     end if
 
-    ! Unpack using face groups
+    ! Spacchetta usando i gruppi di faccia
     do fg = 1, ghost_sched%n_recv_faces
       b  = ghost_sched%recv_faces(fg)%block
       di = ghost_sched%recv_faces(fg)%di
@@ -1316,9 +1314,9 @@ contains
 #endif
 
 
-  !> MPI barrier for synchronizing ranks after I/O operations.
-  !> Prevents non-root ranks from advancing to the next MPI collective
-  !> while root is still writing files.
+  !> Barriera MPI di sincronizzazione dei rank dopo le operazioni di I/O.
+  !> Impedisce ai rank non-root di avanzare alla collettiva MPI successiva
+  !> mentre root sta ancora scrivendo su file.
   subroutine mpi_io_barrier()
     if (mpi_size_ <= 1) return
 #ifdef USE_MPI
@@ -1332,8 +1330,7 @@ contains
   end subroutine mpi_io_barrier
 
 
-  !> Fill the inter-rank ghost stencil Pg(:, 1:gc) for the source face Fm.
-  !> Drop Km/Kg, Pg(nprim, 4) instead of (nprim, 6).
+  !> Riempie lo stencil ghost inter-rank Pg(:, 1:gc) per la faccia sorgente Fm.
   subroutine Ghost_Interrank( Im, Jm, Fm, blkm, Pg )
     use Q2D_Global_m,         only: gc, nprim
     use Q2D_Parameters_m,     only: guide

@@ -1,6 +1,5 @@
 module Q2D_Read_Sources
-  ! Q2D-specific module (no analogue in the MOSE peer) — entry point of the config sources system.
-  ! Absorbs the Q2D legacy IO_Sources content.
+  ! Punto di ingresso della configurazione dei termini sorgente geometrici.
 
   use iso_fortran_env,    only: I4 => int32, R8 => real64
   use Q2D_Parameters_m,   only: llen, codename
@@ -23,14 +22,14 @@ contains
     obj_source%error_message   = 'none'
     obj_source%description     = 'none'
 
-    ! Active geometric source (mutually exclusive — Mod_Sources and Mod_RANS
-    ! enforce the exclusion explicitly with `error stop`):
-    !   axisymmetric    → Lib_Source_Axisymmetry  (1/r terms)
+    ! Sorgente geometrica attiva (mutuamente esclusive — Mod_Sources e Mod_RANS
+    ! impongono l'esclusione in modo esplicito con `error stop`):
+    !   axisymmetric    → Lib_Source_Axisymmetry  (termini 1/r)
     !   area_variation  → Lib_Source_Areavariation (G = ∇h, V·G)
     !
-    ! A whitespace-separated list is parsed into `models(:)` for future
-    ! extensibility; the mutual exclusion is verified at Setup time. The registry
-    ! allowed-values list is scalar.
+    ! Una lista separata da spazi viene analizzata in `models(:)` per estensioni
+    ! future; la mutua esclusione è verificata in fase di Setup. La lista dei
+    ! valori ammessi nel registry è scalare.
     call reg%add( section, 'active', obj_source%active_str, 'none', &
                   'Active geometric source model (mutually exclusive)', &
                   'none, axisymmetric, area_variation', .false. )

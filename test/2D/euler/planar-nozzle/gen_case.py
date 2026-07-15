@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
-# planar-nozzle — generate a q2D area-variation converging-diverging nozzle case
-# (constant-gamma air). The q2D out-of-plane thickness h(x)=Cross_Section plays the
+# planar-nozzle — generate a Q2D area-variation converging-diverging nozzle case
+# (constant-gamma air). The Q2D out-of-plane thickness h(x)=Cross_Section plays the
 # role of the quasi-1D area A(x): h-weighted continuity for y-uniform flow gives
 # h*rho*u = mdot, so the converged inviscid solution must match the quasi-1D isentropic
 # area-law (Shapiro). Used by check.py (acceptance) and verify.py (grid convergence).

@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Generate the q2D AREA-VARIATION turbulent planar-nozzle inputs (kw = Menter SST
+"""Generate the Q2D AREA-VARIATION turbulent planar-nozzle inputs (kw = Menter SST
 and rsm = SSG/LRR-omega) from the committed-gas planar-nozzle C-D area-variation
 case.
 
 PURPOSE (SSGLRR area-variation V&V, Phase C — the *running* sibling of the 2D-axi
-chang-nozzle-turbulent case): a running q2D area-variation RSM case that exercises
+chang-nozzle-turbulent case): a running Q2D area-variation RSM case that exercises
 every area-variation-specific RSM path (theory q2d-rans-closures.md §6, Appendix
 A.5):
   - P_33 = +2 rho R33 (V.G)          depth-compression production (§6.2 / A.5),

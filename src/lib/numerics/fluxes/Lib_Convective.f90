@@ -1,8 +1,8 @@
-! WHY: SD_limiter scope. SD_limiter gates ONLY the MUSCL
-!   Reconstruction (beta_ = beta if SD_limiter, else 1d0). The Riemann solver
-!   always receives raw `beta`, because HLLE++/HLLEMSD/HLLCSD are SD-aware
-!   *by design* (cf. Lib_Riemann_HLL header "Modified HLLE with SD/blending");
-!   disabling it collapses the solver to plain HLL and removes that behaviour.
+! Scope of SD_limiter: the flag governs ONLY the MUSCL reconstruction
+!   (beta_ = beta if SD_limiter, otherwise 1d0). The Riemann solver always
+!   receives the unfiltered `beta`, because HLLE++/HLLEMSD/HLLCSD use the shock
+!   detector by construction (cf. header of Lib_Riemann_HLL.f90); zeroing beta
+!   there as well would reduce the solver to plain HLL, eliminating the blending.
 module Q2D_Lib_Convective
   use iso_fortran_env, only: I4 => int32, R8 => real64
 

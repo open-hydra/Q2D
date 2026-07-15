@@ -60,20 +60,14 @@ ENDIF(CMAKE_Fortran_FLAGS_RELEASE AND CMAKE_Fortran_FLAGS_TESTING AND CMAKE_Fort
 ### GENERAL FLAGS ###
 #####################
 
-# `-fno-underscoring` rimosso (Q2D-side divergence
-# MOSE-mirror, piano §1 #19). Il flag rompeva la binding Fortran→Intel MPI
-# `MPI_REDUCE(MPI_IN_PLACE, ...)` con gfortran: il symbol mangled `mpi_reduce`
-# (senza `_`) risolveva al C binding di Intel MPI invece del Fortran binding
-# `mpi_reduce_`, causando il drop della contribution del root rank con
-# MPI_IN_PLACE (root's recvbuf interpretato come pointer all'indirizzo Fortran
-# integer value invece del C sentinel pointer MPI_IN_PLACE_C). Verifica
-# empirica: standalone test_full.f90 WITH flag FAIL identico Q2D/MOSE; WITHOUT
-# flag WORKS. Future C-from-Fortran calls (HYDRA coupling) usare `bind(C, name=...)`
-# per-entry (Fortran 2003+ standard) invece del bulk rename.
-#
-# Legacy reference (MOSE-mirror, latent ifort-only path):
-# SET_COMPILE_FLAG(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS}"
-#                  Fortran "-fno-underscoring")
+# The `-fno-underscoring` flag must NOT be used: it breaks the Fortran→Intel MPI
+# binding of `MPI_REDUCE(MPI_IN_PLACE, ...)` with gfortran. The mangled symbol
+# `mpi_reduce` (without the trailing `_`) resolves to the Intel MPI C binding
+# instead of the Fortran binding `mpi_reduce_`, dropping the root rank's
+# contribution with MPI_IN_PLACE (the root's recvbuf is interpreted as a pointer
+# to the Fortran integer value instead of the C sentinel pointer MPI_IN_PLACE_C).
+# Any future C-from-Fortran calls (HYDRA coupling) should use `bind(C, name=...)`
+# per entry (Fortran 2003+ standard) instead of a bulk symbol rename.
 
 # There is some bug where -march=native doesn't work on Mac
 IF(APPLE)

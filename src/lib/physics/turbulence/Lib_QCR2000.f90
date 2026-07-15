@@ -1,27 +1,30 @@
-!>@brief Quadratic Constitutive Relations (Spalart 2000) — Q2D 2D-reduced.
+!>@brief Quadratic Constitutive Relations (Spalart 2000) — riduzione 2D per Q2D.
 !
-! Reference: Spalart P.R. (2000), "Strategies for turbulence modelling and simulations",
-!            Int. J. Heat Fluid Flow 21(3):252-263.
+! Riferimento: Spalart P.R. (2000), "Strategies for turbulence modelling and simulations",
+!              Int. J. Heat Fluid Flow 21(3):252-263.
 !
-! 2D applicability caveat: QCR is motivated for 3D corner separation (junction
-! flows wing-body, fan blade hub interactions). In Q2D (Tau_xz=Tau_yz=0 a priori
-! because out-of-plane velocity gradients are absent), QCR acts only on the
-! in-plane anisotropy (Tau_xx, Tau_yy, Tau_xy). Reduced physical payoff vs the
-! target 3D use case. For 2D RANS engineering use SST/SA as the primary models;
-! QCR is recommended as an optional correction for cases with significant
-! anisotropy.
+! Limite di applicabilità in 2D: la QCR nasce per le separazioni d'angolo 3D
+! (giunzioni ala-fusoliera, interazioni al mozzo delle palettature). In Q2D
+! (Tau_xz=Tau_yz=0 a priori perché i gradienti di velocità fuori piano sono
+! assenti) la QCR agisce solo sull'anisotropia nel piano (Tau_xx, Tau_yy,
+! Tau_xy): il beneficio fisico è quindi ridotto rispetto al caso d'uso 3D
+! d'origine. Per la RANS 2D ingegneristica i modelli primari restano SST/SA;
+! la QCR è raccomandata come correzione opzionale per casi con anisotropia
+! significativa.
 !
-! Q2D provides 2 realizations (Stress_Vector_QCR2000_Std/Axi) following the
-! Lib_Fluid Stress_Vector_Std/Axi axi-geometry switch pattern. The abstract
-! Q2D Stress_Vector_if interface requires 8-args (Gradvel(2,2), Stress(2)),
-! so the single 5-arg form (Gradvel(3,3), Normal(3), Stress(3)) cannot be
-! assigned to the procedure pointer — hence the Std/Axi split.
+! Q2D fornisce 2 realizzazioni (Stress_Vector_QCR2000_Std/Axi) secondo lo
+! schema di commutazione geometrica Std/Axi di Stress_Vector_Std/Axi in
+! Lib_Fluid. L'interfaccia astratta Stress_Vector_if di Q2D richiede 8
+! argomenti (Gradvel(2,2), Stress(2)), quindi l'eventuale forma unica a 5
+! argomenti (Gradvel(3,3), Normal(3), Stress(3)) non è assegnabile al
+! procedure pointer — da qui la separazione Std/Axi.
 !
-! Dispatch: QCR2000 binds only in the SA branch; for SST/Wilcox the
-! Stress_Vector_2eq path is used when k_energy_coupling is active, so QCR is
-! mutually exclusive with it.
+! Dispatch: QCR2000 si aggancia solo nel ramo SA; per SST/Wilcox, quando
+! k_energy_coupling è attivo, si usa il percorso Stress_Vector_2eq, quindi la
+! QCR è mutuamente esclusiva con esso.
 module Q2D_Lib_QCR2000
-  use iso_fortran_env, only: I4 => int32, R8 => real64
+  use iso_fortran_env,    only: I4 => int32, R8 => real64
+  use Q2D_Config_Types_m, only: obj_rot   ! acceduto in sola lettura nelle funzioni pure sottostanti
 
   implicit none
   private
@@ -35,53 +38,68 @@ module Q2D_Lib_QCR2000
 contains
 
   pure function Stress_Vector_QCR2000_Std ( Gradvel, Normal, mi_l, mi_t, var, r_ave, vr, V_dot_G ) result ( Stress )
-    ! Signature 8-args matching Stress_Vector_if (Lib_Fluid).
-    ! Q2D Def A: Divervel = G(1,1) + G(2,2) - VG (baked in via VG).
-    ! 2D planar: Tau_xz_turb = Tau_yz_turb = 0 a priori
-    ! (no out-of-plane velocity gradients) -> QCR correction on Tau_xx, Tau_yy, Tau_xy
-    ! only, and Tau_zz_QCR = Tau_zz (no out-of-plane mixing).
+    ! Firma a 8 argomenti conforme a Stress_Vector_if (Lib_Fluid).
+    ! Definizione A di Q2D: Divervel = G(1,1) + G(2,2) - VG (incorporata via VG).
+    ! 2D piano: Tau_xz_turb = Tau_yz_turb = 0 a priori
+    ! (nessun gradiente di velocità fuori piano) -> correzione QCR solo su
+    ! Tau_xx, Tau_yy, Tau_xy, e Tau_zz_QCR = Tau_zz (nessun mescolamento fuori piano).
     implicit none
     real(R8), intent(in) :: Gradvel(2,2), Normal(2), mi_t, mi_l, var(:), r_ave, vr
     real(R8), intent(in), optional :: V_dot_G
     real(R8) :: Stress(2)
     ! Local
-    real(R8) :: Tau_xx_t, Tau_xy_t, Tau_yy_t                ! turbulent (Boussinesq deviatoric)
-    real(R8) :: Tau_xx_QCR, Tau_yy_QCR, Tau_xy_QCR          ! QCR-corrected turbulent
-    real(R8) :: Tau_xx, Tau_yy, Tau_xy                      ! laminar + turbulent total
+    real(R8) :: Tau_xx_t, Tau_xy_t, Tau_yy_t                ! turbolento (deviatorico di Boussinesq)
+    real(R8) :: Tau_xx_QCR, Tau_yy_QCR, Tau_xy_QCR          ! turbolento corretto QCR
+    real(R8) :: Tau_xx, Tau_yy, Tau_xy                      ! totale laminare + turbolento
     real(R8) :: lam_l, Divervel, lamDivervel, VG
     real(R8) :: omega_z, Den, O_off
 
     VG = 0.d0
     if (present(V_dot_G)) VG = V_dot_G
 
-    ! Q2D Def A divergence
+    ! Divergenza secondo la Definizione A di Q2D
     Divervel = Gradvel(1,1) + Gradvel(2,2) - VG
 
-    ! Turbulent stress (Boussinesq deviatoric, with mi_t). 2D planar.
+    ! Sforzo turbolento (deviatorico di Boussinesq, con mi_t). 2D piano.
     Tau_xx_t = 2d0 * mi_t * ( Gradvel(1,1) - 1d0/3d0 * Divervel )
     Tau_yy_t = 2d0 * mi_t * ( Gradvel(2,2) - 1d0/3d0 * Divervel )
     Tau_xy_t =       mi_t * ( Gradvel(1,2) + Gradvel(2,1)        )
 
-    ! Vorticity z-component (omega(1)=omega(2)=0)
+    ! Componente z della vorticità (omega(1)=omega(2)=0)
     omega_z = Gradvel(2,1) - Gradvel(1,2)
 
-    ! Den = sqrt(sum(Gradvel_full**2)) includes the (3,3)=-VG component.
-    ! Avoid division by zero in laminar regions.
+    ! Den = sqrt(sum(Gradvel_full**2)) include la componente (3,3)=-VG.
+    ! Evita la divisione per zero nelle regioni laminari.
     Den = sqrt ( sum ( Gradvel**2 ) + VG**2 ) + 1d-40
+    ! ── Oggettività in sistema rotante (verificata su un vortice analitico,
+    ! assi fissi vs assi rotanti): O_ik = 2 W_ik/||grad u|| va costruito con
+    ! grandezze in assi ASSOLUTI — omega_z traslata di 2*Oz (come ogni altro
+    ! consumatore di vorticità) E Den dal gradiente assoluto = relativo +
+    ! gradiente di trascinamento d(Omega x r)_a/dx_b = [[0,-Oz],[Oz,0]] nel
+    ! piano (la componente (3,3) è invariante di sistema). La sola traslazione
+    ! di omega NON basta: un Den dal gradiente relativo lascia tau_QCR
+    ! dipendente dal sistema di riferimento e sovracorregge; con entrambe le
+    ! correzioni tau_QCR è esattamente oggettivo (zero macchina).
+    if (obj_rot%enabled) then
+      omega_z = omega_z + 2.0_R8*obj_rot%Omega_vec(3)
+      Den = sqrt ( Gradvel(1,1)**2 + (Gradvel(1,2)-obj_rot%Omega_vec(3))**2 &
+                 + (Gradvel(2,1)+obj_rot%Omega_vec(3))**2 + Gradvel(2,2)**2 &
+                 + VG**2 ) + 1d-40
+    end if
 
     ! O_ij(1,2) = 2*W_ij(1,2)/Den = -omega_z/Den; O_ij(2,1) = +omega_z/Den.
-    ! Off-diagonal magnitude in z-component sense (only nonzero entries in 2D).
+    ! Modulo fuori diagonale in senso di componente z (uniche entrate non nulle in 2D).
     O_off = omega_z / Den   ! = -O_ij(1,2) = +O_ij(2,1)
 
-    ! QCR correction (reduces 6 components to in-plane 3):
-    ! T_ij_QCR = T_ij - C_cr1*[O_ik*T_jk + O_jk*T_ik], with sums on k = {1,2,3}.
-    ! In 2D planar: O_ik = 0 except (1,2),(2,1); T_ik = 0 for k=3 turbulent stress.
+    ! Correzione QCR (le 6 componenti si riducono alle 3 nel piano):
+    ! T_ij_QCR = T_ij - C_cr1*[O_ik*T_jk + O_jk*T_ik], somme su k = {1,2,3}.
+    ! In 2D piano: O_ik = 0 tranne (1,2),(2,1); T_ik = 0 per k=3 nello sforzo turbolento.
     Tau_xx_QCR = Tau_xx_t - 2d0 * (-O_off) * Tau_xy_t * C_cr1   ! = Tau_xx_t + 2*O_off*Tau_xy_t*C_cr1
     Tau_yy_QCR = Tau_yy_t - 2d0 * ( O_off) * Tau_xy_t * C_cr1
     Tau_xy_QCR = Tau_xy_t - ( (-O_off) * Tau_yy_t + ( O_off) * Tau_xx_t ) * C_cr1
                                                                 ! = Tau_xy_t + O_off*(Tau_yy_t - Tau_xx_t)*C_cr1
 
-    ! Laminar (linear Newtonian, no QCR correction). Mirror Stress_Vector_Std.
+    ! Laminare (newtoniano lineare, senza correzione QCR). Speculare a Stress_Vector_Std.
     lam_l = negativetwothird * mi_l
     lamDivervel = lam_l * Divervel
 
@@ -95,11 +113,12 @@ contains
 
 
   pure function Stress_Vector_QCR2000_Axi ( Gradvel, Normal, mi_l, mi_t, var, r_ave, vr, V_dot_G ) result ( Stress )
-    ! Signature 8-args matching Stress_Vector_if. Cylindrical divergence.
-    ! V_dot_G optional argument for interface uniformity (NOT used in Axi:
-    ! axisymmetric flows have no virtual top/bot wall in Def A sense).
-    ! 2D-axi No-w (no swirl): Tau_xz_turb = Tau_yz_turb = 0, and
-    ! Tau_zz_turb (theta-theta) does NOT enter in-plane Stress(1:2).
+    ! Firma a 8 argomenti conforme a Stress_Vector_if. Divergenza cilindrica.
+    ! Argomento opzionale V_dot_G per uniformità di interfaccia (NON usato in
+    ! Axi: i flussi assialsimmetrici non hanno parete virtuale top/bot nel
+    ! senso della Definizione A).
+    ! 2D-axi No-w (senza swirl): Tau_xz_turb = Tau_yz_turb = 0, e
+    ! Tau_zz_turb (theta-theta) NON entra nello Stress(1:2) nel piano.
     implicit none
     real(R8), intent(in) :: Gradvel(2,2), Normal(2), mi_t, mi_l, var(:), r_ave, vr
     real(R8), intent(in), optional :: V_dot_G
@@ -111,7 +130,7 @@ contains
     real(R8) :: lam_l, Divervel, lamDivervel, G_zz
     real(R8) :: omega_z, Den, O_off
 
-    ! Cylindrical coordinate divergence (de l'Hopital fallback at axis r_ave -> 0)
+    ! Divergenza in coordinate cilindriche (fallback di de l'Hopital all'asse r_ave -> 0)
     if (r_ave .le. 1.d-6) then
       Divervel = Gradvel(1,1) + Gradvel(2,2) + Gradvel(2,2)  ! de l'Hopital vr/r --> dv/dr
       G_zz     = Gradvel(2,2)
@@ -120,23 +139,36 @@ contains
       G_zz     = vr/r_ave
     end if
 
-    ! Turbulent stress
+    ! Sforzo turbolento
     Tau_xx_t = 2d0 * mi_t * ( Gradvel(1,1) - 1d0/3d0 * Divervel )
     Tau_yy_t = 2d0 * mi_t * ( Gradvel(2,2) - 1d0/3d0 * Divervel )
     Tau_xy_t =       mi_t * ( Gradvel(1,2) + Gradvel(2,1)        )
 
-    ! Vorticity z-component
+    ! Componente z della vorticità
     omega_z = Gradvel(2,1) - Gradvel(1,2)
 
-    ! Den includes the (3,3) = vr/r_ave component (axi)
+    ! Den include la componente (3,3) = vr/r_ave (axi)
     Den = sqrt ( sum ( Gradvel**2 ) + G_zz**2 ) + 1d-40
+    ! ── Oggettività in sistema rotante — vedi il commento della variante Std
+    ! (oggettività verificata su un vortice analitico): omega assoluta E
+    ! gradiente assoluto in Den; la componente cilindrica (3,3) = vr/r è
+    ! invariante di sistema. (La combinazione 2D-axi + sistema rotante è oggi
+    ! bloccata dal controllo di compatibilità in Setup_RotatingFrame; questo
+    ! ramo mantiene la realizzazione Axi coerente col sistema di riferimento
+    ! in vista dell'estensione 2D-axi con swirl.)
+    if (obj_rot%enabled) then
+      omega_z = omega_z + 2.0_R8*obj_rot%Omega_vec(3)
+      Den = sqrt ( Gradvel(1,1)**2 + (Gradvel(1,2)-obj_rot%Omega_vec(3))**2 &
+                 + (Gradvel(2,1)+obj_rot%Omega_vec(3))**2 + Gradvel(2,2)**2 &
+                 + G_zz**2 ) + 1d-40
+    end if
     O_off = omega_z / Den
 
     Tau_xx_QCR = Tau_xx_t - 2d0 * (-O_off) * Tau_xy_t * C_cr1
     Tau_yy_QCR = Tau_yy_t - 2d0 * ( O_off) * Tau_xy_t * C_cr1
     Tau_xy_QCR = Tau_xy_t - ( (-O_off) * Tau_yy_t + ( O_off) * Tau_xx_t ) * C_cr1
 
-    ! Laminar
+    ! Laminare
     lam_l = negativetwothird * mi_l
     lamDivervel = lam_l * Divervel
 
@@ -150,23 +182,23 @@ contains
 
 
   pure function Stress_Tensor_QCR2000_Std ( Gradvel, mi_l, mi_t, var, r_ave, vr, V_dot_G ) result ( Stress_t )
-    ! 3x3 stress tensor with QCR2000 correction (Spalart 2000), Std variant.
-    ! Verified by the term_by_term_sympy audit (multi-method).
-    ! Mirror Stress_Vector_QCR2000_Std pattern with:
-    !   - 7-args signature matching Stress_Tensor_if (no Normal, output 3x3 instead of vector(2)·n).
-    !   - Q2D Def A: Divervel = G(1,1) + G(2,2) - VG (baked via VG).
-    !   - QCR correction on in-plane (xx, yy, xy); Tau_QCR_zz = Tau_zz UNCHANGED
-    !     (No-w → O_θ·=0 → no QCR on (3,3) component).
+    ! Tensore degli sforzi 3x3 con correzione QCR2000 (Spalart 2000), variante Std.
+    ! Speculare allo schema di Stress_Vector_QCR2000_Std con:
+    !   - firma a 7 argomenti conforme a Stress_Tensor_if (niente Normal, uscita 3x3
+    !     invece di vector(2)·n).
+    !   - Definizione A di Q2D: Divervel = G(1,1) + G(2,2) - VG (incorporata via VG).
+    !   - correzione QCR sulle componenti nel piano (xx, yy, xy); Tau_QCR_zz = Tau_zz
+    !     INVARIATO (No-w → O_θ·=0 → nessuna QCR sulla componente (3,3)).
     !   - Tau_xz, Tau_yz = 0 (No-w).
-    ! Sanity check: O_off=0 → Tau_QCR_xx/yy/xy = Tau_xx/yy/xy non-QCR ✓.
+    ! Verifica di coerenza: O_off=0 → Tau_QCR_xx/yy/xy = Tau_xx/yy/xy non-QCR ✓.
     implicit none
     real(R8), intent(in) :: Gradvel(2,2), mi_t, mi_l, var(:), r_ave, vr
     real(R8), intent(in), optional :: V_dot_G
     real(R8) :: Stress_t(3,3)
     ! Local
-    real(R8) :: Tau_xx_t, Tau_xy_t, Tau_yy_t          ! turbulent (Boussinesq deviatoric, mi_t)
-    real(R8) :: Tau_xx_QCR, Tau_yy_QCR, Tau_xy_QCR    ! QCR-corrected turbulent
-    real(R8) :: Tau_xx, Tau_yy, Tau_xy, Tau_zz        ! full (laminar + turbulent_QCR)
+    real(R8) :: Tau_xx_t, Tau_xy_t, Tau_yy_t          ! turbolento (deviatorico di Boussinesq, mi_t)
+    real(R8) :: Tau_xx_QCR, Tau_yy_QCR, Tau_xy_QCR    ! turbolento corretto QCR
+    real(R8) :: Tau_xx, Tau_yy, Tau_xy, Tau_zz        ! completo (laminare + turbolento_QCR)
     real(R8) :: lam_l, Divervel, lamDivervel, VG
     real(R8) :: omega_z, Den, O_off
     real(R8) :: mi_combined
@@ -174,43 +206,58 @@ contains
     VG = 0.d0
     if (present(V_dot_G)) VG = V_dot_G
 
-    ! Q2D Def A divergence (baked via VG)
+    ! Divergenza secondo la Definizione A di Q2D (incorporata via VG)
     Divervel = Gradvel(1,1) + Gradvel(2,2) - VG
 
-    ! Turbulent stress (Boussinesq deviatoric, with mi_t). 2D planar.
+    ! Sforzo turbolento (deviatorico di Boussinesq, con mi_t). 2D piano.
     Tau_xx_t = 2d0 * mi_t * ( Gradvel(1,1) - 1d0/3d0 * Divervel )
     Tau_yy_t = 2d0 * mi_t * ( Gradvel(2,2) - 1d0/3d0 * Divervel )
     Tau_xy_t =       mi_t * ( Gradvel(1,2) + Gradvel(2,1)        )
 
-    ! Vorticity z-component (omega(1)=omega(2)=0)
+    ! Componente z della vorticità (omega(1)=omega(2)=0)
     omega_z = Gradvel(2,1) - Gradvel(1,2)
 
-    ! Den includes the (3,3) = -VG component (area-var Definition A).
+    ! Den include la componente (3,3) = -VG (Definizione A con variazione d'area).
     Den = sqrt ( sum ( Gradvel**2 ) + VG**2 ) + 1d-40
+    ! ── Oggettività in sistema rotante (verificata su un vortice analitico,
+    ! assi fissi vs assi rotanti): O_ik = 2 W_ik/||grad u|| va costruito con
+    ! grandezze in assi ASSOLUTI — omega_z traslata di 2*Oz (come ogni altro
+    ! consumatore di vorticità) E Den dal gradiente assoluto = relativo +
+    ! gradiente di trascinamento d(Omega x r)_a/dx_b = [[0,-Oz],[Oz,0]] nel
+    ! piano (la componente (3,3) è invariante di sistema). La sola traslazione
+    ! di omega NON basta: un Den dal gradiente relativo lascia tau_QCR
+    ! dipendente dal sistema di riferimento e sovracorregge; con entrambe le
+    ! correzioni tau_QCR è esattamente oggettivo (zero macchina).
+    if (obj_rot%enabled) then
+      omega_z = omega_z + 2.0_R8*obj_rot%Omega_vec(3)
+      Den = sqrt ( Gradvel(1,1)**2 + (Gradvel(1,2)-obj_rot%Omega_vec(3))**2 &
+                 + (Gradvel(2,1)+obj_rot%Omega_vec(3))**2 + Gradvel(2,2)**2 &
+                 + VG**2 ) + 1d-40
+    end if
     O_off = omega_z / Den   ! = -O_ij(1,2) = +O_ij(2,1)
 
-    ! QCR correction (reduces 6 components to in-plane 3):
-    ! T_ij_QCR = T_ij - C_cr1*[O_ik*T_jk + O_jk*T_ik], with sums on k.
-    ! O_θ·=0 (No-w) → no QCR correction on (3,3) component.
+    ! Correzione QCR (le 6 componenti si riducono alle 3 nel piano):
+    ! T_ij_QCR = T_ij - C_cr1*[O_ik*T_jk + O_jk*T_ik], somme su k.
+    ! O_θ·=0 (No-w) → nessuna correzione QCR sulla componente (3,3).
     Tau_xx_QCR = Tau_xx_t - 2d0 * (-O_off) * Tau_xy_t * C_cr1
     Tau_yy_QCR = Tau_yy_t - 2d0 * ( O_off) * Tau_xy_t * C_cr1
     Tau_xy_QCR = Tau_xy_t - ( (-O_off) * Tau_yy_t + ( O_off) * Tau_xx_t ) * C_cr1
 
-    ! Laminar (linear Newtonian, no QCR correction).
+    ! Laminare (newtoniano lineare, senza correzione QCR).
     lam_l = negativetwothird * mi_l
     lamDivervel = lam_l * Divervel
 
-    ! In-plane: laminar + QCR-corrected turbulent
+    ! Nel piano: laminare + turbolento corretto QCR
     Tau_xx = lamDivervel + 2d0 * mi_l * Gradvel(1,1) + Tau_xx_QCR
     Tau_yy = lamDivervel + 2d0 * mi_l * Gradvel(2,2) + Tau_yy_QCR
     Tau_xy =               mi_l * ( Gradvel(1,2) + Gradvel(2,1) ) + Tau_xy_QCR
 
-    ! Tau_zz: V·G baked + NO QCR correction (No-w → O_θ·=0).
-    ! Mirror Stress_Tensor_Std: Tau_zz = lamDivervel_combined + 2*mi*(-VG).
+    ! Tau_zz: V·G incorporato + NESSUNA correzione QCR (No-w → O_θ·=0).
+    ! Speculare a Stress_Tensor_Std: Tau_zz = lamDivervel_combined + 2*mi*(-VG).
     mi_combined = mi_l + mi_t
     Tau_zz = (negativetwothird * mi_combined) * Divervel + 2d0 * mi_combined * (-VG)
 
-    ! Assemble 3x3 tensor (τ_xz = τ_yz = 0)
+    ! Assemblaggio del tensore 3x3 (τ_xz = τ_yz = 0)
     Stress_t(1,1) = Tau_xx
     Stress_t(2,2) = Tau_yy
     Stress_t(3,3) = Tau_zz
@@ -226,12 +273,12 @@ contains
 
 
   pure function Stress_Tensor_QCR2000_Axi ( Gradvel, mi_l, mi_t, var, r_ave, vr, V_dot_G ) result ( Stress_t )
-    ! 3x3 stress tensor with QCR2000 correction, Axi variant.
-    ! Mirror Stress_Tensor_Axi (Lib_Fluid) + QCR on in-plane (xx, yy, xy);
-    ! Tau_QCR_θθ = Tau_θθ UNCHANGED (No-w → O_θ·=0).
-    ! V_dot_G optional argument for interface uniformity (NOT used in Axi).
-    ! Tensor evaluated cell-center (r_ave > 0 by mesh construction) → no de l'Hopital fallback
-    ! (same convention as Stress_Tensor_Axi).
+    ! Tensore degli sforzi 3x3 con correzione QCR2000, variante Axi.
+    ! Speculare a Stress_Tensor_Axi (Lib_Fluid) + QCR sulle componenti nel piano
+    ! (xx, yy, xy); Tau_QCR_θθ = Tau_θθ INVARIATO (No-w → O_θ·=0).
+    ! Argomento opzionale V_dot_G per uniformità di interfaccia (NON usato in Axi).
+    ! Tensore valutato al centro cella (r_ave > 0 per costruzione della mesh) →
+    ! nessun fallback di de l'Hopital (stessa convenzione di Stress_Tensor_Axi).
     implicit none
     real(R8), intent(in) :: Gradvel(2,2), mi_t, mi_l, var(:), r_ave, vr
     real(R8), intent(in), optional :: V_dot_G
@@ -244,28 +291,41 @@ contains
     real(R8) :: omega_z, Den, O_off
     real(R8) :: mi_combined
 
-    ! Cylindrical coordinate divergence (V_r/r in (3,3) component).
+    ! Divergenza in coordinate cilindriche (V_r/r nella componente (3,3)).
     Divervel = Gradvel(1,1) + Gradvel(2,2) + vr/r_ave
     G_zz     = vr/r_ave
 
-    ! Turbulent stress (Boussinesq deviatoric, with mi_t).
+    ! Sforzo turbolento (deviatorico di Boussinesq, con mi_t).
     Tau_xx_t = 2d0 * mi_t * ( Gradvel(1,1) - 1d0/3d0 * Divervel )
     Tau_yy_t = 2d0 * mi_t * ( Gradvel(2,2) - 1d0/3d0 * Divervel )
     Tau_xy_t =       mi_t * ( Gradvel(1,2) + Gradvel(2,1)        )
 
-    ! Vorticity z-component
+    ! Componente z della vorticità
     omega_z = Gradvel(2,1) - Gradvel(1,2)
 
-    ! Den includes the (3,3) = vr/r_ave component (cylindrical Christoffel).
+    ! Den include la componente (3,3) = vr/r_ave (termine di Christoffel cilindrico).
     Den = sqrt ( sum ( Gradvel**2 ) + G_zz**2 ) + 1d-40
+    ! ── Oggettività in sistema rotante — vedi il commento della variante Std
+    ! (oggettività verificata su un vortice analitico): omega assoluta E
+    ! gradiente assoluto in Den; la componente cilindrica (3,3) = vr/r è
+    ! invariante di sistema. (La combinazione 2D-axi + sistema rotante è oggi
+    ! bloccata dal controllo di compatibilità in Setup_RotatingFrame; questo
+    ! ramo mantiene la realizzazione Axi coerente col sistema di riferimento
+    ! in vista dell'estensione 2D-axi con swirl.)
+    if (obj_rot%enabled) then
+      omega_z = omega_z + 2.0_R8*obj_rot%Omega_vec(3)
+      Den = sqrt ( Gradvel(1,1)**2 + (Gradvel(1,2)-obj_rot%Omega_vec(3))**2 &
+                 + (Gradvel(2,1)+obj_rot%Omega_vec(3))**2 + Gradvel(2,2)**2 &
+                 + G_zz**2 ) + 1d-40
+    end if
     O_off = omega_z / Den
 
-    ! QCR correction (in-plane only, O_θ·=0)
+    ! Correzione QCR (solo nel piano, O_θ·=0)
     Tau_xx_QCR = Tau_xx_t - 2d0 * (-O_off) * Tau_xy_t * C_cr1
     Tau_yy_QCR = Tau_yy_t - 2d0 * ( O_off) * Tau_xy_t * C_cr1
     Tau_xy_QCR = Tau_xy_t - ( (-O_off) * Tau_yy_t + ( O_off) * Tau_xx_t ) * C_cr1
 
-    ! Laminar
+    ! Laminare
     lam_l = negativetwothird * mi_l
     lamDivervel = lam_l * Divervel
 
@@ -273,12 +333,12 @@ contains
     Tau_yy = lamDivervel + 2d0 * mi_l * Gradvel(2,2) + Tau_yy_QCR
     Tau_xy =               mi_l * ( Gradvel(1,2) + Gradvel(2,1) ) + Tau_xy_QCR
 
-    ! Tau_zz (= τ_θθ in cylindrical reading): vr/r baked + NO QCR (No-w).
-    ! Mirror Stress_Tensor_Axi: Tau_zz = 2*mi*vr/r_ave + lamDivervel_combined.
+    ! Tau_zz (= τ_θθ in lettura cilindrica): vr/r incorporato + NESSUNA QCR (No-w).
+    ! Speculare a Stress_Tensor_Axi: Tau_zz = 2*mi*vr/r_ave + lamDivervel_combined.
     mi_combined = mi_l + mi_t
     Tau_zz = (negativetwothird * mi_combined) * Divervel + 2d0 * mi_combined * G_zz
 
-    ! Assemble 3x3 tensor (τ_zr/rz off-diagonals zero)
+    ! Assemblaggio del tensore 3x3 (fuori diagonale τ_zr/rz nulli)
     Stress_t(1,1) = Tau_xx
     Stress_t(2,2) = Tau_yy
     Stress_t(3,3) = Tau_zz

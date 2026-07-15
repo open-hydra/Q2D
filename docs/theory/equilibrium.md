@@ -16,7 +16,7 @@ equilibrium calculations.  The solver is provided by the
 companion library used by MOSE.
 
 In Q2D the equilibrium model is selected at run time via the INI key
-`[Q2D-Chemistry] model = 'equilibrium'`, which dispatches the
+`[Q2D-Physics] chemistry = equilibrium`, which dispatches the
 `Chemistry_Equilibrium` procedure pointer in `Mod_Chemistry`.  The
 2D-projected residual is built cell-wise without modification of the
 underlying FLINT call.

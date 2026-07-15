@@ -83,9 +83,9 @@ extra_css:
 extra_javascript:
   - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
 
-# Q2D nav: mirrors the MOSE section structure. Q2D-specific entries
-# retained: the legacy-Italian theory sub-section (historical
-# derivations + BC notes) and vv/regression_tolerance.md.
+# Q2D nav: mirrors the MOSE section structure, with Q2D-specific theory
+# pages (geometric sources, axisymmetric / area-variation derivations,
+# Q2D RANS closures) and per-case V&V pages.
 nav:
   - Home: index.md
 
@@ -123,14 +123,24 @@ nav:
   - Verification & Validation:
     - vv/index.md
     - 1D Shock Tubes: vv/1D.md
-    - 1D Convergence Table: vv/convergence-table-1D.md
-    - 2D Plane Extras (Chang Nozzle, Prandtl-Meyer, Ramp Channel): vv/2D-plane-extras.md
+    - Shu-Osher (LIMO3 Limiter): vv/1D-shuosher.md
+    - 1D Convergence (Tables + Gates): vv/convergence-table-1D.md
+    - 2D Euler Extras (Chang Nozzle, Prandtl-Meyer, Ramp Channel): vv/2D-plane-extras.md
     - Woodward-Colella Step: vv/2D-woodward-colella.md
     - Oblique Shock: vv/2D-oblique-shock.md
     - Hypersonic Cylinder: vv/2D-hypersonic-cylinder.md
+    - Noh Cylindrical Implosion (Axisymmetric): vv/2D-noh-cylindrical.md
+    - Coverage Matrix: vv/coverage-matrix.md
+    - Planar Nozzle (Area Variation): vv/2D-planar-nozzle.md
+    - Borda Channel (Injector BC): vv/2D-borda-channel.md
+    - Rotating Channel (Coriolis): vv/2D-rotating-channel.md
+    - Rotating Channel RSM (frame invariance): vv/2D-rotating-channel-rsm.md
+    - Multi-Solver Coupling (BC 103): vv/2D-multi-solver.md
     - Rocket Nozzle: vv/2D-nozzle.md
+    - SRM Rocket Motor (Vieille BC): vv/2D-srm-rocket-motor.md
     - Laminar Flat Plate: vv/2D-flat-plate-laminar.md
     - Turbulent Flat Plate: vv/2D-flat-plate-turbulent.md
+    - SSG/LRR-omega Code Verification: vv/2D-ssglrr.md
     - Shock Boundary Layer Interaction: vv/2D-swbli.md
 
   - Developer Guide:

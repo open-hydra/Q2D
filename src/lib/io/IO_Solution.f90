@@ -8,7 +8,7 @@ module Q2D_IO_Solution
   public :: Setup_Output_Solution
   public :: Write_solution
 
-  !> Concrete procedure pointing to the chosen solution writer
+  !> Puntatore a procedura verso il writer di soluzione selezionato
   procedure(w_solution_if), pointer :: Write_solution => null()
 
   abstract interface
@@ -25,13 +25,11 @@ module Q2D_IO_Solution
 
 contains
 
-  ! Public-surface alignment wrapper (no-op).
-  ! In the MOSE peer, Setup_Input_Solution is a procedure-pointer dispatcher
-  ! (`Read_IC => Read_vtk_tec`) + file extension detection + nameinit search.
-  ! In Q2D Read_IC is a concrete subroutine that already incorporates all the
-  ! file-detection logic. The reader format is selected per MOSE: ini_format on
-  ! a new run, sol_format on a restart (see Read_IC below). The wrapper is kept
-  ! as a no-op so the public surface matches the MOSE peer (its caller is retained).
+  ! Wrapper vuoto (no-op), mantenuto per completezza dell'interfaccia pubblica:
+  ! il chiamante lo invoca prima di Read_IC, ma tutta la logica di ricerca del
+  ! file e di selezione del formato del reader (ini_format su nuova run,
+  ! sol_format su restart) è già incorporata nella subroutine concreta Read_IC
+  ! (vedi sotto).
   subroutine Setup_Input_Solution()
     implicit none
   end subroutine Setup_Input_Solution
@@ -48,18 +46,17 @@ contains
     use strings,            only: parse
     implicit none
     type(ORION_data), intent(inout) :: IOfield
-    ! Local
+    ! Variabili locali
     logical             :: present
     integer             :: i, error
     character(len=clen) :: format(2)
     character(len=6)    :: extension
     character(len=llen) :: try
 
-    ! Determine the reader format: ini_format on a new run, sol_format on a
-    ! restart — mirroring MOSE Read_vtk_tec (archive-MOSE IO_Solution.f90:112-116)
-    ! and legacy read_vtk_tec. The restart branch below already keys the file
-    ! extension off sol_format; parsing the reader dispatch off the same string
-    ! keeps extension and reader consistent when ini-format /= sol-format.
+    ! Selezione del formato del reader: ini_format su nuova run, sol_format su
+    ! restart. Il ramo restart più sotto deduce già l'estensione del file da
+    ! sol_format; ricavare il dispatch del reader dalla stessa stringa mantiene
+    ! coerenti estensione e reader quando ini_format /= sol_format.
     format = ''
     if (obj_sim_param%newrun) then
       call parse(obj_io%ini_format, ' ', format)
@@ -140,10 +137,10 @@ contains
     use IR_Precision,       only: str
     implicit none
     type(ORION_data), intent(inout) :: IOfield(:)
-    ! Local
+    ! Variabili locali
     integer :: b, i, m
 
-    ! IO Variables specification — no "w" (no out-of-plane velocity).
+    ! Specifica delle variabili di IO — nessuna "w" (nessuna velocità fuori dal piano).
     obj_io%Ovarnames = ' '
     obj_io%ORANSname = ' '
     if (nrans == 1) then
@@ -151,9 +148,9 @@ contains
     else if (nrans == 2) then
       obj_io%ORANSname = ' "kappa" "omega"'
     else if (nrans == 5) then
-      ! SSG/LRR-omega RSM: 4 retained Reynolds stresses + omega (R13,R23 dropped,
-      ! 7->5). Names mirror the MOSE peer ru'u' rv'v' rw'w' ru'v' [ru'w' rv'w'] omega
-      ! (apostrophes elided for Tecplot/ORION parser safety).
+      ! RSM SSG/LRR-omega: 4 tensioni di Reynolds mantenute + omega (R13 e R23
+      ! eliminate: da 7 a 5 variabili). Nomi senza apostrofi (ruu = r u'u', ecc.)
+      ! per compatibilità con i parser Tecplot/ORION.
       obj_io%ORANSname = ' "ruu" "rvv" "rww" "ruv" "omega"'
     end if
     do i = 1, nsc
@@ -173,7 +170,7 @@ contains
     end if
     obj_io%Ovarnames = trim(obj_io%Ovarnames)//trim(obj_io%ORANSname)
 
-    ! Auxiliary variables: T is printed by default.
+    ! Variabili ausiliarie: T è scritta di default.
     obj_io%Ovarnames = trim(obj_io%Ovarnames)//' "T"'
     obj_io%Onvar = nprim + 1
     obj_io%write_thermo = .false.
@@ -208,7 +205,7 @@ contains
       end if
     end do
 
-    ! Concretize the writer
+    ! Concretizzazione del writer
     Write_solution => Write_vtk_tec
 
     do m = 1, obj_multigrid%MGL
@@ -217,7 +214,7 @@ contains
       end do
     end do
 
-    ! Reallocate IOfield vars if Onvar changed (e.g. backup written with different var set).
+    ! Rialloca le vars di IOfield se Onvar è cambiato (es. backup scritto con un set di variabili diverso).
     do m = 1, obj_multigrid%MGL
       if (obj_io%Onvar /= size(IOfield(m)%block(1)%vars, 1)) then
         do b = 1, size(IOfield(m)%block)
@@ -250,19 +247,19 @@ contains
     type(Q2D_domain_type), intent(inout) :: domain
     type(ORION_data),      intent(inout) :: IOfield
     character(llen),       intent(in)    :: file
-    ! Local
+    ! Variabili locali
     character(len=llen) :: path, localpath_vtk
     integer  :: E_IO, b, i, j, pv
     real(R8) :: p, rho, Rtot, rhoi(nsc), T, mu, kl, mut, r_ave
     real(R8) :: vel_gradient(2,2)
 
-    ! Gather P from all ranks to root (collective — all ranks must call).
+    ! Raccolta di P da tutti i rank sul root (chiamata collettiva — tutti i rank devono eseguirla).
     call gather_P_to_root(domain)
 
     if (mpi_is_root) then
     path = 'OUTPUT/'
 
-    ! Update IOfield variables with domain primitives + auxiliary variables.
+    ! Aggiorna le variabili di IOfield con le primitive del dominio + le variabili ausiliarie.
     do b = 1, size(IOfield%block)
       IOfield%block(b)%vars(1:nprim_local(),:,:,1) = &
         domain%blk(b)%P(:, 1:IOfield%block(b)%Ni, 1:IOfield%block(b)%Nj)
@@ -305,7 +302,7 @@ contains
       end do
     end do
 
-    ! Write the IOfield in the chosen output format.
+    ! Scrittura di IOfield nel formato di output selezionato.
     if (index(obj_io%sol_format, 'vtk') > 0) then
       localpath_vtk = trim(path)//'vtk/'
       call execute_command_line('mkdir -p '//trim(localpath_vtk))
@@ -323,15 +320,15 @@ contains
     end if
     end if  ! mpi_is_root
 
-    ! Synchronize all ranks after I/O.
+    ! Sincronizzazione di tutti i rank dopo l'I/O.
     call mpi_io_barrier()
 
   end subroutine Write_vtk_tec
 
 
-  ! Local helper to avoid `use Q2D_Global_m, only: nprim` shadowing inside
-  ! Write_vtk_tec (which already uses nu/nv/np). nprim is read directly from
-  ! the global module here.
+  ! Helper locale per evitare lo shadowing di `use Q2D_Global_m, only: nprim`
+  ! dentro Write_vtk_tec (che già usa nu/nv/np). nprim è letto qui direttamente
+  ! dal modulo globale.
   pure function nprim_local() result(n)
     use Q2D_Global_m, only: nprim
     integer :: n

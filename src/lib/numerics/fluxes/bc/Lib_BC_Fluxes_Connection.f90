@@ -1,5 +1,6 @@
 module Q2D_Lib_BC_Fluxes_Connection
-  ! 4-cell stencil across the block boundary (2D reduction: 4 faces, no Km).
+  ! Connection fluxes between blocks: 4-cell stencil straddling the block
+  ! boundary (2D reduction: 4 faces, no Km metric).
   use iso_fortran_env,            only: I4 => int32, R8 => real64
   use Q2D_Advanced_Types_m,       only: Q2D_block_type
   use Q2D_Base_Types_m,           only: Q2D_tensor_2D_type
@@ -21,15 +22,16 @@ contains
 
 
   subroutine BC_Connection_Eul ( Im, Jm, Fm, Blk, SD_limiter, SD_riemann )
-    ! 2D-reduced (no Km, no nw). SD_limiter gates beta_ for
-    ! Q2D_Lib_Reconstruction; SD_riemann gates beta_ for Riemann (variable
-    ! reuse). HLLC+/HLLE++ Tramel SD-aware solvers receive beta_ via
-    ! SD_riemann; classic Riemann solvers ignore the arg.
+    ! Eulerian flux at the connection face (2D reduction: no Km metric, no nw
+    ! component). SD_limiter enables beta_ for Q2D_Lib_Reconstruction;
+    ! SD_riemann enables beta_ for Riemann (same variable reused). Tramel's
+    ! SD-aware HLLC+/HLLE++ solvers receive beta_ through SD_riemann; classic
+    ! Riemann solvers ignore the argument.
     implicit none
     integer, intent(in) :: Im, Jm, Fm
     logical, intent(in) :: SD_limiter, SD_riemann
     type(Q2D_block_type), intent(inout) :: Blk
-    ! Local
+    ! Local variables
     integer :: modfm, modfm1, modfm2, modfm3, Dirm, Face_i, Face_j
     integer :: I1, J1, I2, J2, I3, J3, I4, J4
     integer :: error1, error4
@@ -43,7 +45,7 @@ contains
     call Compute_Modfm ( fm, modfm, modfm1, modfm2, modfm3 )
     call Face_Index ( Fm, Dirm, Im, Jm, Face_i, Face_j )
 
-    ! Stencil construction: 4 points for 2nd order reconstruction from both sides at boundary face
+    ! Stencil construction: 4 points for 2nd-order reconstruction from both sides of the boundary face
     I1 = modfm  * ( Im - guide(Fm,1) * gc ) + modfm1 * ( Im + guide(Fm,1) )
     J1 = modFm  * ( Jm - guide(Fm,2) * gc ) + modFm1 * ( Jm + guide(Fm,2) )
     I2 = modFm1 * Im + modFm  * ( Im - guide(Fm,1) )
@@ -53,13 +55,13 @@ contains
     I4 = modFm1 * ( Im - guide(Fm,1) * gc ) + modFm * ( Im + guide(Fm,1) )
     J4 = modFm1 * ( Jm - guide(Fm,2) * gc ) + modFm * ( Jm + guide(Fm,2) )
 
-    ! Primitive variables for the stencil
+    ! Primitive variables of the stencil
     Prim1 = blk % P(:,I1,J1)
     Prim2 = blk % P(:,I2,J2)
     Prim3 = blk % P(:,I3,J3)
     Prim4 = blk % P(:,I4,J4)
 
-    ! SD_limiter gates beta_.
+    ! SD_limiter enables/disables beta_ for the reconstruction.
     if (SD_limiter) then
       beta_ = blk % beta(Im,Jm)
     else
@@ -79,10 +81,10 @@ contains
 
     call Reconstruction ( Prim1, Prim2, Prim3, Prim4, Dist12, Dist23, Dist34, Dl2, Dl3, beta_, Prim_L, Prim_R )
 
-    ! The connection seam is an interior face split across blocks: it must guard the
-    ! reconstructed interface state exactly like Q2D_Lib_Convective::Convective_Flux
-    ! (floor species + abort on p<0 / T-out-of-table), which the bare seam previously
-    ! skipped. Mirror of Q2D_Lib_BC_Fluxes_Connection (coordinated back-port).
+    ! The connection junction is an interior face shared between blocks: the
+    ! reconstructed state at the interface must be monitored exactly as in
+    ! Q2D_Lib_Convective::Convective_Flux (species floor + hard stop on p<0 or
+    ! T outside the table).
     call check_gas_state ( Prim_L(1:nsc), Prim_L(np), error1 )
     call check_gas_state ( Prim_R(1:nsc), Prim_R(np), error4 )
     if (error1 /= 0 .or. error4 /= 0) then
@@ -90,16 +92,16 @@ contains
       error stop
     end if
 
-    ! Auxiliary variables for state (L)
+    ! Auxiliary variables of state (L)
     call co_rotot_Rtot ( Prim_L(1:nsc), rho_L, Rtot_L )
     a_L = f_ss ( Prim_L(1:nsc), Prim_L(np), rho_L, Rtot_L )
 
-    ! Auxiliary variables for state (R)
+    ! Auxiliary variables of state (R)
     call co_rotot_Rtot ( Prim_R(1:nsc), rho_R, Rtot_R )
     a_R = f_ss ( Prim_R(1:nsc), Prim_R(np), rho_R, Rtot_R )
 
-    ! SD_riemann gates beta_.
-    ! SD-aware Riemann (HLLC+/HLLE++) uses beta_ for blending; classic ones ignore it.
+    ! SD_riemann enables/disables beta_ for the Riemann solver.
+    ! SD-aware solvers (HLLC+/HLLE++) use beta_ for the blending; classic ones ignore it.
     if (SD_riemann) then
       beta_ = blk % beta(Im,Jm)
     else
@@ -120,10 +122,10 @@ contains
     Flux(nv) = F_v * int_l
     Flux(np) = F_E * int_l
 
-    ! Gate `nprim>np` extrapolates ALL post-pressure variables (turbulence +
-    ! soot + passive) across the connection. The Q2D legacy gate
-    ! `model==2 / nt:nprim` lost soot/passive in non-RANS mode (Q2D legacy
-    ! oversight, not intentional preservation).
+    ! The `nprim>np` gate propagates through the connection the WHOLE band of
+    ! transported scalars after the pressure (turbulence + soot + passives:
+    ! np+1:nprim), not just the RANS band nt:nprim, so as not to lose
+    ! soot/passives when the RANS model is off.
     if (nprim > np) Flux(np+1:nprim) = Fmass * ( sel_L*Prim_L(np+1:nprim)/rho_L - sel_R*Prim_R(np+1:nprim)/rho_R )
 
     Blk % r(:,Im,Jm) = Blk % r(:,Im,Jm) + Flux * modfm2
@@ -132,12 +134,12 @@ contains
 
 
   subroutine BC_Connection_Visc ( Im, Jm, Fm, Blk, Mg, Pg, Sc, Sct, Prt, soot_enabled )
-    ! Signature: Sc/Sct/Prt/soot_enabled passed as parameters (vs the previous
-    ! Q2D version that read obj_rans/obj_soot from a singleton). No Km arg
-    ! (2D reduction).
+    ! Viscous flux at the connection face. Sc/Sct/Prt/soot_enabled are passed
+    ! as explicit arguments (no shared global state). No Km argument (2D
+    ! reduction).
     !
-    ! NOTE: parameter Mg is currently unused in the body. Kept for interface
-    ! uniformity with BC_Connection_Eul.
+    ! NOTE: the Mg argument is currently unused in the body. Kept for
+    ! interface uniformity with BC_Connection_Eul.
     implicit none
     integer, intent(in) :: Im, Jm, Fm
     type(Q2D_tensor_2D_type), intent(in) :: Mg
@@ -145,7 +147,7 @@ contains
     type(Q2D_block_type),  intent(inout) :: Blk
     real(R8), intent(in) :: Sc, Sct, Prt
     logical,  intent(in) :: soot_enabled
-    ! Local
+    ! Local variables
     integer :: dir, modfm2, Face_i, Face_j
     integer :: Ig, Jg
     real(R8) :: Normal(2), int_l, Waldis, M(2,2)
@@ -208,8 +210,8 @@ contains
         r_ave = 0.5d0 * ( blk % node(im,jm)%c(2) + blk % node(im-1,jm)%c(2) )
     end select
 
-    ! Q2D Def A: V·G at the connection face (canonical convention ⟨V⟩·G_loc for
-    ! continuity of h(x,y) across coincident connections — G_neigh=G_loc fallback).
+    ! V·G at the connection face: ⟨V⟩·G_loc convention, which guarantees
+    ! continuity of h(x,y) across coincident connections (fallback G_neigh=G_loc).
     G_loc(1) = Blk%area_geom_term_x(Im,Jm)
     G_loc(2) = Blk%area_geom_term_y(Im,Jm)
     VG_face = V_dot_G_face_avg ( V_loc=Prim_loc(nu:nv), V_neigh=Prim_ghost(nu:nv), &
@@ -230,18 +232,17 @@ contains
       implicit none
       real(R8), intent(in)  :: PrimIn (nprim)
       real(R8), intent(out) :: ViscOut(nprim)
-      ! Local
+      ! Local variables
       real(R8) :: rho_l, Rgas_l
 
       call co_rotot_Rtot ( PrimIn(1:nsc), rho_l, Rgas_l )
       ViscOut(1:nsc) = PrimIn(1:nsc) / rho_l
       ViscOut(nu:nv) = PrimIn(nu:nv)
       ViscOut(np)    = PrimIn(np) / ( rho_l * Rgas_l )
-      ! Gate `nprim>np` extrapolates ALL post-pressure variables (turbulence +
-      ! soot + passive). The Q2D legacy gate `model==2/nt:nprim` lost soot/passive
-      ! in non-RANS mode (Q2D legacy oversight, same pattern fixed in
-      ! BC_Connection_Eul top-level; the Visc_Variables nested subroutine had not
-      ! been updated).
+      ! The `nprim>np` gate covers the WHOLE band of transported scalars after
+      ! the pressure (turbulence + soot + passives: np+1:nprim), not just the
+      ! RANS band nt:nprim, so as not to lose soot/passives when the RANS
+      ! model is off (same convention as BC_Connection_Eul).
       if (nprim > np) ViscOut(np+1:nprim) = PrimIn(np+1:nprim) / rho_l
 
     end subroutine Visc_Variables

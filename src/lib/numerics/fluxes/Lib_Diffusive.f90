@@ -10,10 +10,10 @@ contains
   subroutine Diffusive_Flux ( normal, int_l, waldis1, waldis2, Prim1, Prim2, Prim3, Prim4, &
                               Prim5, Prim6, M1, M2, Res1, Res2, r2, r1, a, b, &
                               Sc, Sct, Prt, soot_enabled, Gx1, Gy1, Gx2, Gy2 )
-    ! Signature: Sc, Sct, Prt, soot_enabled passed as parameters.
-    ! Q2D 2D reductions: `Prim7..Prim10`/`c` 3D-tangential removed (2D);
-    ! `r1, r2` for r_ave axisymmetric averaging; `Gx1/Gy1/Gx2/Gy2` optional for
-    ! the V_dot_G face-average. `int_l` is the 2D analogue of the 3D face area.
+    ! Sc, Sct, Prt, soot_enabled are passed as explicit parameters.
+    ! `r1, r2`: nodal radial coordinates for the axisymmetric average r_ave;
+    ! `Gx1/Gy1/Gx2/Gy2` (optional): geometric terms for the face average V·G.
+    ! `int_l` is the interface length (2D analogue of the 3D face area).
     use Q2D_Global_m,            only: nu, nv, np, nt, nsc, nprim, model
     use Q2D_Lib_Fluid,           only: V_dot_G_face_avg
     use FLINT_Lib_Thermodynamic, only: co_rotot_Rtot
@@ -39,11 +39,12 @@ contains
     Gradient ( 1:nsc, a ) = Prim2 ( 1:nsc ) / rho2 - Prim1 ( 1:nsc ) / rho1
     Gradient ( np, a )    = T2 - T1
     Gradient ( nu:nv, a ) = Prim2 ( nu:nv ) - Prim1 ( nu:nv )
-    ! Mirror MOSE `:36-38`: gate `if (nprim>np)` fills the full post-pressure band
-    ! (soot+passive+RANS), not just RANS (`nt:nprim`). `waldis` stays inside this gate:
-    ! it is read ONLY by the model==2-gated Eddy_Viscosity/RANS_Diffusive_Flux calls in
-    ! Compute_Diffusive_Flux, so widening the gate that assigns it is safe (the laminar
-    ! SNaN concern was about placing it OUTSIDE any gate).
+    ! The `if (nprim>np)` gate fills the whole band of transported scalars beyond
+    ! the pressure (soot+passives+RANS, np+1:nprim), not just the RANS one (nt:nprim).
+    ! `waldis` is assigned inside this gate: it is read ONLY by the
+    ! Eddy_Viscosity/RANS_Diffusive_Flux calls (active with model==2) in
+    ! Compute_Diffusive_Flux, so in laminar cases it may remain uninitialized
+    ! without consequences.
     if (nprim>np) then
       Gradient ( np+1:nprim, a ) = Prim2 ( np+1:nprim ) / rho2 - Prim1 ( np+1:nprim ) / rho1
       waldis = 0.5d0 * ( waldis1 + waldis2 )
@@ -56,10 +57,10 @@ contains
 
     Prim = 0.5d0 * ( Prim1 + Prim2 )
 
-    ! Q2D Def A: canonical convention V·G_face = ⟨V⟩_face · ⟨G⟩_face (Lib_Fluid).
-    ! Consistent with BC_Symmetry_Visc/BC_Connection_Visc (G_ghost = G_loc at the
-    ! boundary). Backward-compat: with area_geom_term=0 (universal zero-fill) →
-    ! VG_face = 0 → Definition B.
+    ! Convention for the face geometric term: V·G_face = ⟨V⟩_face · ⟨G⟩_face
+    ! (V_dot_G_face_avg in Lib_Fluid). Consistent with BC_Symmetry_Visc/BC_Connection_Visc,
+    ! which impose G_ghost = G_loc at the boundary. With area_geom_term identically
+    ! zero, VG_face = 0 and the term is disabled.
     VG_face = 0.d0
     if (present(Gx1) .and. present(Gy1) .and. present(Gx2) .and. present(Gy2)) then
       VG_face = V_dot_G_face_avg ( V_loc=Prim1(nu:nv), V_neigh=Prim2(nu:nv), &
@@ -100,7 +101,7 @@ contains
 
     Gradient ( nu:nv ) = ( Prim2 ( nu:nv ) - Prim1 ( nu:nv ) + Prim4 ( nu:nv ) - Prim3 ( nu:nv ) ) * 0.25d0
 
-    ! Mirror MOSE `:82-84`: fill the full post-pressure band (soot+passive+RANS).
+    ! Riempie l'intera banda degli scalari oltre la pressione (soot+passivi+RANS).
     if (nprim>np) then
       Gradient ( np+1:nprim ) = ( Prim2 ( np+1:nprim ) / rho2 - Prim1 ( np+1:nprim ) / rho1 + &
                                   Prim4 ( np+1:nprim ) / rho4 - Prim3 ( np+1:nprim ) / rho3 ) * 0.25d0
@@ -111,9 +112,10 @@ contains
 
   subroutine Compute_Diffusive_Flux ( Prim, Gradient, int_l, normal, waldis, r_ave, Flux, &
                                       Sc, Sct, Prt, soot_enabled, V_dot_G )
-    ! Signature: Sc, Sct, Prt, soot_enabled passed as parameters.
-    ! Q2D extras: `r_ave` + optional `V_dot_G` beyond the base signature.
-    ! `int_l` is the 2D analogue of the 3D face area.
+    ! Sc, Sct, Prt, soot_enabled sono passati come parametri espliciti.
+    ! `r_ave`: raggio medio di faccia (assialsimmetria); `V_dot_G` (opzionale):
+    ! termine geometrico mediato sulla faccia.
+    ! `int_l` è la lunghezza dell'interfaccia (analogo 2D dell'area di faccia 3D).
     use Q2D_Global_m,            only: nu, nv, np, nt, nsc, nprim, model
     use Q2D_Lib_Fluid,           only: Stress_Vector
     use Q2D_Lib_RANS,            only: Eddy_Viscosity, RANS_Diffusive_Flux
@@ -158,8 +160,9 @@ contains
 
     DiffHFlux = 0.d0
     h_mix     = 0.d0
-    Flux      = 0.d0   ! mirror MOSE `:133`: pre-zero so the soot/passive band np+1:nt-1
-                       ! (and the RANS band when model/=2) contributes 0 to Res, not UB.
+    Flux      = 0.d0   ! pre-azzeramento completo: la banda soot/passivi np+1:nt-1
+                       ! (e quella RANS quando model/=2) contribuisce 0 a Res,
+                       ! evitando valori indefiniti.
 
     do s = 1, nsc
       DmGradYi(s) = Dm(s) * dot_product ( Gradient(s,:), normal )
@@ -186,9 +189,8 @@ contains
                                  vr=Prim(nv), r_ave=r_ave, dist=waldis, mut=mie )
     end if
 
-    ! Soot diffusive fluxes (thermophoresis) via
-    ! Q2D_Mod_Soot::Soot_Diffusive_Flux (int_l is the 2D analogue of area, dim 3 -> 2).
-    ! Gated via the `soot_enabled` parameter (vs a previous `obj_soot%enabled` read).
+    ! Flussi diffusivi del soot (termoforesi) via Q2D_Mod_Soot::Soot_Diffusive_Flux;
+    ! attivazione governata dal parametro `soot_enabled`.
     if (soot_enabled) then
       call Soot_Diffusive_Flux ( flux=Flux, prim=Prim, T_gradient=Gradient(np,:), &
                                  mu=mil+mie, rho=rho, T=T, int_l=int_l, normal=normal )

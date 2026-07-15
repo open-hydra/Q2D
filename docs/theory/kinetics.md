@@ -10,7 +10,7 @@ supports both general (runtime-loaded) and mechanism-specific
 (hard-coded) evaluation routines.
 
 In Q2D the finite-rate model is selected at run time via the INI key
-`[Q2D-Chemistry] model = 'finite-rate'`, which dispatches the
+`[Q2D-Physics] chemistry = finite-rate`, which dispatches the
 `Chemistry_Newstate` procedure pointer in `Mod_Chemistry`.  Strang
 splitting (see [Time Integration](time-integration.md)) is used to
 decouple the stiff chemistry ODE from the convective–diffusive

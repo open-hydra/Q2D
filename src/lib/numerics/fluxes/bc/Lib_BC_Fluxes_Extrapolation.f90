@@ -1,6 +1,6 @@
 module Q2D_Lib_BC_Fluxes_Extrapolation
-  ! Zero-gradient extrapolation with
-  ! the flux built from the boundary state (no Riemann, no reconstruction).
+  ! Zero-gradient extrapolation: the flux is built directly from the boundary
+  ! state (no Riemann solver, no reconstruction).
   use iso_fortran_env,            only: I4 => int32, R8 => real64
   use Q2D_Advanced_Types_m,       only: Q2D_block_type
   use Q2D_Global_m,               only: nsc, nu, nv, np, nt, nprim, model
@@ -19,7 +19,7 @@ contains
     implicit none
     integer, intent(in) :: Im, Jm, Fm
     type(Q2D_block_type), intent(inout) :: Blk
-    ! Local
+    ! Local variables
     integer :: Dir, Face_i, Face_j, FluxSign
     real(R8) :: Normal(2), int_l, Prim(nprim), Un, Rgas, Fmass, Flux(nprim)
 
@@ -37,9 +37,10 @@ contains
     Fmass       = sum ( Flux(1:nsc) )
     Flux(nu:nv) = Fmass * Prim(nu:nv) + Prim(np) * int_l * Normal
     Flux(np)    = Fmass * H0 ( Prim(np), Prim(1:nsc), norm2 ( Prim(nu:nv) ) )
-    ! Gate `nprim>np` extrapolates ALL post-pressure variables (turbulence + soot
-    ! + passive). The Q2D legacy gate `model==2 / nt:nprim` lost soot/passive in
-    ! non-RANS mode (Q2D legacy oversight, not intentional preservation).
+    ! The `nprim>np` gate extrapolates the WHOLE band of transported scalars
+    ! after the pressure (turbulence + soot + passives: np+1:nprim), not just
+    ! the RANS band nt:nprim, so as not to lose soot/passives when the RANS
+    ! model is off.
     if (nprim > np) Flux(np+1:nprim) = Prim(np+1:nprim) * Un * int_l
 
     FluxSign = 1 - 2 * mod(Fm,2)

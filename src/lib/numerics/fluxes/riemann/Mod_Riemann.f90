@@ -38,7 +38,7 @@ contains
 
     select case (obj_riemann%description)
 
-      ! AUSM-type solvers
+      ! Solutori di tipo AUSM
       case ('Hanel')
         Riemann => riemann_Hanel
         obj_riemann%description = 'Hanel'
@@ -52,12 +52,12 @@ contains
         Riemann => riemann_AUSMp_up2
         obj_riemann%description = 'AUSM+-up2'
 
-      ! Godunov solvers
+      ! Solutori di Godunov
       case ('exact','Exact')
         Riemann => riemann_exact
         obj_riemann%description = 'Exact Solver'
 
-      ! HLL-type solvers
+      ! Solutori di tipo HLL
       case ('HLLE')
         Riemann => riemann_HLLE
         obj_riemann%description = 'HLLE'
@@ -65,19 +65,17 @@ contains
         Riemann => riemann_HLLEM
         obj_riemann%description = 'HLLEM'
       case ('HLLC')
-        ! Single 'HLLC' input case (description 'HLLC Batten'). The Q2D legacy
-        ! 'HLLC Batten' input alias was removed. NB breaks Q2D legacy input compat:
-        ! legacy `input.ini` with riemann-name='HLLC Batten' must migrate to
-        ! 'HLLC' (one-time manual migration).
+        ! Unica parola chiave di input accettata: 'HLLC' (la descrizione riportata
+        ! è 'HLLC Batten'); la stringa 'HLLC Batten' non è una parola chiave valida.
         Riemann => riemann_HLLC
         obj_riemann%description = 'HLLC Batten'
       case ('HLLC+')
-        ! Tramel HLLC+ — SD-aware: blend HLLC+HLLE via beta from the Shock_Detector.
+        ! HLLC+ di Tramel — usa il rilevatore d'urto: blend HLLC+HLLE tramite beta.
         obj_riemann%SD = .true.
         Riemann => riemann_HLLCSD
         obj_riemann%description = 'Tramel HLLC+'
       case ('HLLE++')
-        ! Tramel HLLE++ — SD-aware: blend HLLE+Roe via beta from the Shock_Detector.
+        ! HLLE++ di Tramel — usa il rilevatore d'urto: blend HLLE+Roe tramite beta.
         obj_riemann%SD = .true.
         Riemann => riemann_HLLEpp
         obj_riemann%description = 'Tramel HLLE++'
@@ -85,7 +83,7 @@ contains
         Riemann => riemann_HLLCHLLE
         obj_riemann%description = 'Rotated HLLC Batten / HLLE'
 
-      ! Lax-Friedrichs-type solvers
+      ! Solutori di tipo Lax-Friedrichs
       case ('LLF','Rusanov')
         Riemann => riemann_LLF
         obj_riemann%description = 'Local Lax-Friedrichs (Rusanov)'
@@ -93,7 +91,7 @@ contains
         Riemann => Riemann_PLLF
         obj_riemann%description = 'Preconditioned Local Lax-Friedrichs'
 
-      ! SLAU-type solvers
+      ! Solutori di tipo SLAU
       case ('SLAU')
         Riemann => riemann_SLAU
         obj_riemann%description = 'SLAU'
@@ -101,7 +99,7 @@ contains
         Riemann => riemann_SLAU2
         obj_riemann%description = 'SLAU2'
 
-      ! Default
+      ! Caso di default
       case default
         Riemann => riemann_HLLC
         obj_riemann%description = 'HLLC Batten'

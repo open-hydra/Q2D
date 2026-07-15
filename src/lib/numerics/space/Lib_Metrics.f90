@@ -4,7 +4,7 @@ module Q2D_Lib_Metrics
   use Q2D_Advanced_Types_m, only: Q2D_block_type, Q2D_bc_type, Q2D_domain_type
   use Q2D_Global_m,         only: ndir, gc
   use Q2D_Parameters_m,     only: guide
-  use Q2D_Lib_Ghost,        only: Is_Wall   ! Is_Wall is defined in Lib_Ghost.
+  use Q2D_Lib_Ghost,        only: Is_Wall   ! Is_Wall è definita in Lib_Ghost.
 
   implicit none
   private
@@ -25,9 +25,10 @@ contains
     implicit none
     type(Q2D_domain_type), intent(inout) :: domain
 
-    ! Q2D supports only 1D and 2D computational frames (no out-of-plane).
-    ! 2D-axisymmetric and q2D area-variation are handled by Lib_Source_* via
-    ! Cross_Section / axis_r_ave / area_geom_term_*, not by an out-of-plane angle.
+    ! Q2D supporta solo domini computazionali 1D e 2D (nessuna direzione fuori
+    ! dal piano). L'assialsimmetria 2D e la variazione d'area Q2D sono gestite
+    ! da Lib_Source_* tramite Cross_Section / axis_r_ave / area_geom_term_*,
+    ! non tramite un angolo fuori dal piano.
     if (domain%blk(1)%dim(2) == 1) then
       ndir = 1
     else
@@ -40,7 +41,7 @@ contains
   subroutine Compute_Norm_Area ( b )
     implicit none
     class(Q2D_block_type), intent(inout) :: b
-    ! Local
+    ! Locali
     real(R8) :: Ai, snix, sniy, Aj, snjx, snjy
     real(R8) :: d1(2), d2(2), d3(2)
     real(R8) :: snixx, sniyy, snjxx, snjyy
@@ -50,7 +51,7 @@ contains
     im = b%dim(1)
     jm = b%dim(2)
 
-    ! ---- sign of normal vectors at i-faces -----------------------------------
+    ! ---- segno dei versori normali alle facce i ------------------------------
     d1 = b%node(1,1)%c - b%node(1,0)%c
     d3(1) =  d1(2)
     d3(2) = -d1(1)
@@ -63,7 +64,7 @@ contains
     scal  = d3(1)*snixx + d3(2)*sniyy
     signi = sign(1.d0, scal)
 
-    ! ---- sign of normal vectors at j-faces -----------------------------------
+    ! ---- segno dei versori normali alle facce j ------------------------------
     d1 = b%node(0,1)%c - b%node(1,1)%c
     d3(1) =  d1(2)
     d3(2) = -d1(1)
@@ -127,14 +128,14 @@ contains
     type(Q2D_tensor_2D_type), intent(out) :: M
     type(Q2D_vector_2D_type), intent(out) :: dl
     real(R8),                 intent(out) :: sur
-    ! Local
+    ! Locali
     integer  :: h
     real(R8) :: det, A(2,2), cofactor(2,2)
     real(R8) :: vx(4), vy(4)
 
-    ! Discrete jacobian A_ij = average of opposite-edge differences.
-    ! Metric tensor M = J^{-1} via cofactor/det (legacy convention; coincides
-    ! with A^{-T}, which equals A^{-1} only for symmetric A).
+    ! Jacobiano discreto A_ij = media delle differenze tra lati opposti.
+    ! Tensore metrico M ottenuto da cofattori/det: la formula produce A^{-T},
+    ! che coincide con A^{-1} solo per A simmetrica (convenzione del solutore).
     A(1,:) = N4%c - N2%c + N3%c - N1%c
     A(2,:) = N4%c - N3%c + N2%c - N1%c
     A = 0.5d0 * A
@@ -193,7 +194,7 @@ contains
     integer,                                intent(in)    :: nb, nbound
     type(Q2D_block_type), dimension(:),     intent(inout) :: blk
     type(Q2D_bc_type),    dimension(nbound), intent(in)   :: bc
-    ! Local
+    ! Locali
     real(R8), allocatable :: facex(:), facey(:)
     real(R8) :: x1, x2, y1, y2
     integer  :: Fm, Bm, Im, Jm, l, b, nwall
@@ -242,7 +243,7 @@ contains
       type(Q2D_block_type),       intent(inout) :: blk
       integer,                    intent(in)    :: nwall
       real(R8), dimension(nwall), intent(in)    :: fx, fy
-      ! Local
+      ! Locali
       integer  :: l, i, j
       real(R8) :: center(2), dummy
 
@@ -271,7 +272,7 @@ contains
     integer,              intent(in)    :: Im, Jm, Fm, Is, Js
     type(Q2D_block_type), intent(inout) :: blkm
     type(Q2D_block_type), intent(inout) :: blks
-    ! Local
+    ! Locali
     integer :: Ig, Jg
 
     Ig = Im - guide(Fm,1)
@@ -288,7 +289,7 @@ contains
     type(Q2D_tensor_2D_type), intent(out)   :: Mg(2)
     type(Q2D_vector_2D_type), intent(out)   :: dlg(2)
     real(R8),                 intent(out)   :: surg(2)
-    ! Local
+    ! Locali
     integer :: g
     type(Q2D_vector_2D_type), dimension(-gc:gc) :: N1, N2, N3, N4
 
@@ -324,11 +325,10 @@ contains
         end do
 
       case(3)
-        ! dim(2)>2: 3-node quadratic extrapolation; thin-J blocks (dim(2)<=2, e.g.
-        ! 1D meshes J=2 nodes) use the 2-node linear fallback, mirroring MOSE
-        ! BC_Extrapolate_Metrics case(3) (archive-MOSE Lib_Metrics.f90:586-621).
-        ! The quadratic loop reads node(Im-1,Jm+1) which is out of the node(0:nj)
-        ! bound when nj=1, so the guard is required (was dropped in the 2D port).
+        ! dim(2)>2: estrapolazione quadratica a 3 nodi; i blocchi sottili in J
+        ! (dim(2)<=2, es. mesh 1D con J=2 nodi) usano il fallback lineare a
+        ! 2 nodi. Il ramo quadratico legge node(Im-1,Jm+1), fuori dal limite
+        ! node(0:nj) quando nj=1: la guardia è quindi necessaria.
         if ( blk%dim(2) > 2 ) then
           do g = 0, gc
             N1(g)%c = blk%node(Im-1, Jm+g-1)%c
@@ -360,7 +360,7 @@ contains
         end if
 
       case(4)
-        ! See case(3): guard mirrors MOSE case(4) (archive-MOSE Lib_Metrics.f90:625-660).
+        ! Vedi case(3): stessa guardia con fallback lineare a 2 nodi per blocchi sottili in J.
         if ( blk%dim(2) > 2 ) then
           do g = 0, -gc, -1
             N2(g)%c = blk%node(Im-1, Jm+g)%c
@@ -402,7 +402,7 @@ contains
     type(Q2D_tensor_2D_type), intent(out)   :: Mg(2)
     type(Q2D_vector_2D_type), intent(out)   :: dlg(2)
     real(R8),                 intent(out)   :: surg(2)
-    ! Local
+    ! Locali
     integer :: g
 
     do g = 1, gc
@@ -449,13 +449,13 @@ contains
     type(Q2D_tensor_2D_type), intent(out)   :: Mg(2)
     type(Q2D_vector_2D_type), intent(out)   :: dlg(2)
     real(R8),                 intent(out)   :: surg(2)
-    ! Local
+    ! Locali
     integer :: g, Is1, Js1, II, JJ, III, JJJ
     integer :: guides(6,3), guides2(6,3)
     type(Q2D_vector_2D_type), dimension(0:gc) :: N1, N2, N3, N4
 
-    ! Stencil offsets for the source block (donor side) — 3D layout, using only
-    ! columns 1 and 2 in 2D (column 3 is unused, kept for layout parity with the 3D peer).
+    ! Offset di stencil per il blocco sorgente (lato donatore): tabelle a 6 facce
+    ! e 3 colonne; in 2D si usano solo le colonne 1 e 2 (la colonna 3 è inutilizzata).
     guides(1,1)= 0  ; guides(1,2)= 0  ; guides(1,3)= 0
     guides(2,1)=-1  ; guides(2,2)= 0  ; guides(2,3)= 0
     guides(3,1)= 0  ; guides(3,2)= 0  ; guides(3,3)= 0
@@ -505,7 +505,7 @@ contains
         case(4) ; N4(g)%c = blks%node(II,JJ)%c
       end select
 
-      ! Diagonal corner node update (i1-1).
+      ! Aggiornamento del nodo d'angolo diagonale (i1-1).
       select case (Fs)
         case(1:2)
           III = II
@@ -554,25 +554,30 @@ contains
 
 
   subroutine BC_Connect_Metrics_Periodic ( Im, Jm, Fm, blkm, Is, Js, Fs, blks, d11s, d12s, d21s, d22s, Mg, dlg, surg )
-    ! Path-C ghost metric for a translational-periodic connection (BC 201).
+    ! Metrica ghost per una connessione periodica traslazionale (BC 201).
     !
-    ! WHY a sibling of BC_Connect_Metrics instead of reusing it: BC_Connect_Metrics
-    ! reads the donor nodes blks%node as ABSOLUTE coordinates, correct only when the
-    ! donor is the physically-adjacent block (101). For a 201 periodic seam the donor
-    ! is the same boundary repeated at a constant Cartesian OFFSET, so its absolute
-    ! coords are displaced; mixing them with the local corner nodes would build a
-    ! geometrically wrong (folded) ghost cell. Here we bring the donor nodes into the
-    ! LOCAL frame by a rigid translation T before forming the quad.
+    ! PERCHÉ una routine gemella di BC_Connect_Metrics anziché il suo riuso:
+    ! BC_Connect_Metrics legge i nodi del donatore blks%node come coordinate
+    ! ASSOLUTE, corrette solo quando il donatore è il blocco fisicamente
+    ! adiacente (101). Per una giunzione periodica 201 il donatore è lo stesso
+    ! bordo ripetuto a un OFFSET cartesiano costante, quindi le sue coordinate
+    ! assolute sono traslate; mescolarle con i nodi d'angolo locali costruirebbe
+    ! una cella ghost geometricamente errata (ripiegata). Qui i nodi del donatore
+    ! vengono riportati nel riferimento LOCALE con una traslazione rigida T prima
+    ! di formare il quadrilatero.
     !
-    ! T = (local seam node) - (matched donor seam node), where the matched donor node
-    ! uses the SAME Is1/Js1 recurrence + (II,JJ) remap as the g>=1 reads, evaluated at
-    ! the seam (g=0 step). Compute_Metric_Tensor depends only on node DIFFERENCES, so
-    ! adding the same T to all donor nodes yields the EXACT periodic-neighbour metric
-    ! (not the cubic-extrapolation approximation of BC_Extrapolate_Metrics). For a 101
-    ! (adjacent) seam T==0 and this reduces to BC_Connect_Metrics. Cf. piano §1 #21.
+    ! T = (nodo locale della giunzione) - (nodo donatore corrispondente), dove il
+    ! nodo donatore corrispondente usa la STESSA ricorrenza Is1/Js1 + rimappatura
+    ! (II,JJ) delle letture g>=1, valutata alla giunzione (passo g=0).
+    ! Compute_Metric_Tensor dipende solo dalle DIFFERENZE tra nodi, quindi sommare
+    ! la stessa T a tutti i nodi del donatore fornisce la metrica ESATTA del vicino
+    ! periodico (non l'approssimazione per estrapolazione cubica di
+    ! BC_Extrapolate_Metrics). Per una giunzione adiacente (101) T==0 e la routine
+    ! si riduce a BC_Connect_Metrics.
     !
-    ! Body is a copy of BC_Connect_Metrics with: (1) T computed before the g-loop from
-    ! the g=0 matched node pair; (2) +T%c added to every blks%node read.
+    ! Il corpo è una copia di BC_Connect_Metrics con: (1) T calcolata prima del
+    ! ciclo in g dalla coppia di nodi corrispondenti a g=0; (2) +T%c sommato a
+    ! ogni lettura di blks%node.
     implicit none
     integer,                  intent(in)    :: Im, Jm, Fm, Is, Js, Fs, d11s, d12s, d21s, d22s
     type(Q2D_block_type),     intent(in)    :: blks
@@ -580,7 +585,7 @@ contains
     type(Q2D_tensor_2D_type), intent(out)   :: Mg(2)
     type(Q2D_vector_2D_type), intent(out)   :: dlg(2)
     real(R8),                 intent(out)   :: surg(2)
-    ! Local
+    ! Locali
     integer :: g, Is1, Js1, II, JJ, III, JJJ
     integer :: II0, JJ0, III0, JJJ0
     integer :: guides(6,3), guides2(6,3)
@@ -616,10 +621,11 @@ contains
         N4(0)%c = blkm%node(Im  , Jm  )%c
     end select
 
-    ! Rigid periodic offset T from the g=0 (seam) matched node pair. The g=0 step of the
-    ! same recurrence lands on the donor node coincident with the local seam node, and
-    ! the diagonal step on the second seam corner. T must be identical from both (rigid
-    ! translation) — asserted below to catch a non-conforming / rotational seam.
+    ! Offset periodico rigido T dalla coppia di nodi corrispondenti a g=0 (giunzione).
+    ! Il passo g=0 della stessa ricorrenza individua il nodo donatore coincidente con il
+    ! nodo locale della giunzione; il passo diagonale individua il secondo spigolo della
+    ! giunzione. T deve risultare identica da entrambi (traslazione rigida) — verificato
+    ! sotto per intercettare una giunzione non conforme / rotazionale.
     Is1 = Is + gc*guides(Fs,1) - guides2(Fs,1)
     Js1 = Js + gc*guides(Fs,2) - guides2(Fs,2)
     select case (Fs)
@@ -672,7 +678,7 @@ contains
         case(4) ; N4(g)%c = blks%node(II,JJ)%c + T%c
       end select
 
-      ! Diagonal corner node update (i1-1).
+      ! Aggiornamento del nodo d'angolo diagonale (i1-1).
       select case (Fs)
         case(1:2)
           III = II

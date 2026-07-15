@@ -90,9 +90,15 @@ identically.
 
 ### RANS Turbulence Equations
 
-The transport equations themselves are **unchanged** from the inertial
-frame, but every closure that consumes the vorticity (rather than the
-strain rate) must use the **absolute** vorticity. For constant
+For **scalar** transported quantities ($\tilde\nu$, $k$, $\omega$) the
+transport equations themselves are **unchanged** from the inertial
+frame: the exact Coriolis contribution to the second-moment budget is
+trace-free, so its contraction onto $k$ (and hence $\omega$, $\tilde\nu$)
+vanishes identically (sympy-proved). For the
+**tensor-valued** Reynolds-stress transport (SSGLRR) this is *not* true —
+see the exact Coriolis production $G_{ij}$ below. In addition, every
+closure that consumes the vorticity (rather than the strain rate) must
+use the **absolute** vorticity. For constant
 $\boldsymbol{\Omega}$ the kinematic identity
 
 $$\boldsymbol{\omega}_{\rm abs} = \boldsymbol{\omega}_{\rm rel} + 2\boldsymbol{\Omega}$$
@@ -100,12 +106,14 @@ $$\boldsymbol{\omega}_{\rm abs} = \boldsymbol{\omega}_{\rm rel} + 2\boldsymbol{\
 follows from $\nabla\times(\boldsymbol{\Omega}\times\boldsymbol{r}) = 2\boldsymbol{\Omega}$,
 and Q2D applies it wherever vorticity enters a closure:
 
-| Model | Vorticity-dependent term |
+| Model | Rotating-frame terms |
 |---|---|
-| Spalart–Allmaras (baseline) | $\tilde S = \|\boldsymbol{\omega}\|$ in the production term |
-| SA + Spalart–Shur (SA-RC) | $\tilde r$ in the rotation/curvature factor $f_{r1}$ |
-| Menter SST $k$–$\omega$ | $O = \sqrt{2 W_{ij}W_{ij}}$ in the SST-RC denominator and $f_{r1}$ |
-| Wilcox 2006 $k$–$\omega$ | $f_\beta$ vortex-stretching limiter, $W_{ij}W_{jk}\hat S_{ki}$ |
+| Spalart–Allmaras (baseline) | $\tilde S = \|\boldsymbol{\omega}_{\rm abs}\|$ in the production term |
+| SA + Spalart–Shur (SA-RC) | $\boldsymbol{\omega}_{\rm abs}$ in $W_{ik}$, $r^*$, $D^2$ **and** the frame term $(\varepsilon_{imn}S_{jn}+\varepsilon_{jmn}S_{in})\Omega_m$ in the $\tilde r$ bracket (TMR SA-RC) |
+| Menter SST $k$–$\omega$ (SST-RC) | $\boldsymbol{\omega}_{\rm abs}$ in $O = \sqrt{2 W_{ij}W_{ij}}$ **and** the same $\tilde r$-bracket frame term (Smirnov–Menter 2009) |
+| Wilcox 2006 $k$–$\omega$ | $f_\beta$ vortex-stretching limiter $W_{ij}W_{jk}\hat S_{ki}$ with $\boldsymbol{\omega}_{\rm abs}$ |
+| SA-QCR2000 | $O_{ik} = 2W_{ik}/\|\nabla\boldsymbol{u}\|$ built from **absolute** vorticity *and* absolute gradient norm (objectivity requires both) |
+| SSG/LRR-$\omega$ RSM | $W_{ij}^{\rm abs}$ in the $C_5$ rapid pressure-strain **and** the exact Coriolis production $G_{ij}$ (below) |
 
 In the Q2D 2D plane with $\boldsymbol{\Omega} = \Omega\,\boldsymbol{e}_z$
 the vorticity is a scalar $\omega_z = \partial v/\partial x - \partial u/\partial y$
@@ -126,9 +134,42 @@ is spurious. SA-RC's $f_{r1}$ is designed to attenuate exactly this
 contribution — so the recommended pairing in a rotating frame is
 **SA-RC**, not baseline SA.
 
-The SSG–LRR Reynolds-stress model variant is **out of scope** in Q2D;
-the rotating-frame closure for $W_{ij}^{\rm abs}$ in the $C_5$
-pressure-strain term is therefore not implemented.
+**SSG/LRR-$\omega$ Reynolds-stress model** (`turbulence = SSGLRR`): two
+distinct rotating-frame terms are required, with no double counting
+(Speziale–Sarkar–Gatski 1991 noninertial form):
+
+1. the in-plane vorticity entering the $C_5$ rapid pressure-strain is
+   shifted to the absolute frame,
+   $\boldsymbol{\omega}_{\rm abs} = \boldsymbol{\omega}_{\rm rel} + 2\boldsymbol{\Omega}$
+   (a *modelled* term);
+2. the **exact Coriolis production** — obtained by taking moments of the
+   fluctuating momentum equation, no closure involved —
+
+   $$G_{ij} = -2\,\Omega_k\left(\varepsilon_{ikl}R_{lj} + \varepsilon_{jkl}R_{li}\right)$$
+
+   which with axis $[0,0,1]$ and the Q2D 5-variable set reduces to
+   $G_{11} = +4\Omega R_{12}$, $G_{22} = -4\Omega R_{12}$, $G_{33} = 0$,
+   $G_{12} = 2\Omega(R_{22}-R_{11})$, with $G_{13}=G_{23}=0$ (the 7→5
+   reduction stays closed under rotation). $G_{ij}$ is trace-free ($k$
+   and $\omega$ rows unaffected) and **not absorbable** in the production
+   built from relative gradients: $P(\nabla u_{\rm abs}) -
+   P(\nabla u_{\rm rel}) = G/2$ exactly. It is the leading-order
+   mechanism for rotation-induced stabilization/destabilization
+   (e.g. the spanwise-rotating channel asymmetry).
+
+Verification: `a sympy audit of the exact rotating-frame second-moment algebra` (exact
+derivation + transcription vs the published Table-2 constants) and the
+frame-invariance analyses: the rotating-frame model with $G_{ij}$
+reproduces the rotated inertial-frame solution to the integrator's own
+order (RK4 order 4.0), while dropping $G_{ij}$ leaves an $O(1)$,
+$dt$-independent error; analogous gates hold for the $\tilde r$
+bracket and QCR objectivity. The solver-level regression is the
+[rotating-channel-rsm](../vv/2D-rotating-channel-rsm.md) V&V case.
+
+The frame itself is configured in the `[Q2D-Rotating-Frame]`
+section: `omega` (angular speed, rad/s), plus the registry
+parameters `axis` (rotation-axis direction, default `0.0 0.0 1.0`)
+and `origin` (a point on the axis, default `0.0 0.0 0.0`).
 
 **References.**
 

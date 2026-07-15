@@ -22,7 +22,7 @@ contains
     use Q2D_IO_Solution,      only: Write_solution
     use Q2D_Mod_Diagnostic,   only: Write_Diagnostic
     use Q2D_IO_Probes,        only: Write_Probes_Data
-    use Q2D_IO_LineProbes,    only: Write_LineProbes_Data, Close_LineProbes  ! Q2D-extra
+    use Q2D_IO_LineProbes,    only: Write_LineProbes_Data, Close_LineProbes
     use Q2D_Mod_Multigrid,    only: Prolongation
     use Q2D_Read_Ini,         only: Read_Inifile_Runtime
     use Q2D_Mod_MPI,          only: mpi_is_root
@@ -30,14 +30,14 @@ contains
     use IR_Precision,         only: str
     implicit none
     type(Q2D_simulation_type), intent(inout) :: simulation
-    ! Local
+    ! Locali
     character(len=llen) :: solfile, dgsfile, wallfile, mgsol, mgwall
     real(R8) :: sim_time
     integer  :: m, level
 
     level = obj_multigrid%MG_level
 
-    ! Update IOfield/IOwall solutiontime
+    ! Aggiorna il solutiontime di IOfield/IOwall
     if (obj_time_scheme%time_accurate) then
       simulation%IOfield(1)%solutiontime = simulation%domain(1)%time
       IOwall%solutiontime = simulation%domain(1)%time
@@ -52,12 +52,17 @@ contains
       dgsfile  = '/'//trim(Q2D_phase_prefix)//'diagnostic'
     else
       solfile  = '/'//trim(Q2D_phase_prefix)//'field-level'//trim(str(.true.,level))
+      ! wallfile/dgsfile vanno definiti a OGNI livello: il ramo TODO==3 più sotto
+      ! li scrive incondizionatamente e nomi non inizializzati farebbero fallire
+      ! i livelli multigrid coarse con "Cannot open file 'OUTPUT/'".
+      wallfile = '/'//trim(Q2D_phase_prefix)//'wall-level'//trim(str(.true.,level))
+      dgsfile  = '/'//trim(Q2D_phase_prefix)//'diagnostic-level'//trim(str(.true.,level))
       mgsol    = '/'//trim(Q2D_phase_prefix)//'field-prolongated'
       mgwall   = '/'//trim(Q2D_phase_prefix)//'wall-prolongated'
     end if
 
     ! ===========================================================================
-    ! END OF SIMULATION (TODO == 3)
+    ! FINE SIMULAZIONE (TODO == 3)
     ! ===========================================================================
     if (obj_sim_param%TODO == 3) then
 
@@ -68,7 +73,7 @@ contains
         end if
       end if
 
-      ! Pressure torque on rotating walls.
+      ! Coppia di pressione sulle pareti rotanti.
       if (obj_rot%enabled .and. level == 1 .and. mod(simulation%domain(1)%iter, obj_io%res_diter) == 0) &
         call RF_Torque_Walls( simulation%domain(1), obj_sim_param%iter_general, simulation%domain(1)%time )
 
@@ -104,12 +109,12 @@ contains
       if (.not. obj_time_scheme%time_accurate) &
         call Write_Diagnostic(simulation%domain(1), simulation%IOfield(1), dgsfile)
 
-      ! Clean close of the lineprobe files (Q2D-extra).
+      ! Chiusura ordinata dei file delle line-probes.
       call Close_LineProbes()
 
 
     ! ===========================================================================
-    ! INTERMEDIATE SOLUTION (TODO == 2)
+    ! SOLUZIONE INTERMEDIA (TODO == 2)
     ! ===========================================================================
     else if (obj_sim_param%TODO == 2) then
 
@@ -129,11 +134,10 @@ contains
 
       if (level == 1) then
         call Write_Probes_Data(obj_sim_param%iter_general, simulation%domain(1)%time)
-        ! Line-probes (Q2D-extra).
         call Write_LineProbes_Data(obj_sim_param%iter_general, simulation%domain(1)%time)
       end if
 
-      ! Pressure torque on rotating walls.
+      ! Coppia di pressione sulle pareti rotanti.
       if (level == 1 .and. obj_rot%enabled .and. mod(simulation%domain(1)%iter, obj_io%res_diter) == 0) &
         call RF_Torque_Walls( simulation%domain(1), obj_sim_param%iter_general, simulation%domain(1)%time )
 
@@ -159,7 +163,7 @@ contains
         end if
       end if
 
-      ! Solution output: iter-based or time-based.
+      ! Output della soluzione: a cadenza di iterazioni oppure di tempo fisico.
       if (mod(simulation%domain(level)%iter, obj_io%sol_diter) == 0) then
         if (mpi_is_root) write(*,*) ' ... writing iter-based solution'
         if (associated(Write_solution)) &
@@ -217,10 +221,9 @@ contains
         obj_sim_param%time_from_call = 0.0_R8
       end if
 
-      ! HYDRA-coupling write. The ATLAS top-level
-      ! orchestrator may set `obj_sim_param%HYDRA_postprocess = .true.` for HYDRA
-      ! coupling; the Q2D standalone-build behavior is preserved by default
-      ! `.false.` (block no-op).
+      ! Scrittura per l'accoppiamento HYDRA. L'orchestratore top-level ATLAS può
+      ! impostare `obj_sim_param%HYDRA_postprocess = .true.`; il default `.false.`
+      ! preserva il comportamento del build standalone di Q2D (blocco no-op).
       if ( obj_sim_param%HYDRA_postprocess ) then
         if (mpi_is_root) write(*,*) ' ... writing HYDRA-coupling solution'
         if (associated(Write_solution)) &
@@ -238,7 +241,7 @@ contains
 
 
     ! ===========================================================================
-    ! AUXILIARY OPS AT EACH ITERATION (TODO == 1)
+    ! OPERAZIONI AUSILIARIE A OGNI ITERAZIONE (TODO == 1)
     ! ===========================================================================
     else if (obj_sim_param%TODO == 1) then
 
@@ -251,11 +254,10 @@ contains
 
       if (level == 1) then
         call Write_Probes_Data(obj_sim_param%iter_general, simulation%domain(1)%time)
-        ! Line-probes (Q2D-extra).
         call Write_LineProbes_Data(obj_sim_param%iter_general, simulation%domain(1)%time)
       end if
 
-      ! Pressure torque on rotating walls.
+      ! Coppia di pressione sulle pareti rotanti.
       if (level == 1 .and. obj_rot%enabled .and. mod(simulation%domain(1)%iter, obj_io%res_diter) == 0) &
         call RF_Torque_Walls( simulation%domain(1), obj_sim_param%iter_general, simulation%domain(1)%time )
 
@@ -283,7 +285,7 @@ contains
 
     end if
 
-    ! Update input data periodically.
+    ! Rilettura periodica del file di input a runtime.
     if (mod(simulation%domain(level)%iter, obj_io%ini_diter) == 0) then
       call Read_Inifile_Runtime()
     end if

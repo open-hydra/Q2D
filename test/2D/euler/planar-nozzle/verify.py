@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# verify.py — planar-nozzle (q2D area-variation): publication-grade grid-convergence
+# verify.py — planar-nozzle (Q2D area-variation): publication-grade grid-convergence
 # verification against the analytic quasi-1D area-law (Shapiro) solution, constant-gamma
 # air. Produces two Journal-of-Propulsion-and-Power-style figures:
 #
@@ -86,7 +86,7 @@ def run_grid(NI):
 
 # ======================= run sweep =======================
 os.makedirs(SCRATCH, exist_ok=True)
-print("# planar-nozzle grid-convergence verification (q2D area-variation vs quasi-1D area law)")
+print("# planar-nozzle grid-convergence verification (Q2D area-variation vs quasi-1D area law)")
 data = []
 for NI in GRIDS:
     d = run_grid(NI); g0 = d["g"]
@@ -147,7 +147,7 @@ axg.plot(xa, 0.5*ARa, color=NAVY, lw=1.4); axg.plot(xa, -0.5*ARa, color=NAVY, lw
 axg.axvline(XT/L, color="0.45", ls=(0, (4, 3)), lw=1.0)
 axg.text(XT/L+0.015, 1.0, "throat ($M=1$)", fontsize=9, color="0.3", va="top")
 axg.set_ylabel(r"$\pm\,A/A^{*}$"); axg.set_xlim(0, 1); axg.set_yticks([])
-axg.set_title(r"Planar q2D area-variation nozzle: CFD vs quasi-1D area law  ($\gamma=%.3f$)" % ga)
+axg.set_title(r"Planar Q2D area-variation nozzle: CFD vs quasi-1D area law  ($\gamma=%.3f$)" % ga)
 axg.tick_params(labelbottom=False)
 
 axm = fig.add_subplot(gs[1], sharex=axg)

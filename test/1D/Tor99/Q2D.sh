@@ -58,6 +58,7 @@ if [[ $1 == solve ]]; then
   ln -sf bc_x8.txt bc.txt
   cd ..
   mkdir -p OUTPUT bin
+  rm -f OUTPUT/*
   ulimit -s unlimited
   export KMP_STACKSIZE=100M
   export OMP_NUM_THREADS=$NTHREADS
@@ -65,7 +66,7 @@ if [[ $1 == solve ]]; then
     cp $MASTER $LOCAL
   fi
   if [[ $BG == 0 ]]; then
-    $LOCAL
+    $LOCAL || exit 1
   else
     $LOCAL 2>errors_file >logfile &
     echo $! > .ID
@@ -78,6 +79,7 @@ if [[ $1 == test ]]; then
   ln -sf ../../../common/Air/thermo.dat thermo.dat
   cd ..
   mkdir -p OUTPUT bin
+  rm -f OUTPUT/*
   ulimit -s unlimited
   export KMP_STACKSIZE=100M
   export OMP_NUM_THREADS=$NTHREADS
@@ -91,9 +93,9 @@ if [[ $1 == test ]]; then
     ln -sf bc_x$r.txt bc.txt
     cd ..
     if [[ $BG == 0 ]]; then
-      $LOCAL
+      $LOCAL || exit 1
     else
-      $LOCAL 2>errors_file >>logfile
+      $LOCAL 2>errors_file >>logfile || exit 1
     fi
     mv OUTPUT/field.tec OUTPUT/field_x$r.tec
   done

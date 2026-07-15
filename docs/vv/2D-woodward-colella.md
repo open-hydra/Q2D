@@ -10,11 +10,31 @@ stringent validation of shock-capturing capabilities.
 **Reference:** P. Woodward & P. Colella, _J. Comput. Phys._ **54**
 (1984) 115–173.
 
+**Feature exercised:** 2D-plane Euler, **time-accurate** RK3 run to a
+deterministic endpoint ($t = 4.0$); 2-block grid (multi-block BC
+wiring); HLLE shock capture with shock/expansion interactions.
+
 !!! success "V&V status"
 
     Wired into CTest as `supersonic-forward-step` and passes on the
-    default mesh.  `check.py` validates the 2D-plane solution against
-    MOSE, `Linf_rel ≤ 1.6e-13`.
+    default mesh.  `check.py` gates (all hard):
+
+    1. **Density trace vs committed baseline**: ρ along block-2 cell
+       row j=23 (nearest y=0.5, through the bow-shock/Mach-stem
+       region) vs `reference/trace_baseline.dat` (provenance in
+       `reference/README.md`: gfortran TESTING build, main @ 8c60e91,
+       2026-07-15).  Max relative difference per point < **5 %** —
+       single-thread reruns of the same binary are bit-identical
+       (measured 0.0), so 5 % is pure cross-compiler headroom.  The
+       trace's x cell centers must match the baseline's to 1e-9
+       (mesh guard).
+    2. **Bow-shock position**: the shock x-position along the same
+       row, located by the steepest density gradient, within
+       **3 cells** (|dx| ≤ 0.0375) of the baseline's (measured
+       x_shock = 0.425 at t = 4.0).
+    3. **NaN-safe positivity** on every block: ρ, p, T, g, R > 0;
+       u, v finite.
+
     The thermo-data setup is via the FLINT `phase.txt`+`thermo.dat`
     symlinks to `test/common/nondim-Air/`.
 
@@ -67,8 +87,11 @@ Boundary conditions:
 
 ## Results and verification
 
-Q2D solutions compared against OpenFOAM (`rhoCentralFoam`) reference
-on the baseline mesh:
+Q2D solutions compared against an OpenFOAM (`rhoCentralFoam`)
+reference on the baseline mesh (the OpenFOAM data lives in
+`test/2D/euler/supersonic-forward-step/reference/OpenFOAM/`; this
+cross-code comparison is **manual-only** — the ctest gate is the
+committed density-trace baseline described above):
 
 <figure>
   {% include "vv/images/WC-fields.svg" %}
@@ -89,5 +112,6 @@ jumps are well-resolved with minimal oscillation.
 !!! note "Figure provenance"
 
     The WC-fields (3-panel p, T, u contours) and WC-slice density-line
-    SVG figures are Q2D-side renderings. The underlying field data is
-    in agreement with MOSE, `Linf_rel ≤ 1.6e-13`.
+    SVG figures are Q2D-side renderings. The ctest acceptance record
+    is the committed density-trace baseline + bow-shock-position gate
+    described in the V&V status box above.

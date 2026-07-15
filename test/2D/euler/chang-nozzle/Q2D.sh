@@ -53,6 +53,7 @@ if [[ $1 == solve ]]; then
   # phase.txt + thermo.dat are case-local (the MOSE peer's chang-nozzle uses local
   # thermo.dat I=5000 not common/Air I=10000 — case-specific).
   mkdir -p OUTPUT bin
+  rm -f OUTPUT/*
   ulimit -s unlimited
   export KMP_STACKSIZE=100M
   export OMP_NUM_THREADS=$NTHREADS
@@ -60,7 +61,7 @@ if [[ $1 == solve ]]; then
     cp $MASTER $LOCAL
   fi
   if [[ $BG == 0 ]]; then
-    $LOCAL
+    $LOCAL || exit 1
   else
     $LOCAL 2>errors_file >logfile &
     echo $! > .ID

@@ -1,31 +1,30 @@
 module Q2D_Lib_BC_Fluxes_Inflow
-  ! Separate handlers per case code.
+  ! Condizioni di ingresso: un handler dedicato per ciascun case code.
   !
-  ! 4 handlers (one per BC case):
-  !   * BC_Inlet_StagnCond           — BC 401 (T0+p0) + 402 (T0+p0(t)), subsonic stagnation.
-  !   * BC_Inlet_MassFlux_T0         — BC 403 (mdot+T0), subsonic mass-flux + total T.
-  !   * BC_Inlet_MassFlux_T          — BC 404 (mdot+T_static), subsonic mass-flux + static T.
-  !   * BC_Inlet_Supersonic_Static   — BC 405 (M+T_static+p_static), supersonic.
+  ! 4 handler (uno per caso BC):
+  !   * BC_Inlet_StagnCond           — BC 401 (T0+p0) + 402 (T0+p0(t)), ristagno subsonico.
+  !   * BC_Inlet_MassFlux_T0         — BC 403 (mdot+T0), portata imposta + T totale, subsonico.
+  !   * BC_Inlet_MassFlux_T          — BC 404 (mdot+T_static), portata imposta + T statica, subsonico.
+  !   * BC_Inlet_Supersonic_Static   — BC 405 (M+T_static+p_static), supersonico.
   !
-  ! 5 shared private helpers:
-  !   * Setup_Inflow_Geometry        — computes modfm/Int_*/Normal/int_l/t_Vec/Bound_Prim/Riem.
-  !   * Compute_Inflow_Direction     — parses the alpha 'normal' sentinel (huge(R8)).
-  !   * Stagn_Inflow                 — iterative discriminant-solver kernel (case 401/402).
-  !   * Supersonic_Inflow            — 3-cell Riemann stencil kernel (case 405).
-  !   * Compute_Flux_from_Face       — assembles the convective flux from a face state.
+  ! 5 helper privati condivisi:
+  !   * Setup_Inflow_Geometry        — calcola modfm/Int_*/Normal/int_l/t_Vec/Bound_Prim/Riem.
+  !   * Compute_Inflow_Direction     — interpreta il sentinel 'normal' di alpha (huge(R8)).
+  !   * Stagn_Inflow                 — kernel iterativo a discriminante (casi 401/402).
+  !   * Supersonic_Inflow            — kernel Riemann con stencil a 3 celle (caso 405).
+  !   * Compute_Flux_from_Face       — assembla il flusso convettivo da uno stato di faccia.
   !
-  ! Rigid 2D reduction (No-w principle):
-  !   * drop Km argument, drop Int_k, drop Face_k.
-  !   * Normal(2), t_Vec(2), no b_Vec out-of-plane (E2 dropped: ≡ 0).
-  !   * Velocity nu:nv (no nw), no Sup_Prim(nw) / Face_Prim(nw).
-  !   * drop beta argument (elevation angle out-of-plane); cos(β)=1, sin(β)=0 enforced.
-  !   * `int_l ↔ Area` rename (2D interface length analogue of the 3D area).
+  ! Riduzione 2D rigorosa (nessuna componente fuori piano w):
+  !   * nessuna metrica Km, nessun Int_k, nessun Face_k.
+  !   * Normal(2), t_Vec(2), nessun vettore binormale b_Vec fuori piano (E2 ≡ 0).
+  !   * velocità nu:nv (niente nw), niente Sup_Prim(nw) / Face_Prim(nw).
+  !   * nessun angolo di elevazione beta fuori piano: cos(β)=1, sin(β)=0 per costruzione.
+  !   * int_l è la lunghezza dell'interfaccia 2D (analogo dell'area di faccia 3D).
   !
-  ! NB: the BC_Mach < 0 sentinel (Q2D legacy: -10/-15 for mass-flux) is DROPPED
-  ! entirely: the dispatch is now per explicit case code 403/404 (closes a SEV-2
-  ! latent IO_BC bug of a missing sentinel setting). The BC_Mach=-20 sentinel
-  ! (Borda) is preserved because it dispatches to a SEPARATE case 420
-  ! (BC_Inflow_Nozzle), not interfering with this module.
+  ! NB: nessun sentinel BC_Mach < 0 per la portata imposta: il dispatch avviene
+  ! per case code esplicito 403/404. Il sentinel BC_Mach=-20 (Borda) resta perché
+  ! smista verso il caso SEPARATO 420 (BC_Inflow_Nozzle) e non interferisce con
+  ! questo modulo.
   use iso_fortran_env,            only: I4 => int32, R8 => real64
   use Q2D_Advanced_Types_m,       only: Q2D_block_type
   use Q2D_Global_m,               only: nsc, nu, nv, np, nt, nprim, model
@@ -45,8 +44,8 @@ module Q2D_Lib_BC_Fluxes_Inflow
   public :: BC_Inlet_MassFlux_T0
   public :: BC_Inlet_MassFlux_T
   public :: BC_Inlet_Supersonic_Static
-  ! Public surface — kernels reused by
-  ! BC_FarField and potentially other handlers.
+  ! Superficie pubblica — kernel riusati da
+  ! BC_FarField ed eventualmente da altri handler.
   public :: Stagn_Inflow
   public :: Setup_Inflow_Geometry
 
@@ -54,13 +53,14 @@ contains
 
 
   !─────────────────────────────────────────────────────────────────────────────
-  ! BC 401 / 402: Subsonic inlet — stagnation total temperature T0 and total
-  ! pressure p0. Flow direction from BC_alpha (or face-normal sentinel).
+  ! BC 401 / 402: ingresso subsonico — temperatura totale T0 e pressione totale
+  ! p0 di ristagno. Direzione del flusso da BC_alpha (o sentinel della normale di faccia).
   !
-  ! RotatingFrame conversion APPLIED here: if obj_rot%enabled,
-  ! T0_loc/p0_loc/alpha_loc converted from absolute to relative with
-  ! BC_Mach_abs=0d0 hardcoded (reservoir at-rest in lab frame; relative-frame
-  ! totals include the kinetic energy induced by v_frame).
+  ! Conversione RotatingFrame APPLICATA qui: se obj_rot%enabled,
+  ! T0_loc/p0_loc/alpha_loc sono convertiti da assoluti a relativi con
+  ! BC_Mach_abs=0d0 fisso (serbatoio in quiete nel riferimento di laboratorio;
+  ! le grandezze totali nel riferimento relativo includono l'energia cinetica
+  ! indotta da v_frame).
   subroutine BC_Inlet_StagnCond ( Bm, Im, Jm, Fm, Blk, BC_T0, BC_p0, BC_rel_fac, &
                                    BC_alpha, BC_ci, BC_RANS, BC_mdot, error )
     implicit none
@@ -70,7 +70,7 @@ contains
     real(R8), intent(in)    :: BC_ci(nsc), BC_RANS(1:)
     real(R8), intent(out)   :: BC_mdot
     integer,  intent(inout) :: error
-    ! Local
+    ! Variabili locali
     integer  :: modfm, modfm1, modfm2, modfm3, Int_i, Int_j
     real(R8) :: Normal(2), int_l, t_Vec(2), BC_Sign, alpha
     real(R8) :: Bound_Prim(nprim), Int_Prim(nprim)
@@ -85,23 +85,23 @@ contains
                                   Bound_Prim, Int_Prim, Un, Bound_rho, Bound_Rgas,&
                                   Bound_Sound, Bound_Gamma, Riem )
 
-    ! Reject if flow is directed outward (pure inflow BC).
+    ! Rifiuta se il flusso è diretto verso l'esterno (BC di puro ingresso).
     if (BC_Sign * Un >= 0d0) then
       error = 1
       return
     end if
 
-    ! 2-step pattern: `alpha` raw output, `alpha_loc` modifiable
-    ! by RF_Convert_BC_Inflow (intent inout).
+    ! Schema a 2 passi: `alpha` è l'output grezzo, `alpha_loc` è modificabile
+    ! da RF_Convert_BC_Inflow (intent inout).
     call Compute_Inflow_Direction ( Normal, BC_alpha, alpha )
 
     T0_loc    = BC_T0
     p0_loc    = BC_p0
     alpha_loc = alpha
 
-    ! RotatingFrame conversion: only for stagnation inlet
-    ! (BC_Mach_abs=0d0 hardcoded means reservoir at-rest in lab frame;
-    ! relative-frame totals include v_frame kinetic energy).
+    ! Conversione RotatingFrame: solo per l'ingresso a condizioni di ristagno
+    ! (BC_Mach_abs=0d0 fisso: serbatoio in quiete nel riferimento di laboratorio;
+    ! le grandezze totali relative includono l'energia cinetica di v_frame).
     if (obj_rot%enabled) then
       Face_Rgas_loc = f_Rtot(BC_ci)
       call RF_Convert_BC_Inflow ( Blk, Fm, Im, Jm, 0.0d0, Bound_Gamma, &
@@ -121,24 +121,25 @@ contains
 
 
   !─────────────────────────────────────────────────────────────────────────────
-  ! BC 403: Inlet — total temperature T0 + prescribed mass flux g [kg/m²/s].
-  ! Pressure extrapolated from interior.
-  ! NO RF conversion (mass-flux + T0 abs/rel non-trivially related; mdot
-  ! frame-invariant for concentric walls; Q2D innovation NOT added).
+  ! BC 403: ingresso — temperatura totale T0 + flusso di massa imposto g [kg/m²/s].
+  ! Pressione estrapolata dall'interno.
+  ! NESSUNA conversione RotatingFrame: la relazione tra portata imposta e T0
+  ! assoluta/relativa non è banale, e mdot è invariante di riferimento per
+  ! pareti concentriche.
   subroutine BC_Inlet_MassFlux_T0 ( Bm, Im, Jm, Fm, Blk, BC_T0, BC_g, BC_rel_fac, &
                                      BC_alpha, BC_ci, BC_RANS, error )
-    ! Bug fix: pre-fix the `BC_mdot` intent(out) parameter aliased with the
-    ! `domain%bc(i)%mdot` input spec at the dispatcher → output overwrote input
-    ! across iterations → spec decayed to 0 → divide-by-zero. Fix: drop the
-    ! BC_mdot parameter, use a local `fmass` for the Compute_Flux_from_Face
-    ! output (discarded).
+    ! Nessun argomento BC_mdot in uscita: l'output di Compute_Flux_from_Face va
+    ! nella variabile locale `fmass` (scartata). Un intent(out) qui andrebbe in
+    ! aliasing con il dato di specifica `domain%bc(i)%mdot` al dispatcher:
+    ! l'output sovrascriverebbe l'input tra le iterazioni, azzerando la
+    ! specifica fino alla divisione per zero.
     implicit none
     type(Q2D_block_type), intent(inout) :: Blk
     integer,  intent(in)    :: Bm, Im, Jm, Fm
     real(R8), intent(in)    :: BC_T0, BC_g, BC_rel_fac, BC_alpha
     real(R8), intent(in)    :: BC_ci(nsc), BC_RANS(1:)
     integer,  intent(inout) :: error
-    ! Local
+    ! Variabili locali
     integer  :: modfm, modfm1, modfm2, modfm3, Int_i, Int_j, s
     real(R8) :: Normal(2), int_l, t_Vec(2), BC_Sign, fmass
     real(R8) :: Bound_Prim(nprim), Int_Prim(nprim)
@@ -161,13 +162,13 @@ contains
 
     call Compute_Inflow_Direction ( Normal, BC_alpha, alpha_loc )
 
-    ! 2D direction-cosine ratio E1 (2D reduction of the MOSE 3D b_Vec/E1/E2
-    ! system; in 2D b_Vec ≡ (0,0,b3) → E2=0, E1 = -XA/XB).
+    ! Rapporto dei coseni direttori 2D: in 2D il vettore binormale è
+    ! b_Vec ≡ (0,0,b3), quindi E2=0 e resta solo E1 = -XA/XB.
     XA = Normal(2) - Normal(1) * tan(alpha_loc)
     XB =  t_Vec(2) -  t_Vec(1) * tan(alpha_loc)
     E1 = -XA / XB
 
-    ! Gas properties from species composition (T0 used for total-temperature solver).
+    ! Proprietà del gas dalla composizione delle specie (T0 usata dal solutore in temperatura totale).
     cp3   = 0d0
     Rgas3 = 0d0
     do s = 1, nsc
@@ -175,9 +176,9 @@ contains
       Rgas3 = Rgas3 + BC_ci(s) * Ri_tab(s)
     end do
 
-    ! T0 is total temperature: recover static T3 iteratively
-    !   T3 = T0 - u²/(2 cp)  with  u = g/ρ = g R T3/p3
-    p3 = Bound_Prim(np)   ! pressure extrapolated from interior
+    ! T0 è la temperatura totale: si ricava la T3 statica da
+    !   T3 = T0 - u²/(2 cp)  con  u = g/ρ = g R T3/p3
+    p3 = Bound_Prim(np)   ! pressione estrapolata dall'interno
     T3 = (-cp3 + sqrt(cp3**2 + 2d0*cp3*BC_T0*(BC_g*Rgas3/p3)**2)) * (p3 / (BC_g*Rgas3))**2
 
     rho3 = p3 / (Rgas3 * T3)
@@ -198,21 +199,22 @@ contains
 
 
   !─────────────────────────────────────────────────────────────────────────────
-  ! BC 404: Inlet — static temperature T + prescribed mass flux g [kg/m²/s].
-  ! Pressure extrapolated from interior.
-  ! NB: BC_T here is T_STATIC (Q2D bc_type field reuse: bc%T0 holds T_static for
-  ! case 404 — contextual interpretation via case code; Mod_BC_Fluxes
-  ! passes bc%T0 as BC_T for case 404).
+  ! BC 404: ingresso — temperatura statica T + flusso di massa imposto g [kg/m²/s].
+  ! Pressione estrapolata dall'interno.
+  ! NB: qui BC_T è la T STATICA (riuso del campo bc_type: bc%T0 contiene T_static
+  ! per il caso 404 — interpretazione contestuale tramite case code; Mod_BC_Fluxes
+  ! passa bc%T0 come BC_T per il caso 404).
   subroutine BC_Inlet_MassFlux_T ( Bm, Im, Jm, Fm, Blk, BC_T, BC_g, BC_rel_fac, &
                                     BC_alpha, BC_ci, BC_RANS, error )
-    ! Bug fix: cf. BC_Inlet_MassFlux_T0 above.
+    ! Stessa convenzione di BC_Inlet_MassFlux_T0: portata in variabile locale
+    ! `fmass`, nessun argomento BC_mdot in uscita (cfr. nota lì sull'aliasing).
     implicit none
     type(Q2D_block_type), intent(inout) :: Blk
     integer,  intent(in)    :: Bm, Im, Jm, Fm
     real(R8), intent(in)    :: BC_T, BC_g, BC_rel_fac, BC_alpha
     real(R8), intent(in)    :: BC_ci(nsc), BC_RANS(1:)
     integer,  intent(inout) :: error
-    ! Local
+    ! Variabili locali
     integer  :: modfm, modfm1, modfm2, modfm3, Int_i, Int_j, s
     real(R8) :: Normal(2), int_l, t_Vec(2), BC_Sign, fmass
     real(R8) :: Bound_Prim(nprim), Int_Prim(nprim)
@@ -244,7 +246,7 @@ contains
       Rgas3 = Rgas3 + BC_ci(s) * Ri_tab(s)
     end do
 
-    p3   = Bound_Prim(np)   ! pressure extrapolated from interior
+    p3   = Bound_Prim(np)   ! pressione estrapolata dall'interno
     rho3 = p3 / (Rgas3 * BC_T)
     Un3  = BC_g / rho3
     Ut3  = Un3 * E1
@@ -264,9 +266,9 @@ contains
 
 
   !─────────────────────────────────────────────────────────────────────────────
-  ! BC 405: Supersonic inlet — Mach + static temperature T + static pressure p.
-  ! NB: BC_T is T_static, BC_p is p_static (Q2D bc_type reuse: bc%T0=T_stat,
-  ! bc%pamb=p_stat for case 405 — contextual interpretation via case code).
+  ! BC 405: ingresso supersonico — Mach + temperatura statica T + pressione statica p.
+  ! NB: BC_T è T_static, BC_p è p_static (riuso del campo bc_type: bc%T0=T_stat,
+  ! bc%pamb=p_stat per il caso 405 — interpretazione contestuale tramite case code).
   subroutine BC_Inlet_Supersonic_Static ( Bm, Im, Jm, Fm, Blk, BC_Mach, BC_T, BC_p, &
                                            BC_rel_fac, BC_alpha, BC_ci, BC_RANS,    &
                                            BC_mdot, error )
@@ -277,7 +279,7 @@ contains
     real(R8), intent(in)    :: BC_ci(nsc), BC_RANS(1:)
     real(R8), intent(out)   :: BC_mdot
     integer,  intent(inout) :: error
-    ! Local
+    ! Variabili locali
     integer  :: modfm, modfm1, modfm2, modfm3, Int_i, Int_j
     real(R8) :: Normal(2), int_l, t_Vec(2), BC_Sign
     real(R8) :: Bound_Prim(nprim), Int_Prim(nprim)
@@ -296,8 +298,8 @@ contains
       return
     end if
 
-    ! BC_Supersonic_Inflow treats BC_p/BC_T as static (Q2D-form ↔ MOSE 405);
-    ! blending with interior + 3-cell stencil + Riemann handled inside the kernel.
+    ! Supersonic_Inflow tratta BC_p/BC_T come grandezze statiche; blending con
+    ! l'interno + stencil a 3 celle + solutore di Riemann gestiti nel kernel.
     Flux = 0d0
     call Supersonic_Inflow ( Bound_Prim, Int_Prim, modfm, modfm1, modfm2, BC_Mach, BC_p, &
                               BC_T, BC_ci, BC_RANS, BC_rel_fac, BC_alpha, Normal, int_l,  &
@@ -309,13 +311,13 @@ contains
   end subroutine BC_Inlet_Supersonic_Static
 
 
-  !! Low-level routines called from the high-level BC handlers above. Work on
-  !! primitive arrays directly; not aware of block structure.
+  !! Routine di basso livello chiamate dagli handler BC di alto livello qui sopra.
+  !! Operano direttamente sugli array delle primitive; ignorano la struttura a blocchi.
 
 
   !─────────────────────────────────────────────────────────────────────────────
-  ! Supersonic_Inflow (low-level kernel) — port of the Q2D-form BC_Supersonic_Inflow
-  ! (body 1:1 with rigid 2D reduction: drop nw, drop sin/cos(beta)).
+  ! Supersonic_Inflow (kernel di basso livello) — ingresso supersonico per BC 405.
+  ! Riduzione 2D rigorosa: nessuna componente nw, nessun sin/cos(beta) fuori piano.
   subroutine Supersonic_Inflow ( Prim2, Int_Prim, modfm, modfm1, modfm2, BC_Mach, BC_p0, BC_T0, BC_ci, &
                                   BC_RANS, BC_rel_fac, BC_alpha, Normal, int_l, Flux, Fmass )
     implicit none
@@ -323,7 +325,7 @@ contains
     real(R8), intent(in)  :: Prim2(nprim), Int_Prim(nprim), BC_Mach, BC_p0, BC_T0, BC_rel_fac
     real(R8), intent(in)  :: BC_ci(nsc), BC_RANS(1:), BC_alpha, Normal(2), int_l
     real(R8), intent(out) :: Flux(nprim), Fmass
-    ! Local
+    ! Variabili locali
     integer  :: s
     real(R8) :: Sup_Prim(nprim), Sup_T, Sup_Rgas, Sup_rho, Sup_Sound, Prim1(nprim), Prim3(nprim)
     real(R8), dimension(nprim) :: Diff32, Diff21, Slope, Face_Prim, Prim_L, Prim_R
@@ -332,25 +334,24 @@ contains
     real(R8) :: flow_Rgas, flow_Sound, flow_Mach, BC_Mach_local, BC_p0_local
     real(R8) :: alpha_eff
 
-    ! Compute flow properties in interior cell.
+    ! Proprietà del flusso nella cella interna.
     flow_Rgas  = f_Rtot(Prim2(1:nsc))
     flow_Sound = f_ss  (Prim2(1:nsc), Prim2(np), sum(Prim2(1:nsc)), flow_Rgas)
     flow_Mach  = norm2 (Prim2(nu:nv)) / flow_Sound
 
-    ! Blended Mach + static p at boundary.
+    ! Mach e p statica al bordo, con blending verso l'interno tramite BC_rel_fac.
     BC_Mach_local = BC_rel_fac * BC_Mach + (1 - BC_rel_fac) * flow_Mach
     BC_p0_local   = BC_rel_fac * BC_p0   + (1 - BC_rel_fac) * Prim2(np)
 
-    ! Inflow direction:
-    ! parse 'normal' sentinel huge(R8) → atan(Normal(2)/(Normal(1)+ε)) outward;
-    ! else use BC_alpha literal. The Q2D legacy `BC_alpha == 0d0` sentinel +
-    ! Normal_inward atan2 inward formula is DROPPED (IO_BC parse_dir_tok now
-    ! produces huge(R8) for the 'normal' token; bc%alpha=0 from numeric input is
-    ! now a literal 0 angle, NOT a sentinel).
-    ! Cf. Compute_Inflow_Direction.
+    ! Direzione di ingresso:
+    ! sentinel 'normal' huge(R8) → atan(Normal(2)/(Normal(1)+ε)) uscente;
+    ! altrimenti BC_alpha è un valore letterale (parse_dir_tok in IO_BC produce
+    ! huge(R8) per il token 'normal'; bc%alpha=0 da input numerico è un angolo
+    ! letterale nullo, NON un sentinel).
+    ! Cfr. Compute_Inflow_Direction.
     call Compute_Inflow_Direction(Normal, BC_alpha, alpha_eff)
 
-    ! Supersonic inflow: BC_Mach enforced at boundary, T0 and p0 are static.
+    ! Ingresso supersonico: BC_Mach imposto al bordo; BC_T0 e BC_p0 sono grandezze statiche.
     Sup_Prim(np)     = BC_p0_local
     Sup_T            = BC_T0
     Sup_Rgas         = sum(BC_ci * Ri_Tab)
@@ -361,7 +362,7 @@ contains
     Sup_Prim(nv)     = BC_Mach_local * Sup_Sound * sin(alpha_eff)
     if (model==2) Sup_Prim(nt:nprim) = Sup_rho * BC_RANS
 
-    ! 3-cell stencil reconstruction.
+    ! Ricostruzione con stencil a 3 celle.
     Prim1 = modfm * Sup_Prim + modfm1 * Int_Prim
     Prim3 = modfm * Int_Prim + modfm1 * Sup_Prim
 
@@ -380,9 +381,8 @@ contains
     call co_rotot_Rtot(Prim_R(1:nsc), rho_R, Rgas_R)
     Sound_R = f_ss(Prim_R(1:nsc), Prim_R(np), rho_R, Rgas_R)
 
-    ! beta = 1d0 (SD-coupled blending, full HLLC weight in HLLE++/HLLCSD
-    ! solvers). Q2D legacy passed 0d0, which was the pre-SD default (the
-    ! SD-coupled solver is a post-fork feature shared with the MOSE peer code).
+    ! beta = 1d0: peso HLLC pieno nel blending dei solutori SD-aware
+    ! (HLLE++/HLLCSD); i solutori di Riemann classici ignorano l'argomento.
     call Riemann ( Prim_L(1:nsc), Prim_L(nu), Prim_L(nv), Prim_L(np), Sound_L, rho_L, &
                    Prim_R(1:nsc), Prim_R(nu), Prim_R(nv), Prim_R(np), Sound_R, rho_R, &
                    1d0, Normal(1), Normal(2), F_r, F_u, F_v, F_E )
@@ -404,11 +404,11 @@ contains
 
 
   !─────────────────────────────────────────────────────────────────────────────
-  ! Stagn_Inflow (low-level kernel) — discriminant-iterative solver for BC 401/402.
-  ! Port of the Q2D-form BC_Subsonic_Inflow regular path BC_Mach >= 0 (mass-flux
-  ! sentinel branch REMOVED: it was an unauthorized divergence; now handled in
-  ! the separate BC_Inlet_MassFlux_T0/T handlers), with rigid 2D reduction
-  ! (drop b_Vec/E2/Ub3, drop nw component).
+  ! Stagn_Inflow (kernel di basso livello) — solutore iterativo a discriminante
+  ! per BC 401/402 (ristagno subsonico). Gestisce solo il percorso a condizioni
+  ! di ristagno: la portata imposta è trattata dagli handler separati
+  ! BC_Inlet_MassFlux_T0/T. Riduzione 2D rigorosa (niente b_Vec/E2/Ub3, niente
+  ! componente nw).
   subroutine Stagn_Inflow ( Prim, Un, Sound, Gamma, Riem, alpha, BC_ci, BC_RANS, &
                              BC_T0, BC_p0, BC_rel_fac, BC_Sign, t_Vec, Normal, int_l, &
                              Flux, Fmass )
@@ -417,19 +417,20 @@ contains
     real(R8), intent(in)  :: BC_ci(nsc), BC_RANS(1:), BC_T0, BC_p0, BC_rel_fac, BC_Sign
     real(R8), intent(in)  :: t_Vec(2), Normal(2), int_l
     real(R8), intent(out) :: Flux(nprim), Fmass
-    ! Local
+    ! Variabili locali
     integer  :: s, iter_discr
     real(R8) :: Face_Rgas, Sound0, Coef_D, Coef_C, YA, YB, YC, Discr, Un_Sign, Un3, Sound3
     real(R8) :: p3, Ut3, BC_p0_try
     real(R8) :: Face_T, Face_Sound, Face_Prim(nprim), Face_rho, Face_Enthalpy, Face_Un
     real(R8) :: XA, XB, E1
 
-    ! 2D direction-cosine ratio (2D reduction of the MOSE 3D b_Vec/E1/E2 system; E2≡0).
+    ! Rapporto dei coseni direttori 2D: il binormale è fuori piano, quindi E2≡0 e resta E1 = -XA/XB.
     XA = Normal(2) - Normal(1) * tan(alpha)
     XB =  t_Vec(2) -  t_Vec(1) * tan(alpha)
     E1 = -XA / XB
 
-    ! Iterative discriminant solver: BC_Mach>=0 path (subsonic stagnation).
+    ! Solutore iterativo a discriminante (ristagno subsonico): se il discriminante
+    ! è negativo, p0 viene rilassata verso la pressione interna tramite BC_rel_fac.
     Discr      = -1.d0
     BC_p0_try  = BC_p0
     iter_discr = 0
@@ -483,8 +484,8 @@ contains
 
 
   !─────────────────────────────────────────────────────────────────────────────
-  ! Setup_Inflow_Geometry — common geometric/metric setup for the inflow handlers.
-  ! Rigid 2D reduction.
+  ! Setup_Inflow_Geometry — setup geometrico/metrico comune agli handler di ingresso.
+  ! Riduzione 2D rigorosa.
   pure subroutine Setup_Inflow_Geometry ( Blk, Im, Jm, Fm,                  &
                                       modfm, modfm1, modfm2, modfm3,        &
                                       Int_i, Int_j,                         &
@@ -501,7 +502,7 @@ contains
     real(R8), intent(out)             :: Bound_Prim(nprim), Int_Prim(nprim)
     real(R8), intent(out)             :: Un, Bound_rho, Bound_Rgas
     real(R8), intent(out)             :: Bound_Sound, Bound_Gamma, Riem
-    ! Local
+    ! Variabili locali
     integer  :: Dir, Face_i, Face_j
     real(R8) :: t_Mod
 
@@ -529,7 +530,7 @@ contains
     t_Mod = norm2(t_Vec)
     t_Vec = t_Vec / t_Mod
 
-    BC_Sign = real(modfm2, R8)   ! -1 for faces 1,3 ; +1 for faces 2,4
+    BC_Sign = real(modfm2, R8)   ! -1 per le facce 1,3 ; +1 per le facce 2,4
 
     Un          = dot_product(Bound_Prim(nu:nv), Normal)
     call co_rotot_Rtot(Bound_Prim(1:nsc), Bound_rho, Bound_Rgas)
@@ -541,15 +542,15 @@ contains
 
 
   !─────────────────────────────────────────────────────────────────────────────
-  ! Compute_Inflow_Direction — parse alpha_in (with 'normal' sentinel huge(R8))
-  ! returning resolved alpha_out.
-  ! 2D port: drop beta_in/beta_out (No-w).
+  ! Compute_Inflow_Direction — interpreta alpha_in (con sentinel 'normal' huge(R8))
+  ! e restituisce l'angolo risolto alpha_out.
+  ! Riduzione 2D: nessun angolo beta fuori piano.
   pure subroutine Compute_Inflow_Direction ( Normal, alpha_in, alpha_out )
     implicit none
     real(R8), intent(in)  :: Normal(2), alpha_in
     real(R8), intent(out) :: alpha_out
 
-    ! 'normal' sentinel: parse_dir_tok returns huge(R8) to indicate "use face normal".
+    ! Sentinel 'normal': parse_dir_tok restituisce huge(R8) per indicare "usa la normale di faccia".
     if (alpha_in >= 0.5_R8 * huge(1.0_R8)) then
       alpha_out = atan(Normal(2) / (Normal(1) + 1d-20))
     else
@@ -560,13 +561,13 @@ contains
 
 
   !─────────────────────────────────────────────────────────────────────────────
-  ! Compute_Flux_from_Face — assemble convective flux vector from a known face state.
-  ! Rigid 2D reduction (drop nw).
+  ! Compute_Flux_from_Face — assembla il vettore di flusso convettivo da uno stato di faccia noto.
+  ! Riduzione 2D rigorosa (nessuna componente nw).
   pure subroutine Compute_Flux_from_Face ( Face_Prim, Face_rho, Face_Rgas, int_l, Normal, Flux, Fmass )
     implicit none
     real(R8), intent(in)  :: Face_Prim(nprim), Face_rho, Face_Rgas, int_l, Normal(2)
     real(R8), intent(out) :: Flux(nprim), Fmass
-    ! Local
+    ! Variabili locali
     integer  :: s
     real(R8) :: Face_Un, Face_T, Face_Enthalpy
 

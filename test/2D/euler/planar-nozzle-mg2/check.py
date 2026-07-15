@@ -1,6 +1,6 @@
 """planar-nozzle-mg2 acceptance check (ctest) — peculiarita' #3: area-variation x Multigrid.
 
-Same q2D area-variation C-D nozzle as ``test/2D/euler/planar-nozzle`` (the out-of-plane
+Same Q2D area-variation C-D nozzle as ``test/2D/euler/planar-nozzle`` (the out-of-plane
 thickness h(x)=Cross_Section plays the role of the quasi-1D area A(x); the converged
 inviscid solution must match the analytic isentropic area-law, Shapiro), but run with
 2-level Multigrid (``[Q2D-Multigrid] levels=2``).
@@ -31,6 +31,11 @@ import os
 import sys
 import math
 import numpy as np
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "common" / "pycheck"))
+from q2d_check_lib import (fail, require_file, assert_positive, assert_finite,
+                           read_residual_history)
 
 HERE  = os.path.dirname(os.path.abspath(__file__))
 FIELD = os.path.join(HERE, "OUTPUT", "field.tec")
@@ -82,33 +87,28 @@ def parse_field(path, nnodal):
             m(rho), m(u), m(p), m(T), m(M),
             float(np.median(g)), float(np.median(R)))
 
-def fail(msg):
-    print(f"[planar-nozzle-mg2] FAIL: {msg}")
-    sys.exit(1)
-
-if not os.path.isfile(FIELD):
-    fail(f"missing {FIELD} (did ./Q2D.sh solve run?)")
-if not os.path.isfile(COARSE):
-    fail(f"missing {COARSE} -- the coarse level was not written; MGL=2 path did not run")
+require_file(FIELD, "did ./Q2D.sh solve run?")
+require_file(COARSE, "the coarse level was not written; MGL=2 path did not run")
 
 # ---------- layer 1: convergence (B-10 sentinel) ----------
 # The density residual must drop to steady state. With the B-10 bug the coarse-level
 # source is meaningless and the run stalls / diverges instead of converging.
-if not os.path.isfile(RESID):
-    fail(f"missing {RESID}")
-res = np.loadtxt(RESID)
-# col 0 = iter index; remaining columns are residuals (cf. chang-nozzle-mg2 check.py).
-res_norm = np.linalg.norm(res[:, 1:], axis=1)
+# residual-history layout: col 0 = iter, col 1 = time (-1 steady), col 2 = density
+# residual, cols 3.. = remaining equations (cf. q2d_check_lib).
+res = read_residual_history(RESID)
+res_norm = np.linalg.norm(res[:, 2:], axis=1)
 first = res_norm[0] if res_norm[0] > 0 else 1.0
 drop = res_norm[-1] / first
-dens_resid = float(np.min(np.abs(res[-1, 1:])))   # density residual at last iter
+dens_resid = float(res[-1, 2])                    # density residual at last iter
 
 # ---------- layer 2: physical -- fine field matches the analytic area law ----------
 NI, xc, rho, u, p, T, M_q, g, R = parse_field(FIELD, 2)
 
-for nm, a in (("rho", rho), ("p", p), ("T", T)):
-    if np.min(a) <= 0.0:
-        fail(f"non-physical min({nm}) = {np.min(a):.3e}")
+# positivity (hard, NaN-safe via q2d_check_lib)
+assert_positive("rho", rho)
+assert_positive("p", p)
+assert_positive("T", T)
+assert_finite("M", M_q)
 
 M_a = np.array([M_of_AR(area(x)/AT, g, x > XT) for x in xc])
 rel = np.abs(M_q-M_a)/M_a
@@ -138,6 +138,9 @@ print(f"[planar-nozzle-mg2] N={NI} (coarse {NIc}) gamma={g:.5f} R={R:.3f} | "
 
 ok = True
 # layer 1 -- convergence sentinel (B-10: must converge, not stall/diverge).
+# Measured final density residual 9.9e-11 on the committed run (the solver's
+# own 1e-10 stopping floor); 1e-6 is the regression band a stalled run
+# (the B-10 failure mode) never reaches.
 if not np.isfinite(dens_resid) or dens_resid > 1.0e-6:
     ok = False; print(f"  MGL=2 not converged: density residual {dens_resid:.2e} > 1.0e-6 "
                        f"(B-10 regression? coarse Cross_Section may be scrambled)")

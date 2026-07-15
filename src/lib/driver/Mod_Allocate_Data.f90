@@ -20,10 +20,11 @@ contains
     implicit none
     type(Q2D_domain_type), intent(inout) :: domain
     type(ORION_data),      intent(inout) :: IOfield
-    ! Local
+    ! Locals
     integer :: b, d, nblocks
 
-    ! Primitive variable indices (no nw — V=[u,v] on 2 components).
+    ! Primitive-variable indices: the velocity has only two components
+    ! V=[u,v] (indices nu, nv), consistently with the 2D formulation.
     nu = nsc + 1
     nv = nu + 1
     np = nv + 1
@@ -39,12 +40,12 @@ contains
 
     nres = nprim - nsc + 1
 
-    ! Domain is an alias of IOfield.
+    ! The domain mirrors the block structure of IOfield.
     nblocks = size(IOfield%block)
     allocate(domain%blk(1:nblocks))
     domain%nb = nblocks
 
-    ! i,j dimensions of each block (2 dimensions; no Nk).
+    ! i,j dimensions of each block (2D grid).
     do b = 1, nblocks
       domain%blk(b)%dim(1) = IOfield%block(b)%Ni
       domain%blk(b)%dim(2) = IOfield%block(b)%Nj
@@ -59,13 +60,13 @@ contains
     do b = 1, nblocks
       call Allocate_Block(domain%blk(b), domain%blk(b)%dim)
 
-      ! Import mesh nodes (d=1..2, no z component).
+      ! Import of the mesh nodes (d=1..2: x,y coordinates).
       do d = 1, 2
         domain%blk(b)%node(0:IOfield%block(b)%Ni, 0:IOfield%block(b)%Nj)%c(d) &
           = IOfield%block(b)%mesh(d, 0:, 0:, 0)
       end do
 
-      ! Import primitives (k=1 fixed from ORION).
+      ! Import of the primitives (k index of the ORION structure fixed to 1).
       do d = 1, nprim
         domain%blk(b)%P(d, 1:IOfield%block(b)%Ni, 1:IOfield%block(b)%Nj) &
           = IOfield%block(b)%vars(d, 1:, 1:, 1)
@@ -90,87 +91,91 @@ contains
     implicit none
     integer,              intent(in)    :: nij(2)
     type(Q2D_block_type), intent(inout) :: blk
-    ! Local
+    ! Locals
     integer :: ni, nj
 
     ni = nij(1)
     nj = nij(2)
 
-    ! Metrics (2D shape without k; sur replaces the 3D vol).
+    ! Metrics on the 2D grid: sur is the cell area and plays the role of the volume.
     allocate(blk%node(0:ni, 0:nj))
     allocate(blk%M   (1-gc:ni+gc, 1-gc:nj+gc))
     allocate(blk%dl  (1-gc:ni+gc, 1-gc:nj+gc))
     allocate(blk%sur (1-gc:ni+gc, 1-gc:nj+gc))
     allocate(blk%dir(1)%f(0:ni, nj))
     allocate(blk%dir(2)%f(ni, 0:nj))
-    ! yn always allocated:
-    ! the legacy Q2D `if (VISC) allocate(yn)` was defensive — in laminar yn was
-    ! valid but unused (downstream gated `if (model==2)`). Allocate unconditionally
-    ! + run Compute_Yn only for `model>1` (yn=garbage in laminar but discarded).
+    ! yn (wall distance) allocated unconditionally; Compute_Yn is executed
+    ! only for `model>1`, so in laminar cases yn remains uninitialized but is
+    ! never read (downstream consumers are guarded by `if (model==2)`).
     allocate(blk%yn(1-gc:ni+gc, 1-gc:nj+gc))
 
-    ! Cross_Section for area-variation. source=0 is defense-in-depth: with the
-    ! per-block gate (Mod_Metrics) a no-file block never reaches Precompute_Area_
-    ! Geometry, but zero-init guarantees no uninitialised read even if a future
-    ! consumer drops the guard.
+    ! Cross_Section for the area-variation source. source=0 is defense in
+    ! depth: with the per-block gate (Mod_Metrics) a block without an area
+    ! file never reaches Precompute_Area_Geometry, but the zero-initialization
+    ! guarantees the absence of uninitialized reads even if a future consumer
+    ! omitted the gate.
     if (obj_source%area_variation) then
       allocate(blk%Cross_Section(0:ni, 0:nj), source=0.0_R8)
     end if
 
-    ! Primitive and residuals (rank-3 with first dim = nprim).
+    ! Primitives and residuals (rank-3 arrays with first dimension nprim).
     allocate(blk%P(nprim, 1-gc:ni+gc, 1-gc:nj+gc))
     allocate(blk%PO, blk%R, mold = blk%P)
 
-    ! Local time-step (cell-center, no ghost).
+    ! Local time step (cell centers, no ghosts).
     allocate(blk%dtlocal(1:ni, 1:nj))
 
-    ! Velocity gradient + Spalart-Shur corrections (conditional).
+    ! Velocity gradient and Spalart-Shur correction terms
+    ! (conditional allocation).
     if (obj_rans%SpalartShur) then
       allocate(blk%vel_gradient(1-gc:ni+gc, 1-gc:nj+gc))
       allocate(blk%rc_term1(ni, nj))
       allocate(blk%rc_term2(ni, nj))
     end if
 
-    ! Implicit residual smoothing storage.
+    ! Storage for the implicit residual smoothing.
     if (obj_irs%enabled) then
       allocate(blk%RS1, blk%RS2, mold = blk%R)
     end if
 
-    ! Shock detector flag (rank-3 reduced to rank-2 for 2D).
-    ! beta is allocated unconditionally (no SD gate). Write_Diagnostic and
-    ! Mod_GhostExchange::gather_diagnostic_to_root read `blk%beta(i,j)`
-    ! regardless of SD: the `if (SD)` gate was a divergence that broke the 2D
-    ! steady-state regression tests (chang-nozzle + prandtl-meyer).
+    ! Shock-sensor flag (rank-2 field on the 2D grid).
+    ! beta is allocated unconditionally, with no gate on the sensor: Write_Diagnostic
+    ! and Mod_GhostExchange::gather_diagnostic_to_root read `blk%beta(i,j)` even
+    ! with the sensor disabled, so a conditional allocation would produce reads
+    ! of an unallocated array (2D steady-state regressions: chang-nozzle and
+    ! prandtl-meyer).
     allocate(blk%beta(1:ni, 1:nj))
 
-    ! Q2D-extra precomputed axisymmetric/area_variation fields.
-    ! axis_r_ave/axis_inv_r allocated `(1:ni, 1:nj)` no-ghost mirror the Q2D legacy
-    ! Precompute_Axisymmetric_Geometry alloc — the dummy in Source_Axi_*_Blk is
-    ! `r_ave(1:n(1), 1:n(2))` no-ghost. When allocated with ghost bounds the
-    ! assumed-shape slice passed from the lower-bound (1-gc) made dummy r_ave(1,1)
-    ! read from the uninitialized ghost cell axis_r_ave(1-gc, 1-gc) → garbage →
-    ! axisym source diverges.
+    ! Precomputed geometric fields for the axisymmetric source.
+    ! axis_r_ave/axis_inv_r are allocated `(1:ni, 1:nj)` WITHOUT ghosts: the dummy in
+    ! Source_Axi_*_Blk is the explicit-shape `r_ave(1:n(1), 1:n(2))`, so with
+    ! ghost bounds the actual-argument association would start from the lower bound
+    ! (1-gc) and r_ave(1,1) would read the uninitialized ghost cell
+    ! axis_r_ave(1-gc, 1-gc) → spurious values → diverging axisymmetric source.
     if (obj_source%axisymmetric) then
       allocate(blk%axis_r_ave(1:ni, 1:nj))
       allocate(blk%axis_inv_r(1:ni, 1:nj))
     end if
-    ! area_geom_term_x/y allocated UNCONDITIONALLY with zero-fill (Definition B
-    ! default; with V_dot_G=0 it reduces to the standard form). When conditional, an unallocated
-    ! allocatable was passed as an explicit-shape dummy in
-    ! Mod_Fluxes::Fluxes_blk_omp_do for non-area_variation NS tests → SIGSEGV
-    ! (latent bug masked by Euler-only ctest). Definition A (V_dot_G != 0) is
-    ! activated by Precompute_Area_Geometry only when obj_source%area_variation=
-    ! .true.. Design intent documented in Lib_Diffusive + Lib_SST + Lib_Wilcox2006
-    ! + Lib_Source_Areavariation ("universal zero-fill" pattern). Memory cost
-    ! ~64 KB/block negligible: universal zero-fill = 5 LOC vs conditional dispatch
-    ! refactor = 50 LOC over 7 files, same observable behavior (IEEE 0*x=0 exact).
+    ! area_geom_term_x/y allocated UNCONDITIONALLY and zero-initialized (default
+    ! Definition B: with V_dot_G=0 the formulation reduces to the standard form).
+    ! With a conditional allocation an unallocated allocatable would be passed
+    ! as an explicit-shape dummy to Mod_Fluxes::Fluxes_blk_omp_do in NS cases
+    ! without area_variation → SIGSEGV. Definition A (V_dot_G != 0) is activated
+    ! by Precompute_Area_Geometry only with obj_source%area_variation=.true..
+    ! Same universal zero-initialization pattern in Lib_Diffusive, Lib_SST,
+    ! Lib_Wilcox2006 and Lib_Source_Areavariation. Memory cost ~64 KB/block,
+    ! negligible: the universal zero-initialization avoids a conditional dispatch
+    ! spread over 7 files with identical observable behavior
+    ! (in IEEE arithmetic 0*x=0 is exact).
     allocate(blk%area_geom_term_x(1:ni, 1:nj), source=0.0_R8)
     allocate(blk%area_geom_term_y(1:ni, 1:nj), source=0.0_R8)
-    ! area_variation_active stays driven SOLELY by Read_Block_Q2D_Area (.true. iff
-    ! the block's area file exists+parses) — no force-override here. A block without
-    ! its file keeps the flag .false. so Mod_Metrics skips Precompute_Area_Geometry
-    ! and the universal zero-fill (above) is preserved. Mirrors the legacy per-block
-    ! graceful degradation; MG propagates the per-block flag (Coarse_Cross_Section).
+    ! area_variation_active is governed EXCLUSIVELY by Read_Block_Q2D_Area
+    ! (.true. if and only if the block's area file exists and is readable):
+    ! no override here. A block without a file keeps the flag .false., so
+    ! Mod_Metrics skips Precompute_Area_Geometry and the universal
+    ! zero-initialization (above) remains valid — controlled per-block
+    ! degradation. The multigrid propagates the per-block flag
+    ! (Coarse_Cross_Section).
 
   end subroutine Allocate_Block
 
@@ -180,13 +185,13 @@ contains
     use Q2D_Mod_MPI,          only: is_local_block, mpi_is_root
     implicit none
     type(Q2D_domain_type), intent(inout) :: domain
-    ! Local
+    ! Locals
     integer :: b, d, i, c
     logical, allocatable :: needs_remote_P(:)
 
-    ! In a serial build is_local_block(b)=.true. and mpi_is_root=.true., so this
-    ! routine is essentially a no-op.
-    if (.not. allocated(domain%bc)) return  ! BC not yet populated.
+    ! In a serial build is_local_block(b)=.true. and mpi_is_root=.true., so
+    ! this routine is effectively a no-op.
+    if (.not. allocated(domain%bc)) return  ! BCs not populated yet.
 
     allocate(needs_remote_P(domain%nb))
     needs_remote_P = .false.

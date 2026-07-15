@@ -16,11 +16,11 @@ module Q2D_Base_Types_m
   end type Q2D_tensor_2D_type
 
   type :: Q2D_tensor_3D_type
-    real(R8) :: c(3,3)                        !> Stress/strain tensor 3x3 (S_33 = -V·G from Definition A).
+    real(R8) :: c(3,3)                        !> 3x3 stress/strain tensor (S_33 = -V·G from Definition A).
   end type Q2D_tensor_3D_type
 
   type :: Q2D_vector_2D_type
-    real(R8) :: c(2)                          !> Average cell length components.
+    real(R8) :: c(2)                          !> Mean cell-length components.
   end type Q2D_vector_2D_type
 
   type :: Q2D_tensor_2D_R2_type

@@ -15,19 +15,32 @@ test/
 │   ├── Sod79/
 │   ├── Tor99/
 │   ├── Ein91/
-│   └── Noh87/
+│   ├── Noh87/
+│   └── ShuOsher-LIMO3/        # Shu–Osher with the LIMO3 limiter
 ├── 2D/                        # 2-D validation cases
 │   ├── euler/                 # Inviscid cases
 │   │   ├── oblique-shock/
 │   │   ├── prandtl-meyer/
+│   │   ├── prandtl-meyer-lineprobe/  # Line-probe regression
 │   │   ├── ramp-channel/
 │   │   ├── hypersonic-cylinder/
-│   │   ├── chang-nozzle/
-│   │   ├── rocket-nozzle/     # Subdirs: frozen/ equilibrium/ finite-rate/
+│   │   ├── chang-nozzle/             # Axisymmetric
+│   │   ├── chang-nozzle-mg2/         # Axisymmetric + 2-level multigrid
+│   │   ├── planar-nozzle/            # Q2D area-variation
+│   │   ├── planar-nozzle-mg2/        # Q2D area-variation + 2-level multigrid
+│   │   ├── planar-nozzle-turbulent/  # Subdirs: kw/ rsm/
+│   │   ├── borda-channel/            # Borda choked-inflow BC
+│   │   ├── rocket-nozzle/            # Subdirs: frozen/ equilibrium/ finite-rate/
+│   │   ├── SRM-rocket-motor/         # Axisymmetric
+│   │   ├── rotating-channel/         # Rotating frame
+│   │   ├── rotating-channel-rsm/     # Rotating frame + SSGLRR frame-invariance
+│   │   ├── multi-solver-103/         # Per-face Riemann-solver selection
 │   │   └── supersonic-forward-step/
 │   └── viscous/               # Viscous cases
 │       ├── flat-plate-laminar/
-│       ├── flat-plate-turbulent/
+│       ├── flat-plate-turbulent/     # Subdirs: coarse-kw/ coarse-SA/ coarse-rsm/
+│       │                             #          fine-SA/ fine-rsm/
+│       ├── chang-nozzle-turbulent/   # Subdirs: kw/ rsm/
 │       └── swbli/
 └── common/                    # Shared thermodynamic databases
     ├── Air/                   # 5-species air (dimensional)
@@ -68,7 +81,7 @@ The key components are:
 | `MESH/` | Pre-generated structured grid |
 | `INPUT/` | Initial-condition field (ORION format) |
 | `reference/` | Reference solution data |
-| `check.py` | **CTest-driven regression** (uniform across 27 cases): reads `OUTPUT/field.tec` + `reference/exact.txt`, returns exit 0 (pass) or 1 (fail). Invoked by `ctest`. |
+| `check.py` | **CTest-driven regression** (uniform across the suite): reads `OUTPUT/field.tec` + `reference/exact.txt`, returns exit 0 (pass) or 1 (fail). Invoked by `ctest`. |
 | `verify.py` | **Standalone visualization + verification** (mirror MOSE): uses ExactPack inline for the analytical reference, writes SVG plot, returns exit 0/1. Run manually with `python3 -B verify.py`. |
 | `Q2D.sh` | Convenience script to compile, run, or kill the solver |
 
@@ -78,30 +91,68 @@ The key components are:
 
 ### CTest integration
 
-Q2D integrates with CTest from Phase 9 onwards:
+The whole suite is registered with CTest in
+`test/CMakeLists.txt`.  Each test runs the solver in its own case
+directory and then checks the result:
+
+```bash
+bash -c "./Q2D.sh solve && python3 -B check.py"
+```
+
+Run the suite from the build directory:
 
 ```bash
 cd build
 ctest --output-on-failure
+
+# or without changing directory
+ctest --test-dir build --output-on-failure
+
+# run a subset by name or by label
+ctest --test-dir build -R Sod79
+ctest --test-dir build -L 1D
 ```
 
-### 1-D test suite
+### Test tiers: `fast` and `heavy`
 
-The `test.sh` script automates the 1-D validation cases.  Run it
-from the `test/` directory:
+Every test carries a tier label that drives CI
+(see the header of `test/CMakeLists.txt`):
+
+| Tier | Label | Where it runs | Command |
+|---|---|---|---|
+| **fast** | `fast` | GitHub CI on every push/PR | `ctest -LE heavy` |
+| **heavy** | `heavy` | locally / on many-core nodes | `ctest -L heavy` |
+
+The heavy tier contains the RANS/viscous cases that need many
+threads and/or hours of wall clock (`swbli`, `flat-plate-laminar`,
+`flat-plate-turbulent-coarse-kw`, `ssglrr-chang-nozzle-turbulent`).
+They are registered with `PROCESSORS 20`, run the solver via
+`./Q2D.sh -p 20 solve`, and get `OMP_NUM_THREADS=20` from the CTest
+environment; timeouts go up to 18000 s (`swbli`).  The local heavy
+workflow is:
 
 ```bash
-cd test
-
-# Run all 1-D cases sequentially
-./test.sh 1D
-
-# Run all 1-D cases in parallel (splits idle cores across cases)
-./test.sh -p 1D
-
-# Clean all test output
-./test.sh clean
+# on a node with >= 20 cores
+ctest --test-dir build -L heavy --output-on-failure
 ```
+
+Fast-tier tests run with `OMP_NUM_THREADS=1` and
+`KMP_STACKSIZE=100M`; all tests additionally get
+`PYTHONIOENCODING=utf-8` (check-script Unicode safety in `LC_ALL=C`
+environments).
+
+Two more properties are set suite-wide:
+
+- **`SKIP_RETURN_CODE 77`**: a check script that cannot run its
+  quantitative gate exits 77 and is reported by CTest as
+  **Skipped** — never as a silent "Passed" (false green).  The only
+  current legitimate skip is an under-converged `swbli` run
+  (`SOLUTIONTIME < 95000`); missing solver outputs are always
+  hard FAILs, since `Q2D.sh` wipes `OUTPUT/` before each solve.
+- **`RESOURCE_LOCK <case directory>`**: tests sharing a case
+  directory (e.g. `borda-channel` and its negative control
+  `borda-channel-negctl`, which write the same `OUTPUT/`) are never
+  run concurrently, so `ctest -j` stays safe.
 
 ### Single test case
 
@@ -132,44 +183,40 @@ python3 -B verify.py
 
 ```mermaid
 flowchart LR
-    Build["Build Q2D<br/>(install.sh compile)"] --> Run["Run test.sh 1D<br/>or Q2D.sh solve"]
+    Build["Build Q2D<br/>(install.sh compile)"] --> Run["ctest --test-dir build<br/>or Q2D.sh solve"]
     Run --> Solve["Q2D solver<br/>produces OUTPUT/"]
-    Solve --> Compare["verify.py<br/>vs reference/"]
+    Solve --> Compare["check.py<br/>vs reference/"]
     Compare --> Pass{"Exit<br/>code?"}
     Pass -->|0| OK["✅ Pass"]
     Pass -->|1| Fail["❌ Fail"]
+    Pass -->|77| Skip["⏭️ Skipped<br/>(SKIP_RETURN_CODE)"]
 ```
 
 ---
 
-## Pre-push hooks and audit scripts
+## Pre-push hooks
 
 Q2D includes in-tree git hooks (activated via
 `git config core.hooksPath .githooks`) that protect the test
 invariants:
 
-- **`pre-commit`** runs the No-$w$ grep audit on staged sources
-  (`grep -nE "do k|Normal\(3\)|wl,|wr,|F_w" src/`).  Any hit blocks
-  the commit until resolved.
-- **`pre-push`** runs the four sympy-based formal-audit scripts in
-  `tools/audit/*.py` and the CTest validation suite.  All four
-  scripts must exit 0 before the push is allowed:
-
-| Script | Check |
-|---|---|
-| `cyl_ops_rans_audit.py` | Cylindrical-coordinate consistency of RANS sources (axisymmetric) |
-| `implementation_topology_audit.py` | FV / metric-tensor consistency across regimes |
-| `source_axi_lineby_line_audit.py` | Line-by-line axisymmetric residual derivation |
-| `term_by_term_sympy.py` | Symbolic equivalence of area-variation terms (V·G) |
+- **`pre-commit`** runs grep-based invariant checks on the staged
+  `src/lib/*.f90` sources: No-$w$ principle violations (`do k =`
+  loops, `Normal(3)` declarations) and orphan `TODO` markers without
+  a phase reference.  Any hit blocks the commit until resolved
+  (bypass, if really needed, with `git commit --no-verify`).
+- **`pre-push`** runs the CTest validation suite
+  (`ctest --test-dir build --output-on-failure --timeout 300`)
+  against the `build/` directory.  Any failing test aborts the push.
+  If no configured build directory is found, the hook prints a
+  warning and skips the tests instead of blocking the push.
 
 ---
 
 ## Regression tolerance
 
 The numerical regression tolerance budget for `Q2D legacy` vs
-Q2D outputs is documented in the V&V section, see
-[Regression Tolerance](../vv/regression_tolerance.md).  Acceptance
-criteria:
+Q2D outputs is:
 
 - `RELEASE -O0`: `eps_rel < 1e-12` (bit-per-bit modulo IEEE-754
   rounding).
@@ -228,7 +275,7 @@ Riemann-problem solvers for canonical test cases (Sod, Toro,
 Einfeldt, Noh, etc.).
 
 There are **two complementary paths** in Q2D — the CTest-driven
-`check.py` (uniform across all 27 cases) and the standalone
+`check.py` (uniform across all cases) and the standalone
 `verify.py` (mirror MOSE):
 
 | Path | Script | When invoked | Reference source |
@@ -265,10 +312,10 @@ its specific features:
 | Feature | Coverage |
 |---|---|
 | No-$w$ (2D reduction) | All 4-face block tests; pre-commit grep audit |
-| Geometric sources | `2D/euler/rocket-nozzle/` (axisymmetric); 4 sympy audit scripts (cyl_ops, source_axi, term_by_term, topology) |
-| Definition A V·G | `term_by_term_sympy.py` audit; q2D area-variation cases |
-| Borda flow | `2D/euler/chang-nozzle/` with `BC_Mach == -20` sentinel |
-| Line probes | Planned regression coverage |
-| OMP do/task | `[Q2D-Numerics] omp_name = task` exercised on the largest 2D case |
-| LIMO3 | `flux-limiter = LIMO3` setting on a smooth test case |
-| `GSI_Paraffin` | BC 303 wall-melting case with non-zero `y_SEBS` |
+| Geometric sources | Axisymmetric: `2D/euler/chang-nozzle(-mg2)/`, `2D/euler/rocket-nozzle/`, `2D/euler/SRM-rocket-motor/`, `2D/viscous/chang-nozzle-turbulent/` |
+| Definition A V·G | Q2D area-variation cases: `2D/euler/planar-nozzle(-mg2)/`, `2D/euler/planar-nozzle-turbulent/` |
+| Borda flow | `2D/euler/borda-channel/` with `BC_Mach == -20` sentinel on BC 420 |
+| Line probes | `2D/euler/prandtl-meyer-lineprobe/` |
+| Multigrid | `2D/euler/planar-nozzle-mg2/`, `2D/euler/chang-nozzle-mg2/` |
+| SSG/LRR-omega RSM | `ssglrr-chang-nozzle-turbulent`, `ssglrr-planar-nozzle-turbulent` ctests (kw/rsm pairs) |
+| LIMO3 | `1D/ShuOsher-LIMO3/` (`flux-limiter = LIMO3`) |

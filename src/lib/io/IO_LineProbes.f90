@@ -1,10 +1,10 @@
 module Q2D_IO_LineProbes
-  ! Q2D-extra (peculiarità #5): line-probes (sampling along grid lines i/j
-  ! fixed-index). MOSE has no line-probes. Registry-driven like the regular probes:
-  ! the per-line-probe config is registered (Q2D_Read_IO::Register_LineProbes) and
-  ! loaded (Backend_INI::Load_Ini) into obj_io_lineprobes (Config_Types); the
-  ! section-level restart goes to obj_io%lineprobe_restart (Scan_Ini). Setup_LineProbes
-  ! reads the loaded values — no fini%get bypass (resolves TODO C-11.d).
+  ! Line-probes: campionamento lungo linee di griglia a indice i o j fisso.
+  ! Configurazione registry-driven come le sonde puntuali: la configurazione di
+  ! ogni line-probe è registrata (Q2D_Read_IO::Register_LineProbes) e caricata
+  ! (Backend_INI::Load_Ini) in obj_io_lineprobes (Config_Types_m); il flag di
+  ! restart a livello di sezione va in obj_io%lineprobe_restart (Scan_Ini).
+  ! Setup_LineProbes legge i valori già caricati — nessun accesso diretto via fini%get.
   use iso_fortran_env,      only: I4 => int32, R8 => real64
   use Q2D_Parameters_m,     only: clen, llen, hlen
   use Q2D_Advanced_Types_m, only: Q2D_domain_type
@@ -22,19 +22,19 @@ module Q2D_IO_LineProbes
 
   type :: obj_lineprobe_t
     character(len=llen)                :: name
-    integer, dimension(2)              :: ilocation       ! (block, direction)  direction: 1 = i fixed, 2 = j fixed
-    integer                            :: fixed_index     ! the constant i or j index defining the line
+    integer, dimension(2)              :: ilocation       ! (blocco, direzione)  direzione: 1 = i fisso, 2 = j fisso
+    integer                            :: fixed_index     ! indice i o j costante che definisce la linea
     integer                            :: npoints
     integer                            :: nvar
     character(len=clen), allocatable   :: names(:)
     type(real_array_ptr), allocatable  :: variables(:)
-    real(R8), pointer                  :: P(:,:)          ! Pointer to (nprim, npoints) slice
+    real(R8), pointer                  :: P(:,:)          ! puntatore alla slice (nprim, npoints)
     real(R8), allocatable              :: T(:), M(:)
     real(R8)                           :: dtime
     integer                            :: ntime
     integer                            :: diter
-    real(R8), allocatable              :: nodes_lower(:,:) ! degenerate-strip node coords j=0 row (2, 0:np)
-    real(R8), allocatable              :: nodes_upper(:,:) ! degenerate-strip node coords j=1 row (2, 0:np)
+    real(R8), allocatable              :: nodes_lower(:,:) ! coordinate nodali della striscia degenere, riga j=0 (2, 0:np)
+    real(R8), allocatable              :: nodes_upper(:,:) ! coordinate nodali della striscia degenere, riga j=1 (2, 0:np)
     integer                            :: unit
     logical                            :: header_written
   contains
@@ -53,17 +53,19 @@ contains
     use Q2D_Config_Types_m, only: obj_io, obj_io_lineprobes
     implicit none
     type(Q2D_domain_type), intent(in), target :: domain
-    ! Local
+    ! Variabili locali
     integer             :: i, j, b, dir, idx, ios
     character(len=llen) :: name, filepath
     character(len=clen) :: string(64)
     logical             :: restart, file_exists
 
-    ! Registry-driven (peculiarità #5): the per-line-probe config is loaded into
-    ! obj_io_lineprobes by Register_LineProbes + Load_Ini, and the section-level
-    ! restart/newrun into obj_io%lineprobe_restart by Scan_Ini — no fini%get here.
-    ! Absent input.ini -> obj_io_lineprobes never allocated (Read_Inifile bootstrap
-    ! guard returns early), so the allocated-check reproduces the legacy no-op.
+    ! Configurazione registry-driven: la configurazione di ogni line-probe è
+    ! caricata in obj_io_lineprobes da Register_LineProbes + Load_Ini, e il
+    ! restart/newrun a livello di sezione in obj_io%lineprobe_restart da
+    ! Scan_Ini — nessun accesso diretto via fini%get qui.
+    ! In assenza di input.ini obj_io_lineprobes non viene mai allocato (la
+    ! guardia di bootstrap di Read_Inifile esce subito), quindi il controllo di
+    ! allocazione disattiva i line-probes senza altri effetti.
     if (.not. allocated(obj_io_lineprobes)) then
       nlineprobes = 0
       return
@@ -82,15 +84,16 @@ contains
       lineprobe(i)%unit = -1
       lineprobe(i)%header_written = .false.
 
-      ! Variable list — parse the registered string (mirror IO_Probes::Setup_Probes)
+      ! Lista variabili — parsing della stringa registrata (stesso schema di IO_Probes::Setup_Probes)
       string = ''
       lineprobe(i)%nvar = 0
       call parse(obj_io_lineprobes(i)%varnames, ' ', string)
-      ! The registry default 'none' is the no-variables sentinel: a coordinate-only
-      ! probe (legal in legacy, where count_values on an absent key returned 0).
-      ! Treat it as nvar=0 so Assign_Variables/write loops are zero-trip; a genuine
-      ! misspelling ('rh0', or 'none' mixed with real vars) keeps nvar>=1 and is
-      ! still caught by the unrecognized-variable error stop in Assign_Variables.
+      ! Il default di registry 'none' è la sentinella "nessuna variabile":
+      ! sonda di sole coordinate (configurazione lecita). Viene trattato come
+      ! nvar=0, così i cicli di Assign_Variables e di scrittura non eseguono
+      ! alcuna iterazione; un vero refuso ('rh0', oppure 'none' mescolato a
+      ! variabili reali) mantiene nvar>=1 ed è comunque intercettato dall'error
+      ! stop per variabile non riconosciuta in Assign_Variables.
       if (.not. (size(string) >= 1 .and. trim(adjustl(obj_io_lineprobes(i)%varnames)) == 'none')) then
         do j = 1, size(string)
           if (string(j) /= '') lineprobe(i)%nvar = lineprobe(i)%nvar + 1
@@ -101,13 +104,13 @@ contains
         lineprobe(i)%names(j) = trim(string(j))
       end do
 
-      ! Frequency (registered; defaults 1e30 / 1e9 ≈ legacy huge = "write only if set")
+      ! Frequenze (da registry; i default 1e30 / 1e9 equivalgono a "scrivi solo se impostato")
       lineprobe(i)%dtime = obj_io_lineprobes(i)%dtime
       lineprobe(i)%diter = obj_io_lineprobes(i)%diter
       lineprobe(i)%ntime = 1
 
-      ! Location (mandatory) — the '0' sentinel default reproduces the legacy
-      ! `error stop` when index-position / fixed-index are omitted.
+      ! Posizione (obbligatoria) — il default sentinella '0' fa scattare
+      ! l'`error stop` quando index-position / fixed-index sono omessi.
       lineprobe(i)%ilocation   = obj_io_lineprobes(i)%iloc
       lineprobe(i)%fixed_index = obj_io_lineprobes(i)%fixed_index
       if (lineprobe(i)%ilocation(1) < 1 .or. lineprobe(i)%ilocation(2) < 1) &
@@ -119,17 +122,17 @@ contains
       dir = lineprobe(i)%ilocation(2)
       idx = lineprobe(i)%fixed_index
 
-      ! MPI: skip lineprobes whose target block is remote (consistent with the
-      ! MOSE IO_Probes::Setup_Probes pattern). domain%blk(b)%P is deallocated for
-      ! non-local blocks by deallocate_remote_computation_data.
+      ! MPI: salta i line-probes il cui blocco target è remoto (stesso schema di
+      ! IO_Probes::Setup_Probes). domain%blk(b)%P è deallocato per i blocchi non
+      ! locali da deallocate_remote_computation_data.
       if (.not. is_local_block(b)) cycle
 
       if (dir == 1) then
-        ! i fixed, extract along j
+        ! i fisso, estrazione lungo j
         lineprobe(i)%npoints = domain%blk(b)%dim(2)
         lineprobe(i)%P => domain%blk(b)%P(:, idx, 1:domain%blk(b)%dim(2))
       else
-        ! j fixed, extract along i
+        ! j fisso, estrazione lungo i
         lineprobe(i)%npoints = domain%blk(b)%dim(1)
         lineprobe(i)%P => domain%blk(b)%P(:, 1:domain%blk(b)%dim(1), idx)
       end if
@@ -159,7 +162,7 @@ contains
     implicit none
     type(obj_lineprobe_t),  intent(inout) :: lp
     type(Q2D_domain_type),  intent(in)    :: domain
-    ! Local
+    ! Variabili locali
     integer :: b, dir, idx, ip, np_
 
     b   = lp%ilocation(1)
@@ -171,13 +174,13 @@ contains
     allocate(lp%nodes_upper(1:2, 0:np_))
 
     if (dir == 1) then
-      ! i fixed, extract along j
+      ! i fisso, estrazione lungo j
       do ip = 0, np_
         lp%nodes_lower(1:2, ip) = domain%blk(b)%node(idx-1, ip)%c(1:2)
         lp%nodes_upper(1:2, ip) = domain%blk(b)%node(idx,   ip)%c(1:2)
       end do
     else
-      ! j fixed, extract along i
+      ! j fisso, estrazione lungo i
       do ip = 0, np_
         lp%nodes_lower(1:2, ip) = domain%blk(b)%node(ip, idx-1)%c(1:2)
         lp%nodes_upper(1:2, ip) = domain%blk(b)%node(ip, idx  )%c(1:2)
@@ -192,7 +195,7 @@ contains
     use IR_Precision, only: str
     implicit none
     type(obj_lineprobe_t), intent(inout), target :: lp
-    ! Local
+    ! Variabili locali
     integer :: v, s
 
     allocate(lp%variables(1:lp%nvar))
@@ -201,7 +204,7 @@ contains
       do s = 1, nsc
         if (lp%names(v) == 'rho('//trim(str(.true.,s))//')') lp%variables(v)%p => lp%P(s, :)
       end do
-      ! No "w" component.
+      ! Nessuna componente "w".
       if (lp%names(v) == 'u') lp%variables(v)%p => lp%P(nu, :)
       if (lp%names(v) == 'v') lp%variables(v)%p => lp%P(nv, :)
       if (lp%names(v) == 'p') lp%variables(v)%p => lp%P(np, :)
@@ -221,7 +224,7 @@ contains
     use FLINT_Lib_Thermodynamic, only: f_Rtot, f_ss, EOS
     implicit none
     class(obj_lineprobe_t), intent(inout) :: self
-    ! Local
+    ! Variabili locali
     integer  :: ip
     real(R8) :: Rtot, speed_of_sound, rho_tot
 
@@ -230,7 +233,7 @@ contains
       Rtot = f_Rtot(self%P(1:nsc, ip))
       speed_of_sound = f_ss(self%P(1:nsc, ip), self%P(np, ip), rho_tot, Rtot)
       self%T(ip) = EOS(p=self%P(np, ip), rho=rho_tot, R=Rtot)
-      ! Mach 2D (u, v).
+      ! Mach 2D dalle sole componenti (u, v).
       self%M(ip) = norm2(self%P(nu:nv, ip)) / speed_of_sound
     end do
   end subroutine Update_LineProbe
@@ -241,15 +244,15 @@ contains
     implicit none
     integer,  intent(in) :: iter
     real(R8), intent(in) :: time
-    ! Local
+    ! Variabili locali
     integer :: lp
     logical :: should_write
 
     if (nlineprobes == 0) return
 
     do lp = 1, nlineprobes
-      ! MPI: skip lineprobes whose target block is remote (mirror the MOSE
-      ! IO_Probes::Write_Probes_Data pattern).
+      ! MPI: salta i line-probes il cui blocco target è remoto (stesso schema
+      ! di IO_Probes::Write_Probes_Data).
       if (.not. is_local_block(lineprobe(lp)%ilocation(1))) cycle
       should_write = .false.
       if (mod(iter, lineprobe(lp)%diter) == 0) then
@@ -269,7 +272,7 @@ contains
     implicit none
     type(obj_lineprobe_t), intent(inout) :: lp
     real(R8), intent(in) :: time
-    ! Local
+    ! Variabili locali
     integer             :: i, v, Ni, NvarTot
     character(len=llen) :: filepath
     character(len=500)  :: varloc_str, zoneheader
@@ -278,7 +281,7 @@ contains
     call lp%Update()
 
     Ni = lp%npoints
-    NvarTot = 2 + lp%nvar  ! x, y + variables
+    NvarTot = 2 + lp%nvar  ! x, y + variabili
 
     if (.not. lp%header_written) then
       filepath = 'OUTPUT/'//trim(lp%name)//'.tec'
@@ -304,7 +307,7 @@ contains
     zoneheader = trim(zoneheader)//', SOLUTIONTIME='//trim(str(no_sign=.true., n=time))
     write(lp%unit, '(A)') trim(zoneheader)
 
-    ! x coordinates: lower row (j=0) then upper row (j=1) — Tecplot BLOCK packing.
+    ! Coordinate x e y: riga inferiore (j=0) poi riga superiore (j=1) — packing Tecplot BLOCK.
     write(lp%unit, FR_P) (lp%nodes_lower(1, i), i=0, Ni), (lp%nodes_upper(1, i), i=0, Ni)
     write(lp%unit, FR_P) (lp%nodes_lower(2, i), i=0, Ni), (lp%nodes_upper(2, i), i=0, Ni)
 

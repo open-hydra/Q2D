@@ -1,15 +1,15 @@
-!>@brief: RANS abstract interfaces and procedure pointers (Q2D 2D-reduced superset).
+!>@brief: Interfacce astratte e puntatori a procedura RANS (riduzione 2D Q2D).
 !
-! 7 procedure pointers + 7 abstract interfaces. Q2D superset:
-!   +1 procedure pointer RANS_Diffusive_SourceQ2D (area-variation diffusive)
-!   +1 abstract interface RANS_diffusive_SourceQ2D_if (idem)
-!   Eddy_Viscosity_if 9-args (vs the 3D peer's 6-args): extra vr/r_ave + V_dot_G (optional)
-!   RANS_diffusive_flux_if 12-args (vs the 3D peer's 9-args): extra int_l (2D analogue of
-!   area) + vr/r_ave + mut optional
+! 8 puntatori a procedura + 8 interfacce astratte, tra cui:
+!   RANS_Diffusive_SourceQ2D / RANS_Diffusive_SourceQ2D_if: sorgente diffusiva
+!     per la variazione d'area;
+!   Eddy_Viscosity_if a 9 argomenti: include vr/r_ave (assialsimmetrico) e
+!     V_dot_G (opzionale, Definizione A);
+!   RANS_Diffusive_Flux_if a 12 argomenti: include int_l (analogo 2D dell'area
+!     di faccia) + vr/r_ave + mut opzionale.
 !
-! `RSM_Symmetry` (2D restriction of the MOSE peer routine) was stripped as dead code
-! pre-SSGLRR and reintroduced with the SSGLRR port (Sess 26): consumed by
-! Lib_BC_Fluxes_Symmetry::BC_Symmetry_Visc `if(RSM)` block (theory §6.7).
+! `RSM_Symmetry` è consumata dal blocco `if(RSM)` di
+! Lib_BC_Fluxes_Symmetry::BC_Symmetry_Visc (docs/theory/q2d-rans-closures.md §6.7).
 module Q2D_Lib_RANS
   use iso_fortran_env, only: I4 => int32, R8 => real64
 
@@ -21,7 +21,7 @@ module Q2D_Lib_RANS
   public :: RANS_Extrapolate_Wall, RANS_Enforce_Realizability
   public :: RSM_Symmetry
 
-  ! Procedure pointers (8 — Q2D superset: 7 + 1 Q2D-extra)
+  ! Puntatori a procedura (8)
   procedure(Eddy_Viscosity_if),             pointer :: Eddy_Viscosity
   procedure(RANS_Diffusive_Flux_if),        pointer :: RANS_Diffusive_Flux
   procedure(RANS_Diffusive_SourceQ2D_if),   pointer :: RANS_Diffusive_SourceQ2D => null()
@@ -31,9 +31,9 @@ module Q2D_Lib_RANS
   procedure(RANS_Extrapolate_Wall_if),      pointer :: RANS_Extrapolate_Wall
   procedure(RANS_Enforce_Realizability_if), pointer :: RANS_Enforce_Realizability
 
-  !> Eddy_Viscosity_if 9-args (Q2D extras).
-  !> V_dot_G optional: present -> propagated to Strain_Tensor for S_33 = -V·G correction
-  !> (modifies |S|^2 = |S|^2_2D + 2(V·G)^2 in Boussinesq); absent -> Definition B.
+  !> Eddy_Viscosity_if a 9 argomenti.
+  !> V_dot_G opzionale: presente -> propagato a Strain_Tensor per la correzione S_33 = -V·G
+  !> (modifica |S|^2 = |S|^2_2D + 2(V·G)^2 nel Boussinesq); assente -> Definizione B.
   abstract interface
     subroutine Eddy_Viscosity_if ( mut, rans_variables, mul, rho, vel_gradient, vr, r_ave, walldist, V_dot_G )
       use iso_fortran_env, only: R8 => real64
@@ -50,10 +50,11 @@ module Q2D_Lib_RANS
     end subroutine Eddy_Viscosity_if
   end interface
 
-  !> RANS_Diffusive_Flux_if 12-args (Q2D extra).
-  !> mut optional: if present, eddy viscosity from caller is reused (skip recomputation
-  !> in SST, ensures consistency with momentum stress mu_t under area variation).
-  !> int_l is the 2D analogue of the 3D face area.
+  !> RANS_Diffusive_Flux_if a 12 argomenti.
+  !> mut opzionale: se presente, la viscosità turbolenta del chiamante è riusata (evita
+  !> il ricalcolo in SST e garantisce consistenza con la mu_t dello sforzo di quantità
+  !> di moto in presenza di variazione d'area).
+  !> int_l è l'analogo 2D dell'area di faccia 3D.
   abstract interface
     subroutine RANS_Diffusive_Flux_if(flux, rans_variables, mul, vel_gradient, rans_gradient, rho, &
                                       int_l, normal, vr, r_ave, dist, mut)
@@ -72,8 +73,8 @@ module Q2D_Lib_RANS
     end subroutine RANS_Diffusive_Flux_if
   end interface
 
-  !> RANS_Diffusive_SourceQ2D_if (Q2D-extra, area-variation).
-  !> Returns source(nrans,2); the caller projects onto the geometry (G or 1/r).
+  !> RANS_Diffusive_SourceQ2D_if (variazione d'area).
+  !> Restituisce source(nrans,2); il chiamante proietta sulla geometria (G o 1/r).
   abstract interface
     subroutine RANS_Diffusive_SourceQ2D_if(source, rans_variables, mul, mut, vel_gradient, rans_gradient, rho, dist)
       use iso_fortran_env, only: R8 => real64
@@ -109,7 +110,7 @@ module Q2D_Lib_RANS
     end subroutine RANS_Set_Wall_Values_if
   end interface
 
-  !> tau(2) (2D-reduced); the MOSE peer has tau(3).
+  !> tau(2): vettore sforzo a parete ridotto 2D.
   abstract interface
     subroutine RANS_Set_Blowing_Wall_if(rho, mil, tau, rans_variables, mdot, dist)
       use iso_fortran_env, only: R8 => real64
@@ -142,15 +143,16 @@ module Q2D_Lib_RANS
 
 contains
 
-  ! Reynolds-stress values at a symmetry interface and in the ghost cell
-  ! (theory §6.7). Q2D 2D reduction (4-stress + omega; R13=R23 dropped, 7->5):
-  ! the symmetry plane is an x- or y-plane (no z-plane in 2D). The normal stresses
-  ! R11,R22,R33 and the scalar omega are EVEN (zero-gradient ghost); the in-plane
-  ! shear R12 is ODD at any in-plane symmetry plane (one index along the plane
-  ! normal), so its face value is zero and its ghost sign-flips. This is the 2D
-  ! restriction of the MOSE peer Lib_RANS::RSM_Symmetry (x-plane: R12,R13 odd;
-  ! y-plane: R12,R23 odd) with the out-of-plane cross-stresses absent.
-  ! var = (rho*R11, rho*R22, rho*R33, rho*R12, rho*omega); n is the face normal.
+  ! Valori degli sforzi di Reynolds all'interfaccia di simmetria e nella cella ghost
+  ! (docs/theory/q2d-rans-closures.md §6.7). Riduzione 2D Q2D (4 sforzi + omega;
+  ! R13=R23 eliminati, 7->5): il piano di simmetria è un piano x o y (nessun piano z
+  ! in 2D). Gli sforzi normali R11,R22,R33 e lo scalare omega sono PARI (ghost a
+  ! gradiente nullo); lo shear nel piano R12 è DISPARI su qualunque piano di
+  ! simmetria nel piano (avendo un indice lungo la normale al piano), quindi il suo
+  ! valore di faccia è nullo e il ghost cambia segno. È la restrizione 2D della
+  ! regola di parità 3D (piano x: R12,R13 dispari; piano y: R12,R23 dispari) con gli
+  ! sforzi incrociati fuori piano assenti.
+  ! var = (rho*R11, rho*R22, rho*R33, rho*R12, rho*omega); n è la normale di faccia.
   subroutine RSM_Symmetry ( var, var_w, var_g, n )
     use Q2D_Global_m, only: nRANS
     implicit none
@@ -158,13 +160,13 @@ contains
     real(R8), intent(out), dimension(nRANS) :: var_w, var_g
     real(R8), intent(in),  dimension(2)     :: n
 
-    ! Normal stresses + omega: zero-gradient (even)
+    ! Sforzi normali + omega: gradiente nullo (pari)
     var_w(1:3) = var(1:3)
     var_w(5)   = var(5)
     var_g(1:3) = var(1:3)
     var_g(5)   = var(5)
 
-    ! In-plane shear R12: odd at any in-plane symmetry plane
+    ! Shear nel piano R12: dispari su ogni piano di simmetria nel piano
     var_w(4) = 0d0
     var_g(4) = - var(4)
 

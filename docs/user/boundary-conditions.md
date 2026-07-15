@@ -387,9 +387,12 @@ matrix mapping source to target indices.
            wall-instantaneous form is robust on coarse grids and stiff
            Strang regimes.
 
-    Activated when a non-zero `y_SEBS` mass fraction is supplied
-    and/or `cracking = .true.` is requested in the `[Q2D-Surface]`
-    section of `input.ini`. For default settings, `GSI_Paraffin`
+    GSI material properties (including `y_SEBS` and the `cracking`
+    switch) are currently hardcoded as module-level defaults in
+    `Q2D_Lib_GSI` — there is no INI section for them yet; moving them
+    to the configuration registry is an open TODO
+    (`Register_Physics.f90`).  With the default settings
+    (`y_SEBS = 0`, `cracking = .false.`), `GSI_Paraffin`
     reduces to `GSI_Melting`.
 
     See [Finite-Rate Kinetics — Surface Kinetics](../theory/kinetics.md#surface-kinetics-paraffin-grain-model)
@@ -472,7 +475,7 @@ integration-variables = cons
 time-scheme           = RK2
 time-accurate         = false
 irs-beta              = 0.0
-omp_name              = do          ; 'do' (default) or 'task'
+OMP-parallel          = do          ; 'do' (default) or 'task'
 
 [Q2D-IO]
 sol-diter   = 1000

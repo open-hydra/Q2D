@@ -7,15 +7,30 @@ from inviscid shock theory.  The test verifies that numerical
 solutions across different Riemann solvers accurately satisfy these
 theoretical shock jump conditions.
 
-**Reference:** standard oblique shock relations (_e.g._ Anderson,
-_Modern Compressible Flow_, McGraw-Hill).
+**Reference:** standard oblique shock relations (_e.g._ J. D.
+Anderson, _Modern Compressible Flow with Historical Perspective_,
+3rd ed., McGraw-Hill, 2003).
+
+**Feature exercised:** 2D-plane Euler on a 2-block grid (multi-block
+BC wiring); attached oblique shock vs θ–β–M theory; Riemann-solver
+robustness sweep (HLLC, HLLC+, HLLE, SLAU) via `./Q2D.sh test`.
 
 !!! success "V&V status"
 
-    Wired into CTest as `oblique-shock` and passes on the default mesh.
-    `check.py` cross-checks the 2D-plane solution against MOSE
-    (3D-wedge K=0 layer, `tools/diff_mose_q2d_field.py`), agreement
-    `Linf_rel ≤ 7e-13` on each Riemann solver branch.
+    Wired into CTest as `oblique-shock` and passes on the default
+    mesh.  `check.py` gates (all hard, NaN-safe):
+
+    - sanity: min(ρ), min(p), min(T) > 0 in every block;
+    - convergence sentinel: final density residual < **1e-3**
+      (measured 1.5e-5 on the committed 3000-iteration run);
+    - probe-window guard: the hard-coded probe index windows must lie
+      inside the block cell dimensions (a re-meshed case fails
+      loudly, not silently);
+    - **θ–β–M theory**: p₂/p₁, T₂/T₁, ρ₂/ρ₁ and M₂ within **1.5 %**
+      of the oblique-shock relations, with the deflection δ measured
+      from the Block-2 wall nodes (HLLE-only single-Riemann ctest
+      run, per the MOSE `verify.py` probe layout).
+
     Quantitative shock-jump tables across HLLC / HLLC+ / HLLE / SLAU
     are produced via `verify.py` matplotlib from Q2D's
     `OUTPUT/field-<scheme>.tec`.
@@ -95,9 +110,9 @@ errors up to 10 % compared to the theoretical value, while HLLC+
 remains slightly unstable with oscillations of approximately 2 %
 around the analytical density.
 
-!!! note "V&V cross-code validation"
+!!! note "V&V acceptance"
 
-    The numerical solution is cross-checked against MOSE (3D-wedge K=0
-    layer) with agreement `Linf_rel ≤ 7e-13` for each Riemann solver
-    branch. Field data from all four solvers (HLLE, HLLC, HLLC+, SLAU)
-    demonstrate the shock-jump conditions and post-shock density profiles.
+    The ctest acceptance is the analytical θ–β–M gate set above
+    (1.5 % on the shock-jump ratios and post-shock Mach). Field data
+    from all four solvers (HLLE, HLLC, HLLC+, SLAU) demonstrate the
+    shock-jump conditions and post-shock density profiles.

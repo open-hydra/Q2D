@@ -1,14 +1,109 @@
+"""Noh87 x1/x2/x4/x8 refinement-ladder verification.
+
+Two modes:
+
+* ``verify.py --gate`` (ctest, after ``./Q2D.sh test``): numpy-only hard gate.
+  Reads OUTPUT/field_x{1,2,4,8}.tec, evaluates the planar Noh exact solution
+  analytically at every cell center (test/common/pycheck/q2d_exact1d.py:
+  shocks at x = 0.5 -/+ 0.2 t, stagnation rho=6/u=0/p=1.2 — the 100-point
+  reference table would smear the rho=1->6 jumps by one table spacing and
+  make the ladder errors non-monotonic), and asserts:
+    - NaN-safe positivity of rho/p on every level;
+    - whole-domain relative L1(rho) errors monotonically non-increasing;
+    - observed order p_obs (least-squares slope of log L1(rho) vs log h)
+      >= 0.85. Measured p_obs = 1.01 (calibration 2026-07, errors
+      1.63e-2 / 7.98e-3 / 3.81e-3 / 2.03e-3); threshold ~0.85x measured —
+      infinite-strength shocks, L1 order ~1 is the theoretical ceiling.
+  No plotting and no matplotlib/ExactPack import in this mode.
+
+* without ``--gate``: original offline study — ExactPack Noh solution on the
+  right half-domain, 2x2 matplotlib SVG figure, x8 probe-point gates,
+  L2/Linf norm tables.
+"""
 import argparse
-import matplotlib.pyplot as plt
-import matplotlib as mpl
-from numpy import linspace
-import numpy as np
-from pathlib import Path
-from exactpack.solvers.noh import Noh
 import sys
 import os
 import warnings
+import numpy as np
+from numpy import linspace
+from pathlib import Path
 warnings.filterwarnings("ignore")
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "common" / "pycheck"))
+from q2d_check_lib import (fail, require_file, assert_positive, rel_l1,
+                           read_q2d_field)
+from q2d_exact1d import noh_exact_planar, observed_order
+
+# Define command-line arguments
+parser = argparse.ArgumentParser(description='Plot CFD and Exact data')
+parser.add_argument('--plot', action='store_true', help='Specify whether to plot the data or not')
+parser.add_argument('--gate', action='store_true',
+                    help='ctest mode: hard PASS/FAIL on the observed L1(rho) convergence order (no plotting)')
+
+# Parse the command-line arguments
+args = parser.parse_args()
+output_dir = "OUTPUT"
+folder_name = os.path.basename(os.getcwd())
+
+# Noh (1987) planar symmetric-collapse setup (matches input.ini / exact.txt)
+X0, T_FINAL = 0.5, 1.0
+RHO0, U0, P0, GAMMA = 1.0, 1.0, 1e-15, 1.4
+LEVELS = (1, 2, 4, 8)
+P_OBS_MIN = 0.85  # measured p_obs = 1.01 (2026-07); gate at ~0.85x measured
+
+
+def _load_level(level):
+    """Cell centers + named cell-centered fields of one ladder level."""
+    path = 'OUTPUT/field_x%d.tec' % level
+    require_file(path, "run './Q2D.sh test' first")
+    x_, y_, var_, vnames = read_q2d_field(path)
+    xc = 0.5 * (x_[0][:-1] + x_[0][1:])[:, 0, 0]
+    cc = [n.strip() for n in vnames][3:]  # after nodal x, y, z
+    fields = {name: np.asarray(var_[0][k], float)[:, 0, 0]
+              for k, name in enumerate(cc)}
+    return xc, fields
+
+
+def run_gate():
+    print('Noh87 convergence gate: L1(rho) vs analytic planar Noh solution')
+    errs, hs = [], []
+    for level in LEVELS:
+        xc, f = _load_level(level)
+        rho, p = f['rho(1)'], f['p']
+        assert_positive('rho (x%d)' % level, rho)
+        assert_positive('p (x%d)' % level, p)
+        ex = noh_exact_planar(xc, T_FINAL, x0=X0, rho0=RHO0, u0=U0, p0=P0,
+                              gamma=GAMMA)
+        err = rel_l1(rho, ex['rho'])
+        h = (xc[-1] - xc[0]) / (len(xc) - 1)
+        errs.append(err)
+        hs.append(h)
+        print('  x%-2d  n=%4d  h=%.6g  rel L1(rho) = %.5e' % (level, len(xc), h, err))
+    for i in range(len(errs) - 1):
+        if errs[i + 1] > errs[i]:
+            print('  [FAIL] L1(rho) not monotonically non-increasing: '
+                  'x%d -> x%d : %.5e -> %.5e' % (LEVELS[i], LEVELS[i + 1], errs[i], errs[i + 1]))
+            fail('refinement did not reduce the L1(rho) error')
+    print('  [PASS] L1(rho) monotonically non-increasing across the ladder')
+    p_obs = observed_order(hs, errs)
+    status = 'PASS' if p_obs >= P_OBS_MIN else 'FAIL'
+    print('  [%s] observed order p_obs = %.3f (threshold %.2f, measured 1.01 at calibration)'
+          % (status, p_obs, P_OBS_MIN))
+    if p_obs < P_OBS_MIN:
+        fail('observed L1(rho) order %.3f below threshold %.2f' % (p_obs, P_OBS_MIN))
+    print('PASS: Noh87 convergence gate')
+    return 0
+
+
+if args.gate:
+    sys.exit(run_gate())
+
+# ---------------------------------------------------------------------------
+# Offline study (original behavior): ExactPack + matplotlib, x8 probe gates.
+# ---------------------------------------------------------------------------
+import matplotlib.pyplot as plt
+import matplotlib as mpl
+from exactpack.solvers.noh import Noh
 
 # Configure matplotlib for transparent SVG with theme-aware styling
 mpl.rcParams.update({
@@ -33,16 +128,6 @@ except ModuleNotFoundError:
         "ORION package not found. Run 'conda activate base' or install ORION in the current Python environment."
     )
 
-
-# Define command-line arguments
-parser = argparse.ArgumentParser(description='Plot CFD and Exact data')
-parser.add_argument('--plot', action='store_true', help='Specify whether to plot the data or not')
-
-# Parse the command-line arguments
-args = parser.parse_args()
-output_dir = "OUTPUT"
-folder_name = os.path.basename(os.getcwd())
-
 # Evaluate exact solution via ExactPack
 solver = Noh(gamma=1.4, geometry=1); t = 1.0
 nx = 50
@@ -53,7 +138,7 @@ nx *= 2
 xe = linspace(0.5*0.5/nx, 0.5-0.5*0.5/nx, nx)
 soln2 = solver(xe, t)
 soln2['pressure'] = soln2['specific_internal_energy']*soln2['density']*0.4
-nx *= 2 
+nx *= 2
 xe = linspace(0.5*0.5/nx, 0.5-0.5*0.5/nx, nx)
 soln4 = solver(xe, t)
 soln4['pressure'] = soln4['specific_internal_energy']*soln4['density']*0.4
@@ -169,10 +254,10 @@ l2_norm[1,0] = np.linalg.norm(var1[_i('u')][50:,0,0] - soln1['velocity'])
 l2_norm[1,1] = np.linalg.norm(var2[_i('u')][100:,0,0] - soln2['velocity'])
 l2_norm[1,2] = np.linalg.norm(var4[_i('u')][200:,0,0] - soln4['velocity'])
 l2_norm[1,3] = np.linalg.norm(var8[_i('u')][400:,0,0] - soln8['velocity'])
-linf_norm[1,0] = np.max(np.abs(var1[_i('rho(1)')][50:,0,0] - soln1['velocity']))
-linf_norm[1,1] = np.max(np.abs(var2[_i('rho(1)')][100:,0,0] - soln2['velocity']))
-linf_norm[1,2] = np.max(np.abs(var4[_i('rho(1)')][200:,0,0] - soln4['velocity']))
-linf_norm[1,3] = np.max(np.abs(var8[_i('rho(1)')][400:,0,0] - soln8['velocity']))
+linf_norm[1,0] = np.max(np.abs(var1[_i('u')][50:,0,0] - soln1['velocity']))
+linf_norm[1,1] = np.max(np.abs(var2[_i('u')][100:,0,0] - soln2['velocity']))
+linf_norm[1,2] = np.max(np.abs(var4[_i('u')][200:,0,0] - soln4['velocity']))
+linf_norm[1,3] = np.max(np.abs(var8[_i('u')][400:,0,0] - soln8['velocity']))
 for i in range(len(iprobe)):
     if (soln8['velocity'][iprobe[i]-400]==0.0):
         continue
@@ -189,10 +274,10 @@ l2_norm[2,0] = np.linalg.norm(var1[_i('p')][50:,0,0] - soln1['pressure'])
 l2_norm[2,1] = np.linalg.norm(var2[_i('p')][100:,0,0] - soln2['pressure'])
 l2_norm[2,2] = np.linalg.norm(var4[_i('p')][200:,0,0] - soln4['pressure'])
 l2_norm[2,3] = np.linalg.norm(var8[_i('p')][400:,0,0] - soln8['pressure'])
-linf_norm[2,0] = np.max(np.abs(var1[_i('rho(1)')][50:,0,0] - soln1['pressure']))
-linf_norm[2,1] = np.max(np.abs(var2[_i('rho(1)')][100:,0,0] - soln2['pressure']))
-linf_norm[2,2] = np.max(np.abs(var4[_i('rho(1)')][200:,0,0] - soln4['pressure']))
-linf_norm[2,3] = np.max(np.abs(var8[_i('rho(1)')][400:,0,0] - soln8['pressure']))
+linf_norm[2,0] = np.max(np.abs(var1[_i('p')][50:,0,0] - soln1['pressure']))
+linf_norm[2,1] = np.max(np.abs(var2[_i('p')][100:,0,0] - soln2['pressure']))
+linf_norm[2,2] = np.max(np.abs(var4[_i('p')][200:,0,0] - soln4['pressure']))
+linf_norm[2,3] = np.max(np.abs(var8[_i('p')][400:,0,0] - soln8['pressure']))
 for i in range(len(iprobe)):
     if (soln8['pressure'][iprobe[i]-400]==0.0):
         continue
@@ -209,10 +294,10 @@ l2_norm[3,0] = np.linalg.norm(ei1[50:,0,0] - soln1['specific_internal_energy'])
 l2_norm[3,1] = np.linalg.norm(ei2[100:,0,0] - soln2['specific_internal_energy'])
 l2_norm[3,2] = np.linalg.norm(ei4[200:,0,0] - soln4['specific_internal_energy'])
 l2_norm[3,3] = np.linalg.norm(ei8[400:,0,0] - soln8['specific_internal_energy'])
-linf_norm[3,0] = np.max(np.abs(var1[_i('rho(1)')][50:,0,0] - soln1['specific_internal_energy']))
-linf_norm[3,1] = np.max(np.abs(var2[_i('rho(1)')][100:,0,0] - soln2['specific_internal_energy']))
-linf_norm[3,2] = np.max(np.abs(var4[_i('rho(1)')][200:,0,0] - soln4['specific_internal_energy']))
-linf_norm[3,3] = np.max(np.abs(var8[_i('rho(1)')][400:,0,0] - soln8['specific_internal_energy']))
+linf_norm[3,0] = np.max(np.abs(ei1[50:,0,0] - soln1['specific_internal_energy']))
+linf_norm[3,1] = np.max(np.abs(ei2[100:,0,0] - soln2['specific_internal_energy']))
+linf_norm[3,2] = np.max(np.abs(ei4[200:,0,0] - soln4['specific_internal_energy']))
+linf_norm[3,3] = np.max(np.abs(ei8[400:,0,0] - soln8['specific_internal_energy']))
 for i in range(len(iprobe)):
     if (soln8['specific_internal_energy'][iprobe[i]-400]==0.0):
         continue
@@ -223,26 +308,3 @@ for i in range(len(iprobe)):
         print(ei8[iprobe[i],0,0], soln8['specific_internal_energy'][iprobe[i]-400])
         print('Error = ',perr, 'threshold = ',1.0)
         sys.exit(1)
-
-
-# # Set x-axis values
-# x_values = [1, 2, 4, 8]
-
-# # Plot each component of l2_norm
-# for i in range(1):
-#     plt.plot(x_values, linf_norm[i], marker='o', label=f'Component {i+1}')
-
-# # Add labels and legend
-# plt.xlabel('X-axis (log scale)')
-# plt.ylabel('Y-axis')
-# plt.title('Plot of Components of l2_norm')
-# plt.legend()
-
-# # Set logarithmic scale on the x-axis
-# plt.xscale('log')
-
-# # Set x-ticks and labels
-# plt.xticks(x_values, x_values)
-
-# # Show the plot
-# plt.show()

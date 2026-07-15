@@ -14,10 +14,10 @@ contains
     real(R8), intent(inout) :: priml, primr
     real(R8), intent(in)    :: dl0, dl1, dl2, dll, dlr
     real(R8), intent(in)    :: beta
-    ! Local
+    ! Locali
     real(R8) :: slope0, slope1, slope2, slopel, sloper
 
-    ! Piecewise linear reconstruction with limiter.
+    ! Ricostruzione lineare a tratti con limitatore di pendenza.
     slope0 = ( local  - prev  ) / dl0
     slope1 = ( next   - local ) / dl1
     slope2 = ( next2  - next  ) / dl2

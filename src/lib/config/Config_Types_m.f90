@@ -6,55 +6,55 @@ module Q2D_Config_Types_m
   private
 
   !! ------------------------------------------------------
-  !! Simulation Parameters --------------------------------
+  !! Parametri di simulazione -----------------------------
   !! ------------------------------------------------------
   type :: simulation_parameters_t
     character(len=llen) :: warning_message
     character(len=llen) :: error_message
     character(len=llen) :: description
-    ! USER-DEFINED INPUTS
-    logical             :: newrun                 ! Restart flag
-    real(R8)            :: res_threshold          ! Residual threshold for stopping
-    real(R8)            :: time_threshold         ! Maximum simulation time
-    integer             :: iter_threshold         ! Maximum iteration count
-    character(len=clen) :: simulation_type        ! Type of simulation (euler, navier-stokes)
-    ! Useful variables
-    integer             :: iter_general           ! Number of iterations - including all MG levels
+    ! INPUT UTENTE
+    logical             :: newrun                 ! Flag di restart
+    real(R8)            :: res_threshold          ! Soglia sui residui per l'arresto
+    real(R8)            :: time_threshold         ! Tempo massimo di simulazione
+    integer             :: iter_threshold         ! Numero massimo di iterazioni
+    character(len=clen) :: simulation_type        ! Tipo di simulazione (euler, navier-stokes)
+    ! Variabili di servizio
+    integer             :: iter_general           ! Numero di iterazioni, inclusi tutti i livelli MG
     integer             :: iter_from_call
     real(R8)            :: time_from_call
     real(R8), allocatable :: residuotot(:)
-    integer             :: nthreads               ! Number of threads for simulation
-    real(R8)            :: cputime(2)             ! Simulation time duration
-    integer             :: TODO                   ! Decide solve and/or postprocess (state-machine flag, Wrap_Setup)
-    ! HYDRA-coupling flags. These are COUPLING flags (NOT MASTER legacy): Q2D can
-    ! be both standalone-build capable AND HYDRA-coupling capable. Defaults
-    ! `.false.` preserve the Q2D standalone-build behavior; the ATLAS top-level
-    ! orchestrator may set them `.true.` for HYDRA coupling.
-    logical             :: HYDRA_time_accurate = .false. ! ATLAS-driven dtglobal via Set_Global_dt
-    logical             :: HYDRA_postprocess   = .false. ! ATLAS-driven solution write
-    logical             :: HYDRA_MG            = .false. ! ATLAS-driven HYDRA-Multigrid INI section
+    integer             :: nthreads               ! Numero di thread per la simulazione
+    real(R8)            :: cputime(2)             ! Durata della simulazione
+    integer             :: TODO                   ! Seleziona solve e/o postprocess (flag di stato, Wrap_Setup)
+    ! Flag di accoppiamento HYDRA: Q2D può funzionare sia standalone sia
+    ! accoppiato via HYDRA. I default `.false.` corrispondono al comportamento
+    ! standalone; l'orchestratore di alto livello ATLAS può impostarli `.true.`
+    ! per l'accoppiamento HYDRA.
+    logical             :: HYDRA_time_accurate = .false. ! dtglobal imposto da ATLAS via Set_Global_dt
+    logical             :: HYDRA_postprocess   = .false. ! scrittura della soluzione pilotata da ATLAS
+    logical             :: HYDRA_MG            = .false. ! sezione INI HYDRA-Multigrid pilotata da ATLAS
   end type simulation_parameters_t
   !! ------------------------------------------------------
   !! ------------------------------------------------------
 
   !! ------------------------------------------------------
-  !! Input-Output -----------------------------------------
+  !! Input-output -----------------------------------------
   !! ------------------------------------------------------
   type :: io_t
     character(len=llen)  :: warning_message
     character(len=llen)  :: error_message
     character(len=llen)  :: description
-    ! USER-DEFINED INPUTS
-    integer              :: sol_diter, res_diter   ! Iteration interval to save the solution / residuals
-    real(R8)             :: sol_dtime              ! Time interval to save the solution
-    logical              :: sol_overwrite          ! Switch to overwrite the solution
-    character(len=llen)  :: sol_format, ini_format ! Solution format (tecplot, vtk) and formatting (ascii, raw)
+    ! INPUT UTENTE
+    integer              :: sol_diter, res_diter   ! Intervallo di iterazioni per salvare la soluzione / i residui
+    real(R8)             :: sol_dtime              ! Intervallo di tempo per salvare la soluzione
+    logical              :: sol_overwrite          ! Interruttore per sovrascrivere la soluzione
+    character(len=llen)  :: sol_format, ini_format ! Formato della soluzione (tecplot, vtk) e codifica (ascii, raw)
     character(len=llen)  :: sol_variables, wall_variables
-    integer              :: shell_diter            ! Shell update
-    integer              :: ini_diter              ! input.ini update
-    logical              :: lineprobe_restart      ! Q2D-extra (peculiarità #5): line-probe restart/append flag, read once at [<codename>-LineProbes] level
-    ! Useful variables
-    character(len=llen)  :: nameinit               ! Initial file name
+    integer              :: shell_diter            ! Aggiornamento della shell
+    integer              :: ini_diter              ! Aggiornamento di input.ini
+    logical              :: lineprobe_restart      ! Flag restart/append delle line-probe (sezione [<codename>-LineProbes])
+    ! Variabili di servizio
+    character(len=llen)  :: nameinit               ! Nome del file iniziale
     logical              :: write_thermo, write_transport, write_composition
     character(len=hlen)  :: Ovarnames, ORANSname
     integer              :: Onvar
@@ -62,67 +62,67 @@ module Q2D_Config_Types_m
     logical              :: write_wall, write_wall_mechanical, write_wall_thermal, write_wall_mass
     character(len=hlen)  :: Owallnames
     integer              :: Onwall
-    integer              :: unitRES                ! Residuals file unit
-    character(len=llen)  :: unitRES_format         ! Format for residual_history_file
+    integer              :: unitRES                ! Unità del file dei residui
+    character(len=llen)  :: unitRES_format         ! Formato per residual_history_file
   end type io_t
 
   type :: io_probes_t
     character(len=llen) :: warning_message
     character(len=llen) :: error_message
     character(len=llen) :: description
-    ! USER-DEFINED INPUTS
+    ! INPUT UTENTE
     real(R8)            :: dtime
     integer             :: diter
     character(len=clen) :: file
     character(len=hlen) :: varnames
-    integer             :: iloc(3)                 ! 2D index (b, i, j) (vs the 3D peer's iloc(4) = (b,i,j,k))
-    real(R8)            :: loc(2)                  ! 2D coordinates (x, y) (vs the 3D peer's loc(3))
-    ! Useful variables
+    integer             :: iloc(3)                 ! Indici 2D (b, i, j)
+    real(R8)            :: loc(2)                  ! Coordinate 2D (x, y)
+    ! Variabili di servizio
     ! ...
   end type io_probes_t
 
 
-  ! Q2D-extra (peculiarità #5): line-probe config — sampling along an i/j fixed-index
-  ! line. MOSE has no line-probes. Mirror of io_probes_t with line-probe specifics
-  ! (name + 2-component iloc=[block,direction] + scalar fixed-index instead of loc).
+  ! Configurazione line-probe: campionamento lungo una linea a indice i o j fissato.
+  ! Struttura analoga a io_probes_t, con le specificità delle line-probe
+  ! (name + iloc a 2 componenti [blocco, direzione] + fixed_index scalare al posto di loc).
   type :: io_lineprobes_t
     character(len=llen) :: warning_message
     character(len=llen) :: error_message
     character(len=llen) :: description
-    ! USER-DEFINED INPUTS
+    ! INPUT UTENTE
     real(R8)            :: dtime
     integer             :: diter
-    character(len=clen) :: name                    ! line-probe section name (= output file base)
-    character(len=hlen) :: varnames                ! whitespace-separated variable list
-    integer             :: iloc(2)                 ! [block, direction] (direction=1 i-fixed, 2 j-fixed)
-    integer             :: fixed_index             ! fixed-axis sample index along the line
+    character(len=clen) :: name                    ! nome della sezione line-probe (= base del nome file di output)
+    character(len=hlen) :: varnames                ! lista di variabili separate da spazi
+    integer             :: iloc(2)                 ! [blocco, direzione] (direzione=1 i fissato, 2 j fissato)
+    integer             :: fixed_index             ! indice di campionamento sull'asse fissato della linea
   end type io_lineprobes_t
   !! ------------------------------------------------------
   !! ------------------------------------------------------
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  !!!!!!!!!!!!!!!!!!! NUMERICAL SCHEME !!!!!!!!!!!!!!!!!!!!
+  !!!!!!!!!!!!!!!!!!! SCHEMA NUMERICO !!!!!!!!!!!!!!!!!!!!!
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
   !! ------------------------------------------------------
-  !! Time Scheme ------------------------------------------
+  !! Schema temporale -------------------------------------
   !! ------------------------------------------------------
   type :: time_scheme_t
     character(len=llen) :: warning_message
     character(len=llen) :: error_message
     character(len=llen) :: description
-    ! USER-DEFINED INPUTS
-    character(len=llen) :: solver_type             ! Solver type (explicit/implicit, euler, RK2, RK3)
-    real(R8)            :: cfl                     ! Convective stability parameter
-    real(R8)            :: vnn                     ! Diffusive stability parameter
-    integer             :: rampa_cfl_iter          ! Number of iterations for CFL ramp
-    logical             :: time_accurate           ! Time-accurate switch
+    ! INPUT UTENTE
+    character(len=llen) :: solver_type             ! Tipo di solutore (esplicito/implicito, euler, RK2, RK3)
+    real(R8)            :: cfl                     ! Parametro di stabilità convettivo
+    real(R8)            :: vnn                     ! Parametro di stabilità diffusivo
+    integer             :: rampa_cfl_iter          ! Numero di iterazioni della rampa CFL
+    logical             :: time_accurate           ! Interruttore time-accurate
     integer             :: n_RK
-    character(len=llen) :: integration_variables   ! Integration variables (cons/prim)
-    character(len=llen) :: omp_strategy            ! OMP parallelism strategy ('do' | 'task'), Q2D-extra
-    ! Useful variables
+    character(len=llen) :: integration_variables   ! Variabili di integrazione (cons/prim)
+    character(len=llen) :: omp_strategy            ! Strategia di parallelismo OMP ('do' | 'task')
+    ! Variabili di servizio
     ! ...
   end type time_scheme_t
   !! ------------------------------------------------------
@@ -135,55 +135,55 @@ module Q2D_Config_Types_m
     character(len=llen) :: warning_message
     character(len=llen) :: error_message
     character(len=llen) :: description
-    ! USER-DEFINED INPUTS
+    ! INPUT UTENTE
     real(R8)  :: beta
-    ! Useful variables
+    ! Variabili di servizio
     logical   :: enabled
   end type irs_t
   !! ------------------------------------------------------
   !! ------------------------------------------------------
 
   !! ------------------------------------------------------
-  !! Space Discretization ---------------------------------
+  !! Discretizzazione spaziale ----------------------------
   !! ------------------------------------------------------
   type :: space_scheme_t
     character(len=llen) :: warning_message
     character(len=llen) :: error_message
     character(len=llen) :: description
-    ! USER-DEFINED INPUTS
-    character(len=llen) :: space_reconstruction    ! Space reconstruction method
-    character(len=llen) :: flux_limiter            ! Flux limiter for space reconstruction
-    ! Useful variables
+    ! INPUT UTENTE
+    character(len=llen) :: space_reconstruction    ! Metodo di ricostruzione spaziale
+    character(len=llen) :: flux_limiter            ! Flux limiter per la ricostruzione spaziale
+    ! Variabili di servizio
     logical :: SD
   end type space_scheme_t
   !! ------------------------------------------------------
   !! ------------------------------------------------------
 
   !! ------------------------------------------------------
-  !! Riemann solver ---------------------------------------
+  !! Solutore di Riemann ----------------------------------
   !! ------------------------------------------------------
   type :: riemann_t
     character(len=llen) :: warning_message
     character(len=llen) :: error_message
     character(len=llen) :: description
-    ! USER-DEFINED INPUTS
+    ! INPUT UTENTE
     real(R8) :: Minf
-    ! Useful variables
+    ! Variabili di servizio
     logical  :: SD
   end type riemann_t
   !! ------------------------------------------------------
   !! ------------------------------------------------------
 
   !! ------------------------------------------------------
-  !! Shock Detector ---------------------------------------
+  !! Shock detector ---------------------------------------
   !! ------------------------------------------------------
   type :: shock_detector_t
     character(len=llen) :: warning_message
     character(len=llen) :: error_message
     character(len=llen) :: description
-    ! USER-DEFINED INPUTS
+    ! INPUT UTENTE
     ! ...
-    ! Useful variables
+    ! Variabili di servizio
     logical :: SD
   end type shock_detector_t
   !! ------------------------------------------------------
@@ -196,12 +196,12 @@ module Q2D_Config_Types_m
     character(len=llen) :: warning_message
     character(len=llen) :: error_message
     character(len=llen) :: description
-    ! USER-DEFINED INPUTS
-    integer              :: MGL                    ! Number of multigrid levels
-    integer, allocatable :: iter_threshold(:)      ! Number of iterations for each level
-    ! Useful variables
-    integer              :: MG_level               ! Current MG-level being solved
-    logical              :: change_MG              ! Logical variable to change MG-level
+    ! INPUT UTENTE
+    integer              :: MGL                    ! Numero di livelli multigrid
+    integer, allocatable :: iter_threshold(:)      ! Numero di iterazioni per ciascun livello
+    ! Variabili di servizio
+    integer              :: MG_level               ! Livello MG attualmente risolto
+    logical              :: change_MG              ! Variabile logica per cambiare livello MG
   end type multigrid_t
   !! ------------------------------------------------------
   !! ------------------------------------------------------
@@ -213,11 +213,11 @@ module Q2D_Config_Types_m
     character(len=llen) :: warning_message
     character(len=llen) :: error_message
     character(len=llen) :: description
-    ! USER-DEFINED INPUTS
+    ! INPUT UTENTE
     ! ...
-    ! Useful variables
-    logical, allocatable :: viscous_flag(:,:)      ! 2D shape (nb, 4 faces) (vs the 3D peer's 6 faces)
-    logical, allocatable :: coupling_flag(:,:)     ! 2D shape (nb, 4 faces)
+    ! Variabili di servizio
+    logical, allocatable :: viscous_flag(:,:)      ! Shape 2D (nb, 4 facce)
+    logical, allocatable :: coupling_flag(:,:)     ! Shape 2D (nb, 4 facce)
   end type io_bc_t
   !! ------------------------------------------------------
   !! ------------------------------------------------------
@@ -225,30 +225,30 @@ module Q2D_Config_Types_m
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  !!!!!!!!!!!!!!!!!!!!!!!! PHYSICS !!!!!!!!!!!!!!!!!!!!!!!!
+  !!!!!!!!!!!!!!!!!!!!!!!! FISICA !!!!!!!!!!!!!!!!!!!!!!!!!
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
   !! ------------------------------------------------------
-  !! Chemistry --------------------------------------------
+  !! Chimica ----------------------------------------------
   !! ------------------------------------------------------
   type :: chemistry_t
     character(len=llen)   :: warning_message
     character(len=llen)   :: error_message
     character(len=llen)   :: description
-    ! USER-DEFINED INPUTS
+    ! INPUT UTENTE
     character(len=llen)   :: model
     character(len=llen)   :: ode_name
     integer               :: max_ode_steps
     integer               :: iopt(3)
     real(R8), allocatable :: RT(:), AT(:)
     integer(I4), allocatable :: no_chem_list(:)
-    ! Useful variables
+    ! Variabili di servizio
     character(len=llen)   :: mechanism_name
     logical               :: use_strang
-    integer               :: imodel               !> 0 no chemistry; 1 finite-rate; 2 equilibrium
-    integer               :: N_strang             !> 1 w/o strang;   2 w strang
-    real(R8)              :: strangcoeff          !> 1 w/o strang; 0.5 w strang
+    integer               :: imodel               !> 0 senza chimica; 1 finite-rate; 2 equilibrio
+    integer               :: N_strang             !> 1 senza strang;  2 con strang
+    real(R8)              :: strangcoeff          !> 1 senza strang; 0.5 con strang
   end type chemistry_t
   !! ------------------------------------------------------
   !! ------------------------------------------------------
@@ -260,55 +260,55 @@ module Q2D_Config_Types_m
     character(len=llen)   :: warning_message
     character(len=llen)   :: error_message
     character(len=llen)   :: description
-    ! USER-DEFINED INPUTS
+    ! INPUT UTENTE
     character(len=llen)   :: model
     logical               :: enabled
     logical               :: LL91
     logical               :: LIN
-    ! Useful variables
+    ! Variabili di servizio
     real(R8)              :: rho_soot
   end type soot_t
   !! ------------------------------------------------------
   !! ------------------------------------------------------
 
   !! ------------------------------------------------------
-  !! Turbulence closure -----------------------------------
+  !! Chiusura di turbolenza -------------------------------
   !! ------------------------------------------------------
   type :: rans_t
     character(len=llen)   :: warning_message
     character(len=llen)   :: error_message
     character(len=llen)   :: description
-    ! USER-DEFINED INPUTS
-    real(R8) :: Sc      ! Schmidt laminare
-    real(R8) :: Sct     ! Schmidt turbolento
-    real(R8) :: Prt     ! Prandtl turbolento
+    ! INPUT UTENTE
+    real(R8) :: Sc      ! Numero di Schmidt laminare
+    real(R8) :: Sct     ! Numero di Schmidt turbolento
+    real(R8) :: Prt     ! Numero di Prandtl turbolento
     character(len=llen) :: model
     logical :: SAcomp, SpalartShur, SAR
     logical :: QCR2000, blowing_corr, k_energy_coupling
-    ! Useful variables
+    ! Variabili di servizio
     logical :: RSM, SD
   end type rans_t
   !! ------------------------------------------------------
   !! ------------------------------------------------------
 
   !! ------------------------------------------------------
-  !! Rotating-frame ---------------------------------------
+  !! Sistema di riferimento rotante -----------------------
   !! ------------------------------------------------------
-  ! axis(3)/origin(3)/Omega_vec(3) kept as placeholders (in 2D planar the
-  ! rotation axis is perpendicular to the plane).
+  ! axis(3)/origin(3)/Omega_vec(3) mantenuti come placeholder (nel 2D piano
+  ! l'asse di rotazione è perpendicolare al piano).
   type :: rot_t
     character(len=llen)   :: warning_message
     character(len=llen)   :: error_message
     character(len=llen)   :: description
-    ! USER-DEFINED INPUTS
+    ! INPUT UTENTE
     character(len=llen)   :: model
-    real(R8)              :: omega                   !> Angular speed [rad/s]
-    real(R8)              :: axis(3)                 !> Unit rotation axis (in 2D planar it is (0,0,1))
-    real(R8)              :: origin(3)               !> A point on the axis [m]
+    real(R8)              :: omega                   !> Velocità angolare [rad/s]
+    real(R8)              :: axis(3)                 !> Versore dell'asse di rotazione (nel 2D piano è (0,0,1))
+    real(R8)              :: origin(3)               !> Un punto sull'asse [m]
     real(R8)              :: Omega_vec(3) = 0.0_R8   !> omega * axis  [rad/s]
     character(len=128)    :: axis_str
     character(len=128)    :: origin_str
-    ! Useful variables
+    ! Variabili di servizio
     logical               :: enabled
     integer               :: n_stationary = 0
     character(len=32), allocatable :: stationary_face_str(:)
@@ -319,21 +319,21 @@ module Q2D_Config_Types_m
 
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  !!!!!!!!!!!!!!!!!!!!!! Q2D EXTRA !!!!!!!!!!!!!!!!!!!!!!!!
+  !!!!!!!!!!!!!!!!!! TERMINI SORGENTE !!!!!!!!!!!!!!!!!!!!!
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
   !! ------------------------------------------------------
-  !! Source terms (Q2D-specific)
-  !! Geometric sources: `axisymmetric` (1/r), `area_variation` (G = ∇h, V·G).
+  !! Termini sorgente geometrici:
+  !! `axisymmetric` (termini 1/r), `area_variation` (G = ∇h, V·G).
   !! ------------------------------------------------------
   type :: source_t
     character(len=llen)              :: warning_message
     character(len=llen)              :: error_message
     character(len=llen)              :: description
-    ! USER-DEFINED INPUTS
-    character(len=llen)              :: active_str    ! Raw INI string from [Q2D-Sources] active=
-    character(len=llen), allocatable :: models(:)     ! Parsed source-model names
-    ! Useful variables
+    ! INPUT UTENTE
+    character(len=llen)              :: active_str    ! Stringa INI grezza da [Q2D-Sources] active=
+    character(len=llen), allocatable :: models(:)     ! Nomi dei modelli sorgente dopo il parsing
+    ! Variabili di servizio
     integer                          :: n_models = 0
     logical                          :: axisymmetric = .false.
     logical                          :: area_variation = .false.
@@ -343,19 +343,19 @@ module Q2D_Config_Types_m
 
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  !!!!!!!!!!!!!!!!!!!!!! OTHER TYPES !!!!!!!!!!!!!!!!!!!!!!
+  !!!!!!!!!!!!!!!!!!!!!! ALTRI TIPI !!!!!!!!!!!!!!!!!!!!!!!
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
   !! ------------------------------------------------------
-  !! Basic placeholder (thermo/transport stubs) ----
+  !! Placeholder di base (stub per thermo/transport) ------
   !! ------------------------------------------------------
   type :: basic_t
     character(len=llen) :: warning_message
     character(len=llen) :: error_message
     character(len=llen) :: description
-    ! USER-DEFINED INPUTS
+    ! INPUT UTENTE
     ! ...
-    ! Useful variables
+    ! Variabili di servizio
     ! ...
   end type basic_t
   !! ------------------------------------------------------
@@ -363,12 +363,12 @@ module Q2D_Config_Types_m
 
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  !!!!!!!!!!!!!!!!!!!! SINGLETON OBJECTS !!!!!!!!!!!!!!!!!!
+  !!!!!!!!!!!!!!!!!!!! OGGETTI SINGLETON !!!!!!!!!!!!!!!!!!
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   type(simulation_parameters_t), save, public :: obj_sim_param
   type(io_t),                    save, public :: obj_io
   type(io_probes_t), allocatable,      public :: obj_io_probes(:)
-  type(io_lineprobes_t), allocatable,  public :: obj_io_lineprobes(:)   ! Q2D-extra (peculiarità #5)
+  type(io_lineprobes_t), allocatable,  public :: obj_io_lineprobes(:)   ! configurazioni line-probe
   type(io_bc_t),                 save, public :: obj_io_bc
   type(time_scheme_t),           save, public :: obj_time_scheme
   type(irs_t),                   save, public :: obj_irs

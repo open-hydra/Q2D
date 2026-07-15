@@ -2,7 +2,18 @@
 
 Supersonic turbulent flow at Mach 5 over a flat plate with an isothermal wall, interacting with an impinging oblique shock. This benchmark validates Q2D in a shock-induced separation and reattachment regime by comparing skin-friction trends against published and code-to-code reference data.
 
-**References**: Schulein experimental dataset (as distributed with this case), SU2, and Wind-US reference solutions.
+**References**: E. Schülein, "Skin friction and heat flux
+measurements in shock/boundary layer interaction flows," *AIAA J.*,
+44(8), 2006, 1732–1741 — the experimental skin-friction dataset
+(2002 measurement campaign) committed as `reference/schulein.dat`;
+plus SU2 (Spalart–Allmaras) and Wind-US reference solutions committed
+as `reference/SU2-SA.dat` and `reference/wind-SA.dat`.
+
+**Feature exercised:** viscous RANS with the **Spalart–Allmaras**
+model in the 2D-plane regime; isothermal no-slip walls; shock-induced
+separation/reattachment; heavy-tier ctest (`./Q2D.sh -p 20 solve sa`,
+20 OpenMP threads, label `heavy`) with skip-aware exit semantics
+(`SKIP_RETURN_CODE 77`).
 
 <figure>
   {% include "vv/images/SWBLI-field.svg" %}
@@ -74,5 +85,28 @@ Validation is performed with the wall skin-friction distribution, compared again
 </figure>
 
 Q2D reproduces the expected SWBLI behavior, including the negative-$C_f$ pocket associated with shock-induced separation and the recovery after reattachment. Overall agreement with the reference trends is good in both location and amplitude of the separation/reattachment signature.
+
+### Regression gates and exit semantics (ctest `swbli`)
+
+`check.py` enforces (2026-07 hardening; this replaced an older
+"SA-INFORMATIVE mode" that silently passed smoke-only when the
+quantitative gates could not run):
+
+- **exit 0** only when the smoke gate (output exists, no NaN/Inf)
+  **and both** quantitative gates ran and passed;
+- **exit 1** on any failure — missing `OUTPUT/field*.tec`, missing
+  `OUTPUT/wall.tec`, missing committed reference files, NaN/Inf in
+  the field, parse errors, or a quantitative-gate violation.  A
+  missing solver output is always a failure (`Q2D.sh` wipes `OUTPUT/`
+  before each solve, so it can never be a stale leftover);
+- **exit 77** (CTest `SKIP_RETURN_CODE` — reported "Skipped", never
+  "Passed") **only** when `wall.tec` exists but `SOLUTIONTIME` <
+  95000, i.e. the run is genuinely under-converged for the
+  engineering V&V gates (target 100000 per `input.ini`).
+
+The two quantitative gates are the Cf consistency check vs the
+same-model MOSE-SA reference (max rel diff of tauX ≤ 0.1 % over the
+developed-plate range) and the separation-bubble independent-reference
+gate described below.
 
 The regression check anchors this against the **independent references** quantitatively. The separation and reattachment locations — where the wall shear changes sign — are a scale-invariant physical metric (independent of the skin-friction normalization). The solver places separation at $x \approx 0.339$ and reattachment at $x \approx 0.344$, both inside the envelope of the independent datasets (separation $[0.3337, 0.3375]$, reattachment $[0.3430, 0.3458]$ from Schulein, SU2-SA and Wind-US) within a 1.5 % engineering band. That band is set by the spread among the references themselves (which disagree by about 1.1 % on the separation location — the irreducible physical uncertainty), not chosen to pass: the Spalart–Allmaras model is known to slightly delay separation, and the solver lands within 0.5 % of the nearest CFD–SA reference (SU2). This complements the consistency check against the same-model MOSE reference (wall shear matching to within 0.1 %).

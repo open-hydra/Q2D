@@ -1,6 +1,6 @@
 module Q2D_Lib_BC_Fluxes_Wall_Heat
-  ! Approximation: Twall ≈ Tcell ⇒ mil(wall)
-  ! coincides with mil(cell). Heat_Flux imposed.
+  ! BC 301: parete con flusso termico imposto (Heat_Flux).
+  ! Approssimazione: Twall ≈ Tcell ⇒ mil(parete) coincide con mil(cella).
   use iso_fortran_env,            only: I4 => int32, R8 => real64
   use Q2D_Advanced_Types_m,       only: Q2D_block_type
   use Q2D_Global_m,               only: nsc, nu, nv, np, nt, nprim, model
@@ -19,17 +19,17 @@ contains
 
 
   subroutine BC_Wall_Heat ( Im, Jm, Fm, Blk, Heat_Flux, Ovar, w_wall )
-    ! Signature: w_wall optional dimension(2) — RotatingFrame wall velocity.
-    ! Body wires `Gradient(nu:nv,Dir) = (Prim(nu:nv) - w_wall) * modfm3`
-    ! if present, else `Prim(nu:nv) * modfm3` (static no-slip default).
-    ! w_wall(2) vs the 3D peer's w_wall(3).
+    ! w_wall: argomento opzionale dimension(2) — velocità di parete nel sistema
+    ! di riferimento rotante. Se presente il corpo usa
+    ! `Gradient(nu:nv,Dir) = (Prim(nu:nv) - w_wall) * modfm3`,
+    ! altrimenti `Prim(nu:nv) * modfm3` (default: no-slip statico).
     implicit none
     integer,             intent(in)    :: Im, Jm, Fm
     real(R8),            intent(in)    :: Heat_Flux
     type(Q2D_block_type),intent(inout) :: Blk
     real(R8), optional, dimension(7), intent(inout) :: Ovar
     real(R8), optional, dimension(2), intent(in)    :: w_wall
-    ! Local
+    ! Locali
     integer :: modfm, modfm1, modfm2, modfm3, Dir, Face_i, Face_j, Ig, Jg
     real(R8) :: Normal(2), int_l, Dist, M(2,2), Prim(nprim), rho, Rgas, temp, Gradient(nprim,2)
     real(R8) :: mil, kl, Stress(2), Flux(nprim), Prim_Wall(nprim), rho_wall, Twall, dl
@@ -53,9 +53,9 @@ contains
     Gradient = 0d0
 
     if ( present(w_wall) ) then
-      Gradient(nu:nv,Dir) = ( Prim(nu:nv) - w_wall ) * modfm3   ! Velocity relative to rotating wall
+      Gradient(nu:nv,Dir) = ( Prim(nu:nv) - w_wall ) * modfm3   ! Velocità relativa alla parete rotante
     else
-      Gradient(nu:nv,Dir) = Prim(nu:nv) * modfm3                ! Standard no-slip (w_wall=0)
+      Gradient(nu:nv,Dir) = Prim(nu:nv) * modfm3                ! No-slip standard (w_wall=0)
     end if
     Gradient(np,Dir) = -Heat_Flux / ( 2d0*kl*dot_product( M(Dir,:), normal ) ) * modfm2
 
@@ -83,7 +83,7 @@ contains
     end select
     Stress = Stress_Vector ( Gradient(nu:nv,:), Normal, mil, 0d0, Prim(nt:), r_ave, 0.d0 )
 
-    Flux = 0d0   ! mirror MOSE full pre-zero (covers soot/passive band np+1:nt-1, not just 1:nsc)
+    Flux = 0d0   ! pre-azzeramento completo del flusso: copre anche la banda soot/passivi np+1:nt-1, non solo 1:nsc
     Flux(nu:nv) = Stress * int_l
     Flux(np)    = int_l * Heat_Flux
 

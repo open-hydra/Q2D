@@ -7,69 +7,25 @@ axisymmetric mode; K=1 collapsed) + peculiarita' #2 (axisymmetric source
 active in input.ini [Q2D-Sources]).
 
 Tolerances per ``docs/vv/regression_tolerance.md`` Section 3.2:
-- ``min(rho), min(p), min(T) > 0`` (hard, any violation = FAIL).
-- L2 residual to steady-state < 1e-6 (relative, last vs first iter).
-- Mach distribution on the wall vs Chang 1996 reference ref2.dat: eps_rel < 5e-2.
+- ``min(rho), min(p), min(T) > 0`` (hard, NaN-safe via q2d_check_lib).
+- convergence sentinel (hard): final density residual < 1e-6
+  (measured 1.0e-10 on the committed run; the solver's own stopping
+  criterion drives it to ~1e-10).
+- Mach distribution on the wall vs Chang 1996 reference ref2.dat and on
+  the axis vs ref1.dat: avg eps_rel < 5e-2, max eps_rel < 1e-1.
 """
-import os
-import re
 import sys
-import tempfile
 import warnings
 import numpy as np
 from pathlib import Path
 warnings.filterwarnings("ignore")
 
-root = Path(__file__).resolve().parent
-for parent in [root, *root.parents]:
-    candidate = parent / "lib" / "ORION" / "src" / "python"
-    if candidate.exists():
-        sys.path.insert(0, str(candidate))
-        break
+sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "common" / "pycheck"))
+from q2d_check_lib import (fail, require_file, assert_positive, assert_finite,
+                           assert_converged, read_q2d_field)
 
-try:
-    from ORION import read_TEC
-except ModuleNotFoundError:
-    raise ModuleNotFoundError(
-        "ORION package not found. Run 'conda activate base' or install ORION in the current Python environment."
-    )
-
-
-def patch_q2d_tec_to_3d(in_path):
-    with open(in_path) as f:
-        lines = f.readlines()
-    header = lines[0]
-    zone   = lines[1]
-    m = re.search(r'I=\s*(\d+).*J=\s*(\d+).*K=\s*(\d+)', zone)
-    ni, nj, nk = int(m.group(1)), int(m.group(2)), int(m.group(3))
-    nnodes = ni * nj * nk
-    new_header = header.replace('"y"', '"y" "z"', 1)
-    m2 = re.search(r'VARLOCATION=\(\[(\d+)-(\d+)\]=NODAL,\[(\d+)-(\d+)\]=CELLCENTERED', zone)
-    if m2:
-        na, nb_, ca, cb = (int(m2.group(i)) for i in (1, 2, 3, 4))
-        new_zone = zone.replace(
-            f'[{na}-{nb_}]=NODAL,[{ca}-{cb}]=CELLCENTERED',
-            f'[{na}-{nb_+1}]=NODAL,[{ca+1}-{cb+1}]=CELLCENTERED',
-        )
-    else:
-        new_zone = zone
-    z_block = ' 0.000000000000000E+000\n' * nnodes
-    out = [new_header, new_zone]
-    out.extend(lines[2 : 2 + nnodes])
-    out.extend(lines[2 + nnodes : 2 + 2 * nnodes])
-    out.append(z_block)
-    out.extend(lines[2 + 2 * nnodes :])
-    tmp = tempfile.NamedTemporaryFile(mode='w', suffix='.tec', delete=False)
-    tmp.writelines(out)
-    tmp.close()
-    return tmp.name
-
-
-patched = patch_q2d_tec_to_3d('OUTPUT/field.tec')
-try:
-    [x_, y_, z_, var_, vnames] = read_TEC(patched)
-finally:
-    os.unlink(patched)
+require_file('OUTPUT/field.tec', "did ./Q2D.sh solve run?")
+x_, y_, var_, vnames = read_q2d_field('OUTPUT/field.tec')
 
 xn  = x_[0][:, :, 0]
 yn  = y_[0][:, :, 0]
@@ -81,36 +37,32 @@ T   = var_[0][4][:, :, 0]
 gam = var_[0][5][:, :, 0]
 R   = var_[0][6][:, :, 0]
 
+# Sanity (hard, NaN-safe): positivity of rho, p, T; finiteness of u, v.
+assert_positive("rho", rho)
+assert_positive("p", p)
+assert_positive("T", T)
+assert_finite("u", u)
+assert_finite("v", v)
+
 a = np.sqrt(gam * p / rho)
 M = np.sqrt(u**2 + v**2) / a
+assert_finite("Mach", M)
 
-if rho.min() <= 0.0:
-    print(f'Sanity: min(rho)={rho.min()} <= 0'); sys.exit(1)
-if p.min() <= 0.0:
-    print(f'Sanity: min(p)={p.min()} <= 0'); sys.exit(1)
-if T.min() <= 0.0:
-    print(f'Sanity: min(T)={T.min()} <= 0'); sys.exit(1)
-
-res_path = Path('OUTPUT/residual-history.dat')
-if res_path.exists():
-    res = np.loadtxt(res_path, comments=('#',))
-    if res.ndim == 2 and res.shape[0] > 10:
-        res_norm = np.linalg.norm(res[:, 1:], axis=1)
-        first_res = res_norm[0] if res_norm[0] > 0 else 1.0
-        last_res  = res_norm[-1]
-        rel_drop  = last_res / first_res
-        print(f'Residual drop (L2 norm last/first): {rel_drop:.3e}')
+# Convergence sentinel (hard): final density residual (column 2 of
+# OUTPUT/residual-history.dat) below 1e-6. Measured 1.0e-10 on the
+# committed run -- 1e-6 is a regression band a stalled run blows through.
+assert_converged(1.0e-6)
 
 # Mach along wall (j=last index, far from axis) vs Chang 1996 reference ref2.dat
 x_wall = xn[: M.shape[0], -1]
 M_wall = M[:, -1]
-ref2 = np.loadtxt('reference/ref2.dat')
+ref2 = np.loadtxt(require_file('reference/ref2.dat'))
 M_ref_wall = np.interp(x_wall, ref2[:, 0], ref2[:, 1])
 
 # Mach along axis (j=0) vs Chang 1996 reference ref1.dat
 x_axis = xn[: M.shape[0], 0]
 M_axis = M[:, 0]
-ref1 = np.loadtxt('reference/ref1.dat')
+ref1 = np.loadtxt(require_file('reference/ref1.dat'))
 M_ref_axis = np.interp(x_axis, ref1[:, 0], ref1[:, 1])
 
 # Tolerance: avg eps_rel < 5e-2 (regression_tolerance.md Section 3.2 wall avg).
@@ -133,12 +85,12 @@ eps_axis_max, eps_axis_avg = report_eps('axis', M_axis, M_ref_axis)
 thr_avg = 5.0e-2   # avg-cell tolerance
 thr_max = 1.0e-1   # max-cell tolerance (relaxed for axis-singularity row)
 if eps_wall_avg > thr_avg:
-    print(f'Mach wall avg mismatch: {eps_wall_avg:.3e} > {thr_avg}'); sys.exit(1)
+    fail(f'Mach wall avg mismatch: {eps_wall_avg:.3e} > {thr_avg}')
 if eps_axis_avg > thr_avg:
-    print(f'Mach axis avg mismatch: {eps_axis_avg:.3e} > {thr_avg}'); sys.exit(1)
+    fail(f'Mach axis avg mismatch: {eps_axis_avg:.3e} > {thr_avg}')
 if eps_wall_max > thr_max:
-    print(f'Mach wall max mismatch: {eps_wall_max:.3e} > {thr_max}'); sys.exit(1)
+    fail(f'Mach wall max mismatch: {eps_wall_max:.3e} > {thr_max}')
 if eps_axis_max > thr_max:
-    print(f'Mach axis max mismatch: {eps_axis_max:.3e} > {thr_max}'); sys.exit(1)
+    fail(f'Mach axis max mismatch: {eps_axis_max:.3e} > {thr_max}')
 
 print('Correct!')

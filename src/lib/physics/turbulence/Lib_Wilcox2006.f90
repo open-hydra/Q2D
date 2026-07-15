@@ -1,26 +1,32 @@
-!>@brief: Kappa-Omega Wilcox 2006 turbulence model. https://turbmodels.larc.nasa.gov/wilcox.html
+!>@brief: Modello di turbolenza Kappa-Omega Wilcox 2006, variante TMR "Wilcox2006-klim"
+!         (Wilcox 2006 baseline + limitatore di produzione dell'equazione di k
+!         min(P, 20*beta_star*rho*omega*k); l'equazione di omega usa la produzione
+!         ESATTA non limitata gamma*omega/k*P, come prescrive la variante klim —
+!         per questo Prod(2) è calcolato PRIMA che Prod(1) venga limitato più sotto).
+!         https://turbmodels.larc.nasa.gov/wilcox.html (now tmbwg.github.io/turbmodels)
 !
-! 6 procedures plus 1 Q2D-extra procedure
+! 6 procedure più 1 procedura extra di Q2D
 ! (Wilcox2006_Source_Diffusive_Q2D).
 !
-! [PHY] Turbulence is intrinsically 3D (Pope 2000, Turbulent Flows ch. 6: the
-!       Kolmogorov cascade requires vortex stretching omega·grad(V), exclusively
-!       3D). The 2D RANS Wilcox 2006 model is a standard engineering tool (NASA
-!       TMR primary), but with degraded accuracy vs 3D DNS/LES. Q2D 2D RANS does
-!       not alter this intrinsic modelling limitation.
+! Nota fisica: la turbolenza è intrinsecamente 3D (Pope 2000, Turbulent Flows
+!       ch. 6: la cascata di Kolmogorov richiede il vortex stretching
+!       omega·grad(V), esclusivamente 3D). Il modello RANS 2D Wilcox 2006 è uno
+!       strumento ingegneristico standard (modello primario della NASA TMR), ma
+!       con accuratezza degradata rispetto a DNS/LES 3D. La RANS 2D di Q2D non
+!       altera questo limite intrinseco di modellazione.
 !
-! Key differences vs the 3D peer:
-!   - Gradvel(2,2) signature (no out-of-plane velocity gradients);
-!   - Strain_Tensor returns Eij(3,3) with E(3,3) = -V·G (Std) or vr/r_ave (Axi),
-!     baked in via the Lib_Fluid procedure pointer dispatch;
-!   - Vorticity_Vector returns vector(3) with omega(1)=omega(2)=0;
-!   - Triple sum over TENSOR INDICES (1..3) preserved in the f_beta correction
-!     (Wij(ii,jj)*Wij(jj,kk)*Sij_hat(kk,ii)) — NON-spatial;
-!   - int_l is the 2D analogue of the 3D face area, sur of the 3D volume;
-!   - the obj_rans%blowing_corr flag is read from the Setup_RANS_Model parsing;
-!   - obj_rot%enabled absolute-vorticity correction wired.
+! Caratteristiche della realizzazione 2D:
+!   - firma con Gradvel(2,2) (nessun gradiente di velocità fuori piano);
+!   - Strain_Tensor restituisce Eij(3,3) con E(3,3) = -V·G (Std) o vr/r_ave (Axi),
+!     incorporato tramite il dispatch a procedure pointer di Lib_Fluid;
+!   - Vorticity_Vector restituisce vector(3) con omega(1)=omega(2)=0;
+!   - somma tripla sugli INDICI TENSORIALI (1..3) mantenuta nella correzione
+!     f_beta (Wij(ii,jj)*Wij(jj,kk)*Sij_hat(kk,ii)) — NON spaziale;
+!   - int_l è l'analogo 2D dell'area di faccia 3D, sur del volume 3D;
+!   - il flag obj_rans%blowing_corr è letto dal parsing di Setup_RANS_Model;
+!   - correzione a vorticità assoluta attivata da obj_rot%enabled.
 !
-! Primary-literature references:
+! Riferimenti di letteratura primaria:
 !   - Wilcox D.C. (2006) "Turbulence Modeling for CFD" 3rd ed., DCW Industries.
 !   - NASA TMR 2D NACA0012 Wilcox 2006 https://turbmodels.larc.nasa.gov/wilcox.html
 module Q2D_Lib_Wilcox2006
@@ -54,7 +60,7 @@ contains
     integer :: b
 
     do b = 1, domain % nb
-      if (.not. is_local_block(b)) cycle  ! MPI: skip non-local blocks
+      if (.not. is_local_block(b)) cycle  ! MPI: salta i blocchi non locali
 
       call Wilcox_Blk ( domain % blk(b) % P,                 &
                         domain % blk(b) % r,                 &
@@ -71,9 +77,9 @@ contains
 
 
   subroutine Wilcox_Blk ( Prim, Res, M, sur, r, n, geom_x, geom_y )
-    ! Signature 8-args. Body 2D loop (do j; do i — no do k).
-    ! sur is the 2D analogue of the 3D cell volume (face vs cell-volume metric).
-    ! k_energy_coupling read from obj_rans (vs the MOSE peer's argument).
+    ! Firma a 8 argomenti. Corpo con loop 2D (do j; do i — nessun do k).
+    ! sur è l'analogo 2D del volume di cella 3D (metrica di faccia vs volume di cella).
+    ! k_energy_coupling letto da obj_rans.
     use Q2D_Base_Types_m,        only: Q2D_tensor_2D_type, Q2D_vector_2D_type
     use Q2D_Global_m,            only: nprim, nsc, nu, nv, np, nt, gc
     use Q2D_Config_Types_m,      only: obj_rans, obj_rot
@@ -111,22 +117,22 @@ contains
       kap = Prim(nt,i,j)   / rho
       ome = Prim(nt+1,i,j) / rho
 
-      ! Velocity gradient (nu:nv only; no out-of-plane d/dz)
+      ! Gradiente di velocità (solo nu:nv; nessun d/dz fuori piano)
       Gradvel(:,1) = ( Prim(nu:nv,i+1,j) - Prim(nu:nv,i-1,j) ) * 0.5d0
       Gradvel(:,2) = ( Prim(nu:nv,i,j+1) - Prim(nu:nv,i,j-1) ) * 0.5d0
       Gradvel = Matmul ( Gradvel, M(i,j) % c )
 
-      ! Q2D Def A: V·G at cell centre (S_33 = -V·G in Lib_Fluid::Strain_Tensor_Std).
-      ! Backward-compat: with area_geom_term=0 (universal zero-fill) -> V_dot_G=0 -> Definition B.
+      ! Definizione A di Q2D: V·G al centro cella (S_33 = -V·G in Lib_Fluid::Strain_Tensor_Std).
+      ! Con area_geom_term=0 (riempimento nullo universale) -> V_dot_G=0 -> Definizione B.
       V_dot_G = Prim(nu,i,j)*geom_x(i,j) + Prim(nv,i,j)*geom_y(i,j)
 
-      ! Strain tensor 3×3 (E(3,3) = -V·G Std or vr/r_ave Axi)
+      ! Tensore di deformazione 3×3 (E(3,3) = -V·G Std o vr/r_ave Axi)
       Sij = Strain_Tensor ( Gradvel, Prim(nv,i,j), r_ave, V_dot_G=V_dot_G )
 
-      ! Universal divergence from Sij trace (Std or Axi via dispatch)
+      ! Divergenza universale dalla traccia di Sij (Std o Axi via dispatch)
       Divel = Sij(1,1) + Sij(2,2) + Sij(3,3)
 
-      ! Deviatoric strain Sij_bar
+      ! Deformazione deviatorica Sij_bar
       Sij_bar = Sij
       diag = 1d0/3d0 * Divel
       Sij_bar(1,1) = Sij_bar(1,1) - diag

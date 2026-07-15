@@ -96,7 +96,6 @@
 
 | Parameter | Default | Allowed | Required | Description |
 |-----------|---------|---------|----------|-------------|
-| exclude-blocks | none |  |  no | Blocks to exclude from chemistry |
 | ode-solver | H-radau5 | H-radau5, sdirk4b, ros4 |  no | ODE solver for chemistry |
 | ode-max-steps | 100000 | > 0 |  no | Maximum ODE integration steps |
 | ode-relative-tol-species | 1e-5 | > 0 |  no | ODE relative tolerance for species |

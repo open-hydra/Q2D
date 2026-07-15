@@ -39,11 +39,12 @@ if [[ $1 == solve ]]; then
   ln -sf ../../../../common/Air/thermo.dat thermo.dat
   cd ..
   mkdir -p OUTPUT bin
+  rm -f OUTPUT/*
   ulimit -s unlimited
   export KMP_STACKSIZE=100M
   export OMP_NUM_THREADS=$NTHREADS
   if [[ "$MASTER" -nt "$LOCAL" ]]; then cp $MASTER $LOCAL; fi
-  if [[ $BG == 0 ]]; then $LOCAL
+  if [[ $BG == 0 ]]; then $LOCAL || exit 1
   else $LOCAL 2>errors_file >logfile & echo $! > .ID
   fi
 fi
@@ -54,6 +55,7 @@ if [[ $1 == test ]]; then
   ln -sf ../../../../common/Air/thermo.dat thermo.dat
   cd ..
   mkdir -p OUTPUT bin
+  rm -f OUTPUT/*
   ulimit -s unlimited
   export KMP_STACKSIZE=100M
   export OMP_NUM_THREADS=$NTHREADS
@@ -66,7 +68,7 @@ if [[ $1 == test ]]; then
   for scheme in "${riemann_schemes[@]}"; do
     echo "Running with riemann = $scheme"
     perl -i -pe "s/^riemann-solver\s*=\s*.*/riemann-solver = $scheme/" "$input_file"
-    if [[ $BG == 0 ]]; then $LOCAL
+    if [[ $BG == 0 ]]; then $LOCAL || exit 1
     else $LOCAL 2>errors_file >logfile & echo $! > .ID
     fi
     mv OUTPUT/field.tec OUTPUT/field-$scheme.tec

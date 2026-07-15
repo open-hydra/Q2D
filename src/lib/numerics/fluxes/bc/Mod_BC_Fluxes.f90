@@ -1,18 +1,19 @@
 module Q2D_Mod_BC_Fluxes
-  ! BC type→subroutine dispatcher on the BC codes:
-  !   101, 103       block connection / multi-solver coupling
+  ! Dispatcher tipo BC → subroutine sui codici BC:
+  !   101, 103       connessione tra blocchi / accoppiamento multi-solutore
   !   102            chimera
-  !   200            periodic (rotational)
-  !   300            symmetry
-  !   301, 302       wall heat-flux / temperature
-  !   303, 304       wall melting / pyrolysis
-  !   400            extrapolation
-  !   401..405       inflow (T0+p0 / mdot+T0 / mdot+T / supersonic)
+  !   200            periodica rotazionale a settore (non supportata: error stop)
+  !   201            periodica traslazionale/rotazionale in piano (via connessione)
+  !   300            simmetria
+  !   301, 302       parete a flusso termico / a temperatura imposti
+  !   303, 304       parete melting / pirolisi
+  !   400            estrapolazione
+  !   401..405       inflow (T0+p0 / mdot+T0 / mdot+T / supersonico)
   !   406            outflow
   !   407            farfield
-  !   410            mapped — a MOSE-peer-only feature, OUT-OF-SCOPE Q2D-side (IO_BC error_stop,
-  !                  dispatcher case removed)
-  !   420            choked nozzle — Inflow_Nozzle
+  !   410            non supportata: IO_BC.f90 la rifiuta con error stop
+  !                  (nessun case nel dispatcher)
+  !   420            ugello in choking — Inflow_Nozzle
   !   501            manifold
   !   502            SRM
   use iso_fortran_env,                 only: I4 => int32, R8 => real64
@@ -46,20 +47,20 @@ contains
 
 
   subroutine BC_Fluxes ( domain )
-    ! Reads the obj_* singletons once, declares local
-    ! Sc/Sct/Prt/soot_enabled + SD_limiter/SD_riemann, propagates them to
+    ! Legge una sola volta i singleton obj_*, dichiara localmente
+    ! Sc/Sct/Prt/soot_enabled + SD_limiter/SD_riemann e li propaga a
     ! BC_Connection_Eul/_Visc.
     use Q2D_Config_Types_m, only: obj_rans, obj_soot, obj_space_scheme, obj_riemann, obj_rot
     implicit none
     type(Q2D_domain_type), intent(inout) :: domain
-    ! Local
+    ! Locali
     integer  :: f, lower, upper, i, b
     integer  :: error
     integer  :: Bm, Im, Jm, Fm, Bs, Fs
     real(R8) :: T0, g, pstat, BC_mdot
     real(R8) :: Sc, Sct, Prt
     logical  :: SD_limiter, SD_riemann, soot_enabled, RSM
-    ! Rotating-frame wall velocity: per-iteration buffer for case 301/302.
+    ! Velocità di parete nel sistema rotante: buffer per iterazione nei case 301/302.
     real(R8) :: r_fc(2), w_wall_rf(2)
     logical  :: rf_enabled
 
@@ -72,58 +73,59 @@ contains
     Sct = obj_rans%Sct
     Prt = obj_rans%Prt
 
-    ! BC fluxes are computed in order of block and face type.
+    ! I flussi BC sono calcolati in ordine di blocco e di tipo di faccia.
     upper = 0
 
     blocks: do b = 1, domain % nb
       faces: do f = 1, 4
 
-        lower = upper + 1                   ! Update lower bound
-        upper = upper + domain % n_bf(b,f)  ! Upper bound: add number of cells on face f of block b
+        lower = upper + 1                   ! Aggiorna il limite inferiore
+        upper = upper + domain % n_bf(b,f)  ! Limite superiore: somma il numero di celle sulla faccia f del blocco b
 
         !$omp do schedule(dynamic) private(i, Bm, Im, Jm, Fm, error, Bs, Fs, T0, g, pstat, BC_mdot, r_fc, w_wall_rf)
         do i = lower, upper
           Bm = domain % bc(i) % b
-          if (.not. is_local_block(Bm)) cycle  ! MPI: skip non-local blocks
+          if (.not. is_local_block(Bm)) cycle  ! MPI: salta i blocchi non locali
           Im = domain % bc(i) % i
           Jm = domain % bc(i) % j
           Fm = domain % bc(i) % f
 
           select case ( domain % bc(i) % type )
 
-            case (103) ! multi-solver coupling
+            case (103) ! accoppiamento multi-solutore
               call BC_Symmetry_Eul ( Bm, Im, Jm, Fm, domain % blk(Bm) )
               domain % blk(Bm) % R(:,Im,Jm) = domain % blk(Bm) % R(:,Im,Jm) + domain % bc(i) % ext_flux
 
-            case (101, 102, 201) ! connection (101), chimera (102), translational/rotational periodic (201)
-              ! BC 410 (mapped-state) REMOVED — a MOSE-peer-only feature,
-              ! OUT-OF-SCOPE Q2D-side (IO_BC.f90 rejects it early). The
-              ! Connection_Eul/Visc handler covers block-connection (101) +
-              ! chimera (102) + translational/rotational periodic (201).
-              ! BC 201 is dispatched via Fill_BC_Ghost_Connection + BC_Connection_Eul.
-              ! The Q2D legacy BC_Rotational_Periodic_Eul was a
-              ! K-face 3D wedge (Fm=5,6 out-of-plane, commented out) — no conflict
-              ! with the in-plane translational/rotational periodic BC 201 via
-              ! connection (different mechanism).
+            case (101, 102, 201) ! connessione (101), chimera (102), periodica traslazionale/rotazionale (201)
+              ! L'handler Connection_Eul/Visc copre la connessione tra blocchi
+              ! (101), la chimera (102) e la periodicità traslazionale/
+              ! rotazionale in piano (201). La BC 201 è smistata via
+              ! Fill_BC_Ghost_Connection + BC_Connection_Eul: meccanismo
+              ! distinto dalla periodicità rotazionale a settore del case 200
+              ! (che richiederebbe facce fuori piano ed è intrinsecamente 3D,
+              ! quindi non supportata). La BC 410 (mapped-state) non è
+              ! supportata: IO_BC.f90 la rifiuta con error stop e non esiste
+              ! alcun case nel dispatcher.
               call BC_Connection_Eul ( Im, Jm, Fm, domain % blk(Bm), SD_limiter, SD_riemann )
               if (model > 0) &
                 call BC_Connection_Visc ( Im, Jm, Fm, domain % blk(Bm),       &
                                           domain % bc(i) % Mg(1), domain % bc(i) % Pg, &
                                           Sc, Sct, Prt, soot_enabled )
 
-            case (200) ! periodic
+            case (200) ! periodica rotazionale a settore (non supportata: error stop)
               call BC_Rotational_Periodic_Eul ( Im, Jm, Fm, domain % blk(Bm) )
 
-            case (300) ! symmetry
+            case (300) ! simmetria
               call BC_Symmetry_Eul ( Bm, Im, Jm, Fm, domain % blk(Bm) )
               if (model > 0) call BC_Symmetry_Visc ( Im, Jm, Fm, domain % blk(Bm), RSM )
 
-            case (301) ! wall: prescribed heat flux
+            case (301) ! parete: flusso termico imposto
               call BC_Symmetry_Eul ( Bm, Im, Jm, Fm, domain % blk(Bm) )
               if (model > 0) then
-                ! Stationary patches (casing/hub):
-                ! lab-fixed → relative apparent velocity w_wall = -(Ω × r) ≠ 0; pass to BC.
-                ! Non-stationary patches (blades): rotate with frame → w_wall = 0; default no-arg.
+                ! Patch stazionarie (casing/hub): fisse nel laboratorio →
+                ! velocità apparente relativa w_wall = -(Ω × r) ≠ 0, passata alla BC.
+                ! Patch non stazionarie (pale): ruotano col riferimento →
+                ! w_wall = 0, chiamata senza argomento.
                 if ( rf_enabled .and. RF_Is_Stationary_Face(Bm, Fm) ) then
                   call RF_Face_Center( domain % blk(Bm) % node, Im, Jm, Fm, r_fc )
                   w_wall_rf = RF_Wall_Velocity( r_fc )
@@ -134,10 +136,10 @@ contains
                 end if
               end if
 
-            case (302) ! wall: prescribed temperature
+            case (302) ! parete: temperatura imposta
               call BC_Symmetry_Eul ( Bm, Im, Jm, Fm, domain % blk(Bm) )
               if (model > 0) then
-                ! Same scheme as case 301.
+                ! Stesso schema del case 301.
                 if ( rf_enabled .and. RF_Is_Stationary_Face(Bm, Fm) ) then
                   call RF_Face_Center( domain % blk(Bm) % node, Im, Jm, Fm, r_fc )
                   w_wall_rf = RF_Wall_Velocity( r_fc )
@@ -148,22 +150,22 @@ contains
                 end if
               end if
 
-            case (303) ! wall: T_wall + radiative flux (melting)
+            case (303) ! parete: T_wall + flusso radiativo (melting)
               call BC_Symmetry_Eul ( Bm, Im, Jm, Fm, domain % blk(Bm) )
               if (model > 0) &
                 call BC_Wall_Melting ( Im, Jm, Fm, domain % blk(Bm), &
                                        domain % bc(i) % Tw, domain % bc(i) % qrad )
 
-            case (304) ! wall: radiative flux (pyrolysis/ablation)
+            case (304) ! parete: flusso radiativo (pirolisi/ablazione)
               call BC_Symmetry_Eul ( Bm, Im, Jm, Fm, domain % blk(Bm) )
               if (model > 0) &
                 call BC_Wall_Pyrolysis ( Im, Jm, Fm, domain % blk(Bm), &
                                          domain % bc(i) % qrad, domain % bc(i) % type )
 
-            case (400) ! extrapolation
+            case (400) ! estrapolazione
               call BC_Extrapolation ( Im, Jm, Fm, domain % blk(Bm) )
 
-            case (401) ! inlet: stagnation conditions T0 + p0
+            case (401) ! ingresso: condizioni di ristagno T0 + p0
               call BC_Inlet_StagnCond ( Bm, Im, Jm, Fm, domain % blk(Bm), &
                                          domain % bc(i) % T0, domain % bc(i) % p0, &
                                          domain % bc(i) % rel_fac, &
@@ -173,7 +175,7 @@ contains
                                          domain % bc(i) % mdot, error )
               if (error == 1) call BC_Symmetry_Eul ( Bm, Im, Jm, Fm, domain % blk(Bm) )
 
-            case (402) ! inlet: T0 + time-varying p0 (subsonic stagnation)
+            case (402) ! ingresso: T0 + p0 variabile nel tempo (ristagno subsonico)
               if (domain % bc(i) % p0time % exists) &
                 domain % bc(i) % p0 = domain % bc(i) % p0time % update(domain % time)
               call BC_Inlet_StagnCond ( Bm, Im, Jm, Fm, domain % blk(Bm), &
@@ -185,9 +187,10 @@ contains
                                          domain % bc(i) % mdot, error )
               if (error == 1) call BC_Symmetry_Eul ( Bm, Im, Jm, Fm, domain % blk(Bm) )
 
-            case (403) ! inlet: total temperature T0 + prescribed mass flux
-              ! Bug fix: drop the `domain%bc(i)%mdot` output position (was aliasing
-              ! the input spec, causing spec decay → divide-by-zero).
+            case (403) ! ingresso: temperatura totale T0 + flusso di massa imposto
+              ! `domain%bc(i)%mdot` è la specifica di portata in ingresso e non va
+              ! passata anche come argomento di output: l'aliasing la
+              ! sovrascriverebbe, degradandola fino a divisioni per zero.
               call BC_Inlet_MassFlux_T0 ( Bm, Im, Jm, Fm, domain % blk(Bm), &
                                            domain % bc(i) % T0, domain % bc(i) % mdot, &
                                            domain % bc(i) % rel_fac, &
@@ -196,8 +199,8 @@ contains
                                            domain % bc(i) % ci(1:nrans), error )
               if (error == 1) call BC_Symmetry_Eul ( Bm, Im, Jm, Fm, domain % blk(Bm) )
 
-            case (404) ! inlet: static temperature T + prescribed mass flux
-              ! Bug fix: drop the `domain%bc(i)%mdot` output position.
+            case (404) ! ingresso: temperatura statica T + flusso di massa imposto
+              ! Come per il case 403: `domain%bc(i)%mdot` è solo input, mai output.
               call BC_Inlet_MassFlux_T ( Bm, Im, Jm, Fm, domain % blk(Bm), &
                                           domain % bc(i) % T0, domain % bc(i) % mdot, &
                                           domain % bc(i) % rel_fac, &
@@ -206,7 +209,7 @@ contains
                                           domain % bc(i) % ci(1:nrans), error )
               if (error == 1) call BC_Symmetry_Eul ( Bm, Im, Jm, Fm, domain % blk(Bm) )
 
-            case (405) ! inlet: supersonic — Mach + static temperature + static pressure
+            case (405) ! ingresso supersonico: Mach + temperatura statica + pressione statica
               call BC_Inlet_Supersonic_Static ( Bm, Im, Jm, Fm, domain % blk(Bm), &
                                                  domain % bc(i) % mach, &
                                                  domain % bc(i) % T0, domain % bc(i) % pamb, &
@@ -217,13 +220,13 @@ contains
                                                  domain % bc(i) % mdot, error )
               if (error == 1) call BC_Symmetry_Eul ( Bm, Im, Jm, Fm, domain % blk(Bm) )
 
-            case (406) ! outflow: prescribed back-pressure (or extrapolation if pAmb ≤ 0)
+            case (406) ! outflow: back-pressure imposta (o estrapolazione se pAmb ≤ 0)
               call BC_Outflow ( Bm, Im, Jm, Fm, domain % blk(Bm), &
                                  domain % bc(i) % pAmb, domain % bc(i) % rel_fac, &
                                  domain % bc(i) % mdot, error )
               if (error == 1) call BC_Symmetry_Eul ( Bm, Im, Jm, Fm, domain % blk(Bm) )
 
-            case (407) ! ambient: T0 + p0 + back pressure
+            case (407) ! ambiente: T0 + p0 + back-pressure
               call BC_FarField ( Bm, Im, Jm, Fm, domain % blk(Bm), &
                                  domain % bc(i) % T0, domain % bc(i) % p0, &
                                  domain % bc(i) % pamb, &
@@ -233,7 +236,7 @@ contains
                                  domain % bc(i) % ci(1:nrans), &
                                  BC_mdot )
 
-            case (420) ! choked nozzle (BC_Mach==-20 → Borda)
+            case (420) ! ugello in choking (BC_Mach==-20 → Borda)
               call BC_Inflow_Nozzle ( Im, Jm, Fm, domain % blk(Bm), &
                                       domain % bc(i) % mach, &
                                       domain % bc(i) % T0, domain % bc(i) % p0, &
@@ -245,12 +248,12 @@ contains
                                       error )
               if (error == 1) call BC_Symmetry_Eul ( Bm, Im, Jm, Fm, domain % blk(Bm) )
 
-            case (501) ! manifold mean-flow connection
+            case (501) ! connessione manifold a flusso medio
               Bs = domain % bc(i) % bs
               Fs = domain % bc(i) % fs
               call BC_Manifold ( domain % blk(Bm), Fm, domain % blk(Bs), Fs, T0, g, pstat )
 
-            case (502) ! SRM grain combustion (bc_type extended with
+            case (502) ! combustione del grain SRM (bc_type esteso con
                         ! aCoeff/n/pRef/Taf/haf).
               call BC_Symmetry_Eul ( Bm, Im, Jm, Fm, domain % blk(Bm) )
               call BC_SRM ( Im, Jm, Fm, domain % blk(Bm),                       &

@@ -30,6 +30,11 @@ import os
 import sys
 import math
 import numpy as np
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "common" / "pycheck"))
+from q2d_check_lib import (fail, require_file, assert_positive, assert_finite,
+                           assert_converged)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 FIELD = os.path.join(HERE, "OUTPUT", "field.tec")
@@ -63,30 +68,21 @@ def parse_field(path):
     return (NI, rho, u, p, T, float(np.median(g)), float(np.median(R)))
 
 
-def fail(msg):
-    print(f"[borda-channel] FAIL: {msg}")
-    sys.exit(1)
-
-
-if not os.path.isfile(FIELD):
-    fail(f"missing {FIELD} (did ./Q2D.sh solve run?)")
+require_file(FIELD, "did ./Q2D.sh solve run?")
 
 NI, rho, u, p, T, g, R = parse_field(FIELD)
 
-# --- positivity (hard) ---
-for nm, a in (("rho", rho), ("p", p), ("T", T)):
-    if np.min(a) <= 0.0:
-        fail(f"non-physical min({nm}) = {np.min(a):.3e}")
+# --- positivity (hard, NaN-safe via q2d_check_lib) ---
+assert_positive("rho", rho)
+assert_positive("p", p)
+assert_positive("T", T)
+assert_finite("u", u)
 
 # --- convergence sentinel (hard) ---
-if os.path.isfile(RESID):
-    try:
-        last = np.loadtxt(RESID)[-1]
-        dens_resid = float(last[1]) if last.ndim else float(last)
-        if not math.isfinite(dens_resid) or dens_resid > 1.0e-6:
-            fail(f"not converged: final density residual {dens_resid:.3e} > 1e-6")
-    except Exception as e:
-        print(f"[borda-channel] WARN: could not parse residual-history ({e}); skipping sentinel")
+# Final density residual (column 2 of residual-history.dat; column 1 is the
+# steady-run time stamp -1.0) < 1e-6; measured 1.0e-10 on the committed run.
+# A missing or unparseable residual history is a FAILURE, never a warn/skip.
+assert_converged(1.0e-6, path=RESID)
 
 # --- inlet column (first interior cell adjacent to the Borda face) ---
 rho_in = float(rho[:, 0].mean())

@@ -22,20 +22,20 @@ contains
     use Q2D_Lib_Source_Areavariation, only: Precompute_Area_Geometry
     implicit none
     type(Q2D_domain_type), intent(inout) :: domain
-    ! Local
+    ! Locali
     integer :: b, i, j
     integer :: Bm, Im, Jm, Fm, Bs, Is, Js, Fs, d11s, d12s, d21s, d22s
     type(Q2D_vector_2D_type) :: N1, N2, N3, N4
 
     call Check_Mesh_Type ( domain )
 
-    ! area_variation: Cross_Section is a nodal geometric input, read once in
-    ! Wrap_Setup on domain(1) and restricted fine→coarse via Coarse_Cross_Section
-    ! in Setup_Multigrid. No per-level re-read here (it caused scrambled
-    ! re-indexing for MGL>1).
+    ! area_variation: Cross_Section è un input geometrico nodale, letto una sola
+    ! volta in Wrap_Setup su domain(1) e ristretto fine→coarse tramite
+    ! Coarse_Cross_Section in Setup_Multigrid. Nessuna rilettura per livello qui:
+    ! produrrebbe una re-indicizzazione errata per MGL>1.
 
     do b = 1, domain%nb
-      if (.not. is_local_block(b)) cycle  ! MPI: skip non-local blocks
+      if (.not. is_local_block(b)) cycle  ! MPI: salta i blocchi non locali
       !$omp parallel default(none) shared(domain, b) private(i, j, N1, N2, N3, N4)
       !$omp do collapse(2)
       do j = 1, domain%blk(b)%dim(2)
@@ -53,24 +53,24 @@ contains
       call Compute_Norm_Area ( domain%blk(b) )
     end do
 
-    ! Precompute the source geometry after M is populated. axisymmetric and
-    ! area_variation are mutually exclusive (enforced in Register_Sources +
-    ! Mod_Sources::Initialize_Sources).
+    ! Precalcolo della geometria dei termini sorgente dopo il popolamento di M.
+    ! axisymmetric e area_variation sono mutuamente esclusivi (imposto in
+    ! Register_Sources + Mod_Sources::Initialize_Sources).
     do b = 1, domain%nb
       if (obj_source%axisymmetric)   call Precompute_Axisymmetric_Geometry(domain%blk(b))
-      ! Per-block gate (mirror legacy Wrap_Setup): a block whose INPUT/block<b>_area.dat
-      ! is absent keeps area_variation_active=.false. (Read_Block_Q2D_Area cycles) and
-      ! must NOT have its area_geom_term computed from an uninitialised Cross_Section;
-      ! it keeps the universal zero-fill (V_dot_G=0) instead. Graceful partial-multiblock.
+      ! Gate per blocco: un blocco privo del file INPUT/block<b>_area.dat mantiene
+      ! area_variation_active=.false. (Read_Block_Q2D_Area lo salta) e NON deve avere
+      ! area_geom_term calcolato da una Cross_Section non inizializzata; conserva
+      ! invece il riempimento a zero (V_dot_G=0). Gestione robusta del caso
+      ! multiblocco parziale.
       if (obj_source%area_variation .and. domain%blk(b)%area_variation_active) &
         call Precompute_Area_Geometry(domain%blk(b))
     end do
 
-    ! yn computation gated `model>1`:
-    ! the legacy Q2D `if (VISC) Compute_Yn` was defensive (yn computed even in
-    ! laminar but unused — downstream gated `if (model==2)` in
-    ! Lib_Diffusive/Lib_Source_*Visc). yn is always allocated; Compute_Yn runs
-    ! only for `model>1`, saving the Compute_Yn loop in laminar.
+    ! Calcolo di yn condizionato a `model>1`: gli usi a valle di yn sono
+    ! condizionati da `if (model==2)` in Lib_Diffusive/Lib_Source_*Visc, quindi
+    ! nel caso laminare yn non serve. yn è comunque sempre allocato; eseguire
+    ! Compute_Yn solo per `model>1` evita il relativo ciclo nel caso laminare.
     if (model>1) then
       call Compute_Yn ( domain%blk(:), domain%bc, domain%nb, domain%nbound )
 
@@ -79,11 +79,12 @@ contains
       do i = 1, domain%nbound
         select case (domain%bc(i)%type)
           case(101, 201)
-            ! 201 (translational periodic) is a connection seam: its ghost yn is the
-            ! donor's wall distance (a scalar, invariant under translation/rotation).
-            ! No is_local_block(Bs) guard: Compute_Yn above is global (all blocks, no
-            ! guard) and donor nodes are resident through Setup_Metrics, so blks%yn is
-            ! valid for a cross-rank donor too. Cf. piano §1 divergenza #21.
+            ! Una 201 (periodica traslazionale) è una giunzione di connessione: il suo
+            ! yn ghost è la distanza da parete del donatore (uno scalare, invariante per
+            ! traslazione/rotazione). Nessuna guardia is_local_block(Bs): Compute_Yn qui
+            ! sopra è globale (tutti i blocchi, senza guardia) e i nodi del donatore sono
+            ! residenti per tutta la durata di Setup_Metrics, quindi blks%yn è valido
+            ! anche per un donatore su altro rank.
             Bm = domain%bc(i)%b
             Im = domain%bc(i)%i
             Jm = domain%bc(i)%j
@@ -119,11 +120,11 @@ contains
                                     Is, Js, Fs, domain%blk(Bs), d11s, d12s, d21s, d22s, &
                                     domain%bc(i)%Mg, domain%bc(i)%dlg, domain%bc(i)%surg )
         case(201)
-          ! 201 (translational periodic) is a connection whose donor lives at a
-          ! constant Cartesian offset; BC_Connect_Metrics_Periodic rebuilds the ghost
-          ! metric from the donor nodes shifted into the local frame (EXACT, vs the
-          ! cubic extrapolation a 201 would otherwise get via case default). 101 stays
-          ! on BC_Connect_Metrics (MOSE-mirror). Cf. piano §1 divergenza #21.
+          ! Una 201 (periodica traslazionale) è una connessione il cui donatore giace a
+          ! un offset cartesiano costante; BC_Connect_Metrics_Periodic ricostruisce la
+          ! metrica ghost dai nodi del donatore traslati nel riferimento locale (ESATTA,
+          ! contro l'estrapolazione cubica che una 201 riceverebbe altrimenti dal case
+          ! default). Le 101 restano su BC_Connect_Metrics.
           Bs   = domain%bc(i)%bs
           Is   = domain%bc(i)%is
           Js   = domain%bc(i)%js

@@ -33,7 +33,7 @@ This getting-started guide covers:
    - Step-by-step build instructions.
    - Build options and customisation.
    - Activation of the in-tree git hooks
-     (No-$w$ pre-commit + 4 sympy audit pre-push).
+     (No-$w$ pre-commit + CTest pre-push).
 
 2. **Quick Start**
    - Run your first case (Prandtl–Meyer expansion in 2D planar).
@@ -44,8 +44,8 @@ This getting-started guide covers:
 
 Q2D requires:
 
-- A modern Fortran 2008+ compiler (GNU `gfortran` ≥ 9 or Intel
-  `ifx`).
+- A modern Fortran 2008+ compiler (GNU `gfortran`, CI-tested with
+  versions 12–14, or Intel `ifx`).
 - CMake ≥ 3.23.
 - Companion libraries [FLINT](https://github.com/MarcoGrossi92/FLINT),
   [ORION](https://github.com/MarcoGrossi92/ORION),

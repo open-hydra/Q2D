@@ -36,7 +36,7 @@ contains
       self%n = self%n + 1
       if (index(line, 'periodic') > 0) then
         self%periodic = .true.
-        self%n = self%n - 1   ! Do not count this one
+        self%n = self%n - 1   ! The `periodic` line must not be counted among the samples
       end if
     end do
     rewind(UnitFree)

@@ -42,7 +42,7 @@ The User Guide describes how to set up, configure, and run simulations with Q2D.
 This section is intended for:
 
 - Users running Q2D simulations for the first time
-- Experienced users with few memory
+- Experienced users looking for a quick reference
 
 If you are new to Q2D, start from [Getting Started](../getting-started/index.md).
 
@@ -50,10 +50,11 @@ If you are new to Q2D, start from [Getting Started](../getting-started/index.md)
 
 ## Q2D-specific Geometric Regimes
 
-Q2D supports **three geometric regimes** controlled at setup time:
+Q2D supports **three geometric regimes**, selected at setup time via
+the `[Q2D-Sources] active` INI key:
 
-- **2D planar** (default): standard Cartesian flow.
-- **2D axisymmetric** (`obj_source%axisymmetric = .true.`): rotational symmetry around an axis (without swirl). Q2D adds geometric source terms `Source_Axi` for cylindric Cartesian-FV residuals.
-- **q2D area-variation** (`obj_source%area_variation = .true.`): three-dimensional flow with prescribed out-of-plane height $h(x, y)$, projected to a 2D mesh with geometric source terms `Source_Area` (cf. [q2D Area-Variation Derivation](../theory/area-variation-derivation.md)).
+- **2D planar** (`active = none`, default): standard Cartesian flow.
+- **2D axisymmetric** (`active = axisymmetric`): rotational symmetry around an axis (without swirl). Q2D adds geometric source terms `Source_Axi` for cylindric Cartesian-FV residuals.
+- **Q2D area-variation** (`active = area_variation`): three-dimensional flow with prescribed out-of-plane height $h(x, y)$, projected to a 2D mesh with geometric source terms `Source_Area` (cf. [Q2D Area-Variation Derivation](../theory/area-variation-derivation.md)).
 
 The geometric regime selection drives the dispatch of stress/strain procedure pointers `Stress_Vector_Std/_Axi`, `Stress_Tensor_Std/_Axi`, `Strain_Tensor_Std/_Axi`.

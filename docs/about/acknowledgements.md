@@ -4,8 +4,9 @@ Q2D is built upon several open-source projects shared with its
 companion solver MOSE in the `open-hydra` release.  The Q2D codebase
 itself originated as a fork from an early version of MOSE
 (pre-modernisation) and evolved independently with focus on the three
-Q2D geometric regimes (2D planar, 2D axisymmetric, q2D
+Q2D geometric regimes (2D planar, 2D axisymmetric, Q2D
 area-variation), Q2D-specific numerical features and applications
+to hybrid rocket motors and Borda-flow choked nozzles.
 
 ## FiNeR
 

@@ -14,7 +14,7 @@ program Q2D_program
   type(Q2D_type)            :: Q2D
   type(Q2D_simulation_type) :: simulation
 
-  ! Initialize MPI environment (no-op if USE_MPI is not defined; mirror MOSE main).
+  ! Initialize the MPI environment (no-op if USE_MPI is not defined).
   call mpi_init_env()
 
 #if defined (_OPENMP)
@@ -38,10 +38,10 @@ program Q2D_program
   end if
 #endif
 
-  ! Solving with Q2D
+  ! Solve with Q2D
   call Q2D%setup(simulation)
 
-  ! Setup early-return guard: se setup ha settato TODO=3 bypassa il main loop. Mirror MOSE main pattern.
+  ! Early-exit guard: if setup has set TODO=3 the main loop is bypassed.
   if (obj_sim_param%TODO < 3) then
     obj_sim_param%TODO = 1
     do while (obj_sim_param%TODO <= 2)
@@ -52,20 +52,20 @@ program Q2D_program
     call Q2D%postprocess(simulation)
   end if
 
-  ! Free persistent MPI requests before finalizing
+  ! Release the persistent MPI requests before finalization
 #ifdef USE_MPI
   call cleanup_ghost_schedule()
 #endif
 
-  ! Finalize MPI environment
+  ! Finalize the MPI environment
   call mpi_finalize_env()
 
 contains
 
   subroutine Dummy_Function
-    ! Empty subroutine to be passed as an argument to MOSE%solve. 
+    ! Empty subroutine to be passed as argument to Q2D%solve.
     ! It can be used for user-defined operations during the solution process.
-    ! It is used in HYDRA coupling procedures.
+    ! It is employed in the HYDRA coupling procedures.
   end subroutine Dummy_Function
 
 end program Q2D_program

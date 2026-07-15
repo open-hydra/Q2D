@@ -34,7 +34,7 @@ $$
 $$
 
 where $V_i$ is the cell **area** in 2D planar and 2D axisymmetric, or
-$V_i = A_i\,h_i$ in q2D area-variation (with $A_i$ the 2D Jacobian and
+$V_i = A_i\,h_i$ in Q2D area-variation (with $A_i$ the 2D Jacobian and
 $h_i$ the local out-of-plane height).  The face sum runs over the
 **four** faces $f$ of each quadrilateral cell — there are no top/bottom
 faces in Q2D.
@@ -166,7 +166,7 @@ introduce mild staircase artefacts.
     entries above.  LIMO3 enables a high-resolution third-order
     monotonic reconstruction suitable for moderately smooth flows
     where standard TVD limiters are excessively diffusive.  Selected
-    at run time via the input file (`limiter = 'LIMO3'`).
+    at run time via the input file (`flux-limiter = LIMO3`).
     Implementation: `Lib_Limiters.f90` (entry 7).
 
 ### TVD Diagram
@@ -179,6 +179,24 @@ introduce mild staircase artefacts.
 | MC | Low | $C^0$ |
 | Superbee | Lowest | $C^0$ |
 | **LIMO3** (Q2D) | Low (3rd-order) | $C^0$ |
+
+### Selection guidance
+
+- **`vanleer`** — the workhorse default: smooth ($C^\infty$),
+  well-balanced dissipation; used by most of the V&V suite
+  (24 of the committed test inputs).
+- **`mc`** — sharper gradients than van Leer at slightly higher
+  oscillation risk; gated on [Sod79](../vv/1D.md) and the
+  [Chang nozzle](../vv/2D-plane-extras.md) cases.
+- **`minmod`** — the most dissipative TVD choice; use when robustness
+  matters more than resolution.
+- **`LIMO3`** — third-order accuracy in smooth regions with shock
+  capturing; the [Shu–Osher case](../vv/1D-shuosher.md) gates its
+  total-variation ordering against minmod/van Leer/MC baselines.
+- **`superbee`** — the sharpest TVD limiter, but prone to
+  over-steepening of smooth profiles; **not yet exercised by the
+  ctest suite** (see the
+  [Coverage Matrix known gaps](../vv/coverage-matrix.md#known-gaps-prioritized)).
 
 ---
 
@@ -249,10 +267,10 @@ $M_{2\times 2}$, which is computed from the grid geometry and stored
 at each face.  The same metric is used to compute the physical
 spacing $\Delta l$ for the MUSCL reconstruction.
 
-In q2D area-variation, the metric tensor additionally carries the
+In Q2D area-variation, the metric tensor additionally carries the
 height-gradient field $\mathbf{G} = -\nabla h / h$ used for Definition
 A coupling (see
-[q2D Area-Variation Derivation](area-variation-derivation.md)).  The
+[Q2D Area-Variation Derivation](area-variation-derivation.md)).  The
 face-averaged contraction $\mathbf{V}\!\cdot\!\mathbf{G}$ is computed
 by `V_dot_G_face_avg` and passed as an optional argument to
 `Stress_Vector` and `Strain_Tensor` along the Definition A path.
@@ -283,7 +301,7 @@ setup time via `Register_Sources.f90`.
 
 The Q2D `Mod_Fluxes` module exposes **two** flux-loop variants that
 coexist in the binary and are selected at run time via the INI key
-`[Q2D-Numerics] omp_name = 'do' | 'task'`:
+`[Q2D-Numerics] OMP-parallel = do | task`:
 
 | Variant | Pragma pattern | When preferred |
 |---|---|---|
@@ -363,6 +381,9 @@ There is no `Nk` in `Global_m`, no `do k` in the source, and no
 5. P. K. Glaister, "An approximate linearised Riemann solver for the
    Euler equations for real gases," *J. Comput. Phys.*, 74(2), 1988
    — generalised Riemann invariant used by the Borda-flow nozzle BC.
-6. A. K. Fievisohn, K. M. Yu, "Steady-state analysis of rotating
+6. R. T. Fievisohn, K. H. Yu, "Steady-state analysis of rotating
    detonation engine flowfields with the method of characteristics,"
-   *J. Propul. Power*, 33(1), 2017.
+   *J. Propul. Power*, 33(1), 2017, 89–99.
+7. R. T. Fievisohn, *Development and Application of Theoretical
+   Models for Rotating Detonation Engine Flowfields*, PhD
+   dissertation, University of Maryland, College Park, 2016.

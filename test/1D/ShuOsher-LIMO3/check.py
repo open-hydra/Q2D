@@ -28,8 +28,10 @@ WHAT THIS CHECK VERIFIES (the *interpretation* of LIMO3, not a bare value match)
      choice for the bulk amplitude). We do NOT claim LIMO3 beats MC; we assert LIMO3 stays in
      MC's high-resolution class (within +/-10% of MC TV), proving it is not degraded.
 
-  4. PHYSICS sanity: positivity (rho,p,T>0), physical density bounds, and the main shock sits
-     at the analytic location x≈2.4 (it travels right from x=-4 over t=1.8) within a tolerance.
+  4. PHYSICS sanity: NaN-safe positivity (rho,p,T>0 via q2d_check_lib.assert_positive — a plain
+     ``min() <= 0`` is False for an all-NaN field), physical density bounds, and the main shock
+     sits at the analytic location x≈2.4 (it travels right from x=-4 over t=1.8) within a
+     tolerance. Every output/baseline read goes through q2d_check_lib.require_file.
 
 Reference baselines (reference/baseline_*.dat: x, rho at N=400, t=1.8) were generated once
 with the same binary using the respective limiters (mc/vanleer/minmod) and first-order (iord),
@@ -44,6 +46,9 @@ from pathlib import Path
 warnings.filterwarnings("ignore")
 
 ROOT = Path(__file__).resolve().parent
+
+sys.path.insert(0, str(ROOT.parents[1] / "common" / "pycheck"))
+from q2d_check_lib import fail, require_file, assert_positive, assert_finite
 
 # Post-shock smooth-wave window (entropy waves are upstream of the shock at x≈2.4).
 WIN_LO, WIN_HI = -3.0, 2.3
@@ -73,24 +78,17 @@ def total_variation(x, r, lo, hi):
     return float(np.sum(np.abs(np.diff(seg))))
 
 
-def fail(msg):
-    print(msg)
-    sys.exit(1)
-
-
 # --- LIMO3 run output ---
+require_file(ROOT / "OUTPUT" / "field.tec", "run './Q2D.sh solve' first")
 xc, cells, names = read_field_rho(ROOT / "OUTPUT" / "field.tec")
 rho = cells[names[2]]
 p   = cells[names[5]]
 T   = cells[names[6]]
 
-# 4. Physics sanity ---------------------------------------------------------
-if rho.min() <= 0.0:
-    fail(f"Positivity: min(rho)={rho.min():.4e} <= 0")
-if p.min() <= 0.0:
-    fail(f"Positivity: min(p)={p.min():.4e} <= 0")
-if T.min() <= 0.0:
-    fail(f"Positivity: min(T)={T.min():.4e} <= 0")
+# 4. Physics sanity (NaN-safe: assert_positive checks finiteness first) ------
+assert_positive("rho", rho)
+assert_positive("p", p)
+assert_positive("T", T)
 if not (0.7 <= rho.min() and rho.max() <= 5.0):
     fail(f"Density out of physical Shu-Osher bounds: [{rho.min():.3f}, {rho.max():.3f}]")
 
@@ -104,7 +102,10 @@ tv_limo3 = total_variation(xc, rho, WIN_LO, WIN_HI)
 
 # --- committed baselines ---
 def baseline_tv(tag):
-    arr = np.loadtxt(ROOT / "reference" / f"baseline_{tag}.dat")
+    path = ROOT / "reference" / f"baseline_{tag}.dat"
+    require_file(path, "committed limiter baseline missing")
+    arr = np.loadtxt(path)
+    assert_finite(f"baseline_{tag}", arr)
     return total_variation(arr[:, 0], arr[:, 1], WIN_LO, WIN_HI)
 
 tv_iord    = baseline_tv("iord")
@@ -133,3 +134,7 @@ print(f"ShuOsher-LIMO3: shock x={xshock:.3f}  rho in [{rho.min():.3f},{rho.max()
 print(f"  post-shock TV  LIMO3={tv_limo3:.3f}  iord={tv_iord:.3f} (ratio {tv_limo3/tv_iord:.2f}x)"
       f"  minmod={tv_minmod:.3f}  vanleer={tv_vanleer:.3f}  mc={tv_mc:.3f}")
 print("Correct!")
+
+# Explicit success exit: keeps the ctest contract (0 = all gates passed)
+# aligned with the other 1D checks rather than relying on fall-through.
+sys.exit(0)

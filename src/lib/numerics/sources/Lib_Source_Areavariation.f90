@@ -1,15 +1,14 @@
 module Q2D_Lib_Source_Areavariation
-  ! Q2D-extra: the MOSE peer has no numerics/sources/.
-  ! (Renamed from Mod_Areavariation to the Lib_* naming convention.)
-  !
-  ! q2D area-variation source terms:
-  !   Eulerian:  Source ~ V·G with G = -∇h/h (geometric gradient from Cross_Section)
-  !   Viscous (Q2D Definition A): canonical formulation v7 §N16, Anderson-consistent
-  !                               signs — wired via Q2D_Lib_Fluid::Stress_Tensor +
-  !                               Q2D_Lib_RANS::{Eddy_Viscosity, RANS_Diffusive_SourceQ2D}.
+  ! Q2D area-variation source terms:
+  !   Eulerian: Source ~ V·G with G = -∇h/h (geometric gradient from Cross_Section)
+  !   viscous (Definition A, S_33 = -V·G): signs consistent with Anderson
+  !     (derivation in docs/theory/geometric-sources.md and
+  !     docs/theory/area-variation-derivation.md) — realized via
+  !     Q2D_Lib_Fluid::Stress_Tensor +
+  !     Q2D_Lib_RANS::{Eddy_Viscosity, RANS_Diffusive_SourceQ2D}.
   !
   ! Mutual exclusion `axisymmetric ⊕ area_variation` enforced in Register_Sources
-  ! + double-check in Mod_Sources::Initialize_Sources.
+  ! with a second check in Mod_Sources::Initialize_Sources.
   !
   ! Fallback eps=1.d-12 for Acell_center → 0.
   use iso_fortran_env, only: I4 => int32, R8 => real64
@@ -25,10 +24,10 @@ module Q2D_Lib_Source_Areavariation
 contains
 
   subroutine Precompute_Area_Geometry ( blk )
-    ! Precompute G_x = -dA/dx / A_center, G_y = -dA/dy / A_center cell-center.
-    ! Uses blk%M(i,j)%c → correct order: called AFTER Compute_Metric_Tensor in
-    ! Setup_Metrics. The area_geom_term_x/y fields are allocated by
-    ! Mod_Allocate_Data → no self-allocate here.
+    ! Precomputes at the cell center G_x = -dA/dx / A_center, G_y = -dA/dy / A_center.
+    ! Uses blk%M(i,j)%c → mandatory ordering: must be called AFTER Compute_Metric_Tensor
+    ! in Setup_Metrics. The area_geom_term_x/y fields are allocated by
+    ! Mod_Allocate_Data → no self-allocation here.
     implicit none
     type(Q2D_block_type), intent(inout) :: blk
     integer  :: i, j
@@ -52,12 +51,12 @@ contains
 
 
   subroutine Read_Block_Q2D_Area ( domain )
-    ! Reads file INPUT/block<N>_area.dat for each block; populates blk%Cross_Section.
-    ! Sets blk%area_variation_active=.true. only if the file exists and parsing is OK
-    ! (graceful degradation for blocks without a file: warning + cycle).
+    ! Reads the INPUT/block<N>_area.dat file for each block and fills blk%Cross_Section.
+    ! Sets blk%area_variation_active=.true. only if the file exists and the read
+    ! succeeds (graceful degradation for blocks without a file: warning + cycle).
     implicit none
     type(Q2D_domain_type), intent(inout) :: domain
-    ! Local
+    ! Variabili locali
     integer  :: i, j, b, ios, unitfile, ni, nj
     character(len=100)    :: filename
     real(R8), allocatable :: A(:,:)
@@ -103,7 +102,7 @@ contains
 
 
   subroutine Source_Area_Eul_Blk ( Prim, Res, sur, n, geometric_term_x, geometric_term_y )
-    ! Area-variation Eulerian source terms: V·G accumulated over all equations.
+    ! Eulerian area-variation source terms: V·G accumulated over all equations.
     use Q2D_Global_m,            only: nprim, nsc, nu, nv, np, nt, gc
     use FLINT_Lib_Thermodynamic, only: Co_rotot_Rtot, E0
     implicit none
@@ -113,7 +112,7 @@ contains
     real(R8), dimension(1-gc:n(1)+gc, 1-gc:n(2)+gc),        intent(in)    :: sur
     real(R8), dimension(1:n(1),1:n(2)),                     intent(in)    :: geometric_term_x
     real(R8), dimension(1:n(1),1:n(2)),                     intent(in)    :: geometric_term_y
-    ! Local
+    ! Variabili locali
     integer  :: i, j
     real(R8) :: rho, Rgas, mod_v, Gx, Gy, V_dot_G
     real(R8) :: Source(nprim)
@@ -134,9 +133,8 @@ contains
       Source(nv)    = rho * Prim(nv,i,j) * V_dot_G
       Source(np)    = (rho * E0(Prim(np,i,j),Prim(1:nsc,i,j),mod_v) + Prim(np,i,j)) * V_dot_G
 
-      ! Area-variation residual +rho*phi*V_dot_G for ALL post-pressure indices
-      ! (soot Nvol, soot rho*Y_s nsoot=2, passive scalars, RANS).
-      ! Verified by the term_by_term_sympy audit (LEMMA 5).
+      ! Area-variation residual +rho*phi*V_dot_G for ALL indices beyond the
+      ! pressure (soot Nvol, soot rho*Y_s for nsoot=2, passive scalars, RANS).
       if (nprim > np) then
         Source(np+1:nprim) = Prim(np+1:nprim,i,j) * V_dot_G
       end if
@@ -147,25 +145,25 @@ contains
 
 
   subroutine Source_Area_Visc_Blk ( Prim, Res, M, yn, sur, n, geometric_term_x, geometric_term_y, node )
-    ! Area-variation viscous source terms: canonical Q2D Definition A formulation
-    ! (S_33 = -V·G), wired via Q2D_Lib_Fluid::Stress_Tensor +
+    ! Viscous area-variation source terms: Q2D Definition A formulation
+    ! (S_33 = -V·G), realized via Q2D_Lib_Fluid::Stress_Tensor +
     ! Q2D_Lib_RANS::{Eddy_Viscosity, RANS_Diffusive_SourceQ2D}.
     !
-    ! Theory references (consolidated canonical formulation = latest chronological):
-    !   - teoria_finale_Q2D.md v6.1 §9.1, §13.7
-    !   - teoria_Q2D_integrazione_v7.md §N16 "Final consolidated Q2D URANS equations"
+    ! Derivation: docs/theory/geometric-sources.md and
+    ! docs/theory/area-variation-derivation.md.
     !
-    ! Equations v7 §N16 (Anderson-consistent):
-    !   x-mom:    +G_x(τ_33 − τ_11) − G_y·τ_12
-    !   y-mom:    −G_x·τ_12 + G_y(τ_33 − τ_22)
-    !   energy:   −V·(τ·G) + G·q + Σ_α h_α(G·j_α^*)
-    !   species:  +G·j_α^*    [Σ j_α^* = 0 exact via Hirschfelder closure]
-    !   RANS:     −D_φ(G·∇φ)
+    ! Equations (signs consistent with Anderson):
+    !   x-momentum: +G_x(τ_33 − τ_11) − G_y·τ_12
+    !   y-momentum: −G_x·τ_12 + G_y(τ_33 − τ_22)
+    !   energy:     −V·(τ·G) + G·q + Σ_α h_α(G·j_α^*)
+    !   species:    +G·j_α^*    [Σ j_α^* = 0 exactly via the Hirschfelder closure]
+    !   RANS:       −D_φ(G·∇φ)
     !
-    ! Code convention (Anderson-consistent):
+    ! Code convention (consistent with Anderson):
     !   - DmGradYi(α) = D_α·∂Y_α/∂x_i  (positive of the gradient)
     !   - j_α = −ρ·DmGradYi (Fick, sign applied at accumulation time)
-    !   - V_c = Σ_α DmGradYi: if Dm uniform over α → V_c = 0 → fix dormant.
+    !   - V_c = Σ_α DmGradYi: if Dm is uniform across the species → V_c = 0 →
+    !     the Hirschfelder correction is dormant.
     use Q2D_Base_Types_m,        only: Q2D_tensor_2D_type, Q2D_vector_2D_type
     use Q2D_Global_m,            only: nprim, nsc, nu, nv, np, nt, nc, nsoot, gc, model, nRANS
     use Q2D_Config_Types_m,      only: obj_rans, obj_soot
@@ -199,15 +197,17 @@ contains
     do j = 1, n(2)
     do i = 1, n(1)
 
-      ! Pre-zero the full post-pressure band: nu/nv/np/1:nsc are always assigned, but
-      ! the passive band nps:nt-1 and the soot nc band (nsoot==2) are written only under
-      ! guards. Mirror the Eulerian sibling's `if(nprim>np) Source(np+1:nprim)=...` coverage.
+      ! Pre-zeroing of the whole band beyond the pressure: nu/nv/np/1:nsc are
+      ! always assigned, but the passive band nps:nt-1 and the soot band nc (nsoot==2)
+      ! are only written under a guard. Coverage mirrors the
+      ! `if(nprim>np) Source(np+1:nprim)=...` one of Source_Area_Eul_Blk.
       Source = 0.d0
 
       Gx = geometric_term_x(i,j)
       Gy = geometric_term_y(i,j)
-      ! Cell-center radius (axi-coherence; in pure area-variation r_ave is unused
-      ! by Stress_Tensor_Std/Strain_Tensor_Std but propagated for consistency).
+      ! Cell-center radius (consistency with the axisymmetric case; in pure area
+      ! variation r_ave is not read by Stress_Tensor_Std/Strain_Tensor_Std, but is
+      ! propagated for interface uniformity).
       r_ave = 0.25d0 * ( node(i  ,j  )%c(2) + node(i-1,j  )%c(2) &
                        + node(i  ,j-1)%c(2) + node(i-1,j-1)%c(2) )
 
@@ -250,9 +250,10 @@ contains
 
       Gradient = Matmul ( Gradient, M(i,j) % c )
 
-      ! Eddy_Viscosity (Q2D Def A): V_dot_G + axi-coherent vr/r_ave propagated for
-      ! consistency with Stress_Tensor below. For pure area_var (axi=false) vr/r_ave
-      ! are not read by Strain_Tensor_Std; passed to avoid fragile coupling.
+      ! Eddy_Viscosity (Definition A): V_dot_G plus vr/r_ave (consistent with the axi
+      ! case) propagated for consistency with the Stress_Tensor call below. In pure
+      ! area variation (axi=false) vr/r_ave are not read by Strain_Tensor_Std;
+      ! passing them anyway avoids a fragile coupling between the two calls.
       mie = 0d0
       if (model==2) then
         call Eddy_Viscosity ( mut=mie, rans_variables=Prim(nt:nprim,i,j), &
@@ -260,11 +261,12 @@ contains
                               vr=Prim(nv,i,j), r_ave=r_ave, walldist=yn(i,j), V_dot_G=V_dot_G )
       end if
 
-      ! Sc/Sct scalar (uniform Dm) -> V_c = D*grad(1) = 0 identically (fix dormant).
+      ! Scalar Sc/Sct (uniform Dm) -> V_c = D*grad(1) = 0 identically
+      ! (Hirschfelder correction dormant).
       Dm (1:nsc) = ( mil/obj_rans%Sc + mie/obj_rans%Sct ) / rho
       kappa = kl + mie*cp/obj_rans%Prt
 
-      ! Stress tensor cell-center with Def A V_dot_G.
+      ! Cell-center stress tensor with the Definition A V_dot_G.
       Stress_t = Stress_Tensor ( Gradient(nu:nv,:), mil, mie, Prim(nt:,i,j), r_ave, Prim(nv,i,j), V_dot_G=V_dot_G )
       T11 = Stress_t(1,1); T22 = Stress_t(2,2); T12 = Stress_t(1,2); T33 = Stress_t(3,3)
 
@@ -285,7 +287,7 @@ contains
       V_c_x = sum(DmGradYi_x(1:nsc))
       V_c_y = sum(DmGradYi_y(1:nsc))
 
-      ! Geometric viscous source terms (v7 §N16 Anderson-consistent).
+      ! Viscous geometric source terms (signs consistent with Anderson).
       Source(nu) = Gx*(T33 - T11) - Gy*T12
       Source(nv) = -Gx*T12 + Gy*(T33 - T22)
       Source(np) = -Prim(nu,i,j)*(T11*Gx + T12*Gy) - Prim(nv,i,j)*(T12*Gx + T22*Gy)   &
@@ -295,35 +297,34 @@ contains
       Source(1:nsc) = -( rho*DmGradYi_x(1:nsc) - V_c_x*Prim(1:nsc,i,j) ) * Gx        &
                      -( rho*DmGradYi_y(1:nsc) - V_c_y*Prim(1:nsc,i,j) ) * Gy
 
-      ! Soot diffusive flux area-variation G-projection (retroactive).
-      ! Verified by the term_by_term_sympy audit (LEMMA 3/6, 7).
+      ! Proiezione su G del flusso diffusivo del soot in variazione d'area.
       !
-      ! Mod_Soot propagates the complete flux to Nvol via assignment:
+      ! Mod_Soot propaga il flusso completo a Nvol tramite l'assegnazione:
       !   flux(nc) = flux(i_CS) / (rho * Y_s / N) = flux(i_CS) * Prim(nc)/Prim(i_CS)
-      ! where flux(i_CS) post-Hirschfelder + Thermo = (Fick + Hirschfelder + Thermo).
+      ! dove flux(i_CS) dopo Hirschfelder + termoforesi = (Fick + Hirschfelder + Thermo).
       !
-      ! Q2D sign convention area-var: Source(α) chemistry =
+      ! Convenzione di segno Q2D in variazione d'area: Source(α) specie =
       !   -(rho·DmGradYi_x - V_c_x·Prim)·Gx - (rho·DmGradYi_y - V_c_y·Prim)·Gy   (Fick+Hirsch)
       !   -0.55·(mil+mie)·Prim/(rho·T)·(Gx·∂_x T + Gy·∂_y T)                      (Thermo)
       !
-      ! For Nvol propagated, scaling Prim(nc)/Prim(i_CS):
-      ! - Fick: -rho·(DmGradYi_x·Gx + DmGradYi_y·Gy) · Prim(nc)/Prim(i_CS)        (Y_s>0 guard)
-      ! - Hirschfelder: +V_c_x·Prim(nc)·Gx + V_c_y·Prim(nc)·Gy                    (always safe)
-      ! - Thermo: -0.55·(mil+mie)·Prim(nc)/(rho·T)·(Gx·∂_x T + Gy·∂_y T)         (always safe)
+      ! Per Nvol propagato, con fattore di scala Prim(nc)/Prim(i_CS):
+      ! - Fick: -rho·(DmGradYi_x·Gx + DmGradYi_y·Gy) · Prim(nc)/Prim(i_CS)        (guardia Y_s>0)
+      ! - Hirschfelder: +V_c_x·Prim(nc)·Gx + V_c_y·Prim(nc)·Gy                    (sempre sicuro)
+      ! - Thermo: -0.55·(mil+mie)·Prim(nc)/(rho·T)·(Gx·∂_x T + Gy·∂_y T)         (sempre sicuro)
       !
-      ! Skip nsoot=2 (i_CS=-1): soot thermophoretic diffusion is defined only for
-      ! nsoot=1 (it is keyed on the soot species index i_CS and propagated to Nvol).
-      ! The nsoot=2 heavy-gas model has no soot diffusive face-flux in ANY regime, so
-      ! there is no area-projection of it to add here. (The inviscid area-variation
-      ! residual for the nsoot=2 soot eqs nc/nc+1 is applied via Source(np+1:nprim)
-      ! in Source_Area_Eul_Blk.)
+      ! Salta nsoot=2 (i_CS=-1): la diffusione termoforetica del soot è definita solo
+      ! per nsoot=1 (è agganciata all'indice di specie soot i_CS e propagata a Nvol).
+      ! Il modello heavy-gas nsoot=2 non ha flusso diffusivo di faccia per il soot in
+      ! ALCUN regime, quindi non esiste alcuna sua proiezione d'area da aggiungere qui.
+      ! (Il residuo inviscido di variazione d'area per le equazioni soot nc/nc+1 di
+      ! nsoot=2 è applicato via Source(np+1:nprim) in Source_Area_Eul_Blk.)
       if (obj_soot%enabled .and. i_CS > 0) then
-        ! Y_s thermo + N thermo propagated
+        ! Termoforesi su Y_s + termoforesi propagata a N
         Source(i_CS) = Source(i_CS) - 0.55_R8*(mil + mie)*Prim(i_CS,i,j)/(rho*T) * &
                        (Gx*Gradient(np,1) + Gy*Gradient(np,2))
         Source(nc)   = Source(nc)   - 0.55_R8*(mil + mie)*Prim(nc,  i,j)/(rho*T) * &
                        (Gx*Gradient(np,1) + Gy*Gradient(np,2))
-        ! N Fick + Hirschfelder propagated (extension of the area-var residual)
+        ! Fick + Hirschfelder propagati a N (estensione del residuo di variazione d'area)
         Source(nc) = Source(nc) + V_c_x * Prim(nc,i,j) * Gx + V_c_y * Prim(nc,i,j) * Gy   ! Hirschfelder
         if (Prim(i_CS,i,j) > 1.0e-10_R8 * rho) then
           Source(nc) = Source(nc) - rho * Prim(nc,i,j) / Prim(i_CS,i,j) * &

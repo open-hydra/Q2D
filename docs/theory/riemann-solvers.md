@@ -6,8 +6,27 @@ right ($R$) states.  Q2D provides several solvers grouped into five
 families, each with distinct characteristics regarding accuracy,
 computational cost, and robustness.
 
-Solvers are selected at run time via the input file and can optionally
+Solvers are selected at run time via the INI key
+`[Q2D-Numerics] riemann-solver` and can optionally
 be combined with the [shock detector](numerics.md#shock-detection).
+The registry-documented values are (see the
+[Parameter Registry](../user/registry.md#q2d-numerics)):
+
+| INI value | Solver |
+|---|---|
+| `HLLC` (default), `HLLC+`, `HLLE`, `HLLE++`, `HLLEM` | HLL family |
+| `AUSM+`, `AUSM+-up`, `AUSM+-up2` | AUSM family |
+| `SLAU`, `SLAU2` | SLAU family |
+| `exact` | Godunov exact solver |
+
+The dispatcher (`src/lib/numerics/fluxes/riemann/Mod_Riemann.f90`)
+additionally accepts a few experimental keys outside the registry
+list: `LLF`/`Rusanov` and `HLLC Rotated` (described below), plus
+`Hanel` (Hänel-type AUSM flux) and `PLLF` (preconditioned local
+Lax–Friedrichs). These are dispatcher-only: they bypass registry
+validation, carry no allowed-value check, and are not exercised by
+any V&V case (see the [Coverage Matrix](../vv/coverage-matrix.md)) —
+use them for experimentation only.
 
 **Why multiple solvers?**
 
@@ -70,7 +89,7 @@ convective flux into a **convective** (mass-flux) part and a
 **pressure** part, treated independently.  This avoids a full
 eigenvalue decomposition and naturally handles low-Mach flows.
 
-### AUSM+ (Liou, 2006)
+### AUSM+ (Liou, 1996)
 
 Mach-based splitting extending standard AUSM (+) with improved
 low-Mach behaviour.
@@ -520,22 +539,27 @@ general-purpose simulations.
 
 ### Quick Reference
 
-**For most compressible-flow simulations:** start with **HLLC+** (or
-**SLAU/SLAU2** for all-speed flows).  HLLC+ balances accuracy,
-robustness, and cost.
+**For most compressible-flow simulations:** start with **HLLC** (the
+registry default, gated across most of the
+[V&V suite](../vv/index.md)) and move to **HLLC+** when
+shock-detection blending is needed, or to **SLAU/SLAU2** for
+all-speed flows.  Note that `SLAU2`, `HLLC+`, `HLLEM`, the `AUSM+`
+family, and `exact` are **not yet exercised by the ctest suite** —
+see the [Coverage Matrix known
+gaps](../vv/coverage-matrix.md#known-gaps-prioritized).
 
 **By application:**
 
-| Flow Type | Recommended Solver | Reason |
-|---|---|---|
-| **Shock-dominated** (hypersonic, detonation) | HLLE, HLLC+ | Robust; HLLC+ adds contact resolution |
-| **Smooth subsonic** (combustor, inlet) | SLAU2, AUSM+-up | Low-Mach accuracy; SLAU2 best |
-| **Mixed subsonic/transonic** | HLLC+, AUSM+-up | HLLC+ adaptive; AUSM+-up is simpler |
-| **Boundary layers + shocks** | HLLC+ | Shock detection aids shear resolution |
-| **Very low Mach (incompressible limit)** | SLAU2 | Compressibility-aware dissipation |
-| **Unsteady shock interaction** | HLLC+ | Shock detection tracks transients |
-| **Borda-flow choked nozzle** (Q2D) | Godunov-Glaister | Generalised Riemann invariant required |
-| **Emergency (solver divergence)** | HLLE, LLF | Maximum stability; accept extra diffusion |
+| Flow Type | Recommended Solver | Reason | V&V evidence |
+|---|---|---|---|
+| **Shock-dominated** (hypersonic, detonation) | HLLE, HLLC+ | Robust; HLLC+ adds contact resolution | HLLE gated on [hypersonic-cylinder](../vv/2D-hypersonic-cylinder.md), [Noh](../vv/2D-noh-cylindrical.md), [Woodward–Colella](../vv/2D-woodward-colella.md); HLLC+ not yet ctest-exercised |
+| **Smooth subsonic** (combustor, inlet) | SLAU2, AUSM+-up | Low-Mach accuracy; SLAU2 best | base SLAU gated on [Sod79](../vv/1D.md) and the [rocket-nozzle chemistry cases](../vv/2D-nozzle.md); SLAU2/AUSM+-up not yet ctest-exercised |
+| **Mixed subsonic/transonic** | HLLC+, AUSM+-up | HLLC+ adaptive; AUSM+-up is simpler | not yet ctest-exercised (HLLC default gated on the [nozzle cases](../vv/2D-planar-nozzle.md)) |
+| **Boundary layers + shocks** | HLLC+ | Shock detection aids shear resolution | HLLC gated on [SWBLI](../vv/2D-swbli.md) and the [flat plates](../vv/2D-flat-plate-turbulent.md); HLLC+ not yet ctest-exercised |
+| **Very low Mach (incompressible limit)** | SLAU2 | Compressibility-aware dissipation | not yet ctest-exercised |
+| **Unsteady shock interaction** | HLLC+ | Shock detection tracks transients | HLLE++ gated time-accurate on [Tor99](../vv/1D.md); HLLC+ not yet ctest-exercised |
+| **Borda-flow choked nozzle** (Q2D) | Godunov-Glaister | Generalised Riemann invariant required | gated on [borda-channel](../vv/2D-borda-channel.md) |
+| **Emergency (solver divergence)** | HLLE, LLF | Maximum stability; accept extra diffusion | LLF is a dispatcher-only key outside the registry (see above) |
 
 ### Convergence Tips
 
@@ -552,23 +576,25 @@ robustness, and cost.
 
 ## References
 
-1. M.-S. Liou, "A sequel to AUSM, Part II: AUSM+-up for all speeds,"
+1. M.-S. Liou, "A sequel to AUSM: AUSM+," *J. Comput. Phys.*,
+   129(2), 1996.
+2. M.-S. Liou, "A sequel to AUSM, Part II: AUSM+-up for all speeds,"
    *J. Comput. Phys.*, 214(1), 2006.
-2. E. F. Toro, M. Spruce, W. Speares, "Restoration of the contact
+3. E. F. Toro, M. Spruce, W. Speares, "Restoration of the contact
    surface in the HLL-Riemann solver," *Shock Waves*, 4, 1994.
-3. P. Batten, N. Clarke, C. Lambert, D. M. Causon, "On the choice of
+4. P. Batten, N. Clarke, C. Lambert, D. M. Causon, "On the choice of
    wavespeeds for the HLLC Riemann solver," *SIAM J. Sci. Comput.*,
    18(6), 1997.
-4. B. Einfeldt, C. D. Munz, P. L. Roe, B. Sjögreen, "On Godunov-type
+5. B. Einfeldt, C. D. Munz, P. L. Roe, B. Sjögreen, "On Godunov-type
    methods near low densities," *J. Comput. Phys.*, 92, 1991.
-5. E. Shima, K. Kitamura, "Parameter-free simple low-dissipation
+6. E. Shima, K. Kitamura, "Parameter-free simple low-dissipation
    AUSM-family scheme for all speeds," *AIAA J.*, 49(8), 2011.
-6. K. Kitamura, E. Shima, "Towards shock-stable and accurate
+7. K. Kitamura, E. Shima, "Towards shock-stable and accurate
    hypersonic heating computations: A new pressure flux for
    AUSM-family schemes," *J. Comput. Phys.*, 245, 2013.
-7. R. Tramel, R. Nichols, P. Buning, "Addition of improved
+8. R. Tramel, R. Nichols, P. Buning, "Addition of improved
    shock-capturing schemes to OVERFLOW 2.1," 19th AIAA Computational
    Fluid Dynamics, 2009. AIAA Paper 2009-3988.
-8. P. K. Glaister, "An approximate linearised Riemann solver for the
+9. P. K. Glaister, "An approximate linearised Riemann solver for the
    Euler equations for real gases," *J. Comput. Phys.*, 74(2), 1988
    — generalised Riemann invariant used by the Borda-flow nozzle BC.

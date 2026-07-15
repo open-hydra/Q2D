@@ -4,6 +4,7 @@
 </p>
 
 <p align="center">
+  <a href="https://github.com/open-hydra/Q2D/actions/workflows/ctest.yml"><img src="https://github.com/open-hydra/Q2D/actions/workflows/ctest.yml/badge.svg" alt="CTest"></a>
   <a href="https://github.com/open-hydra/Q2D/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-GPLv3-blue.svg" alt="License: GPLv3"></a>
   <a href="https://open-hydra.github.io/Q2D/"><img src="https://img.shields.io/badge/docs-online-brightgreen.svg" alt="Documentation"></a>
   <img src="https://img.shields.io/badge/language-Fortran-734f96.svg" alt="Language: Fortran">
@@ -60,7 +61,7 @@ cd Q2D
 
 The executable is placed in `bin/Q2D`.
 
-See the [Installation Guide](https://open-hydra.github.io/MOSE/getting-started/installation/) for all build options, CMake presets, and troubleshooting.
+See the [Installation Guide](https://open-hydra.github.io/Q2D/getting-started/installation/) for all build options, CMake presets, and troubleshooting.
 
 ### Run the Sod Shock Tube
 
@@ -73,11 +74,11 @@ python3 -B verify.py   # standalone visualization + ExactPack analytical referen
 For the CTest-driven regression workflow:
 
 ```bash
-cd build
-ctest --output-on-failure -R Sod79
+ctest --test-dir build --output-on-failure -R Sod79   # one case
+ctest --test-dir build -LE heavy --output-on-failure  # full fast tier (CI set)
 ```
 
-See the [Quick Start](https://open-hydra.github.io/MOSE/getting-started/quick-start/) for a full walkthrough.
+See the [Quick Start](https://open-hydra.github.io/Q2D/getting-started/quick-start/) for a full walkthrough.
 
 ## Dependencies
 

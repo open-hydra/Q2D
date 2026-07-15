@@ -1,9 +1,0 @@
-# planar-nozzle grid-convergence verification (q2D area-variation vs quasi-1D area law)
-  N=  50 dx=0.02000 g=1.40000 R=287.000  L1=5.38e-04 L2=6.69e-04 Linf=2.05e-03@x=0.390  Linf_s=1.13e-03 M_exit=2.44410
-  N= 100 dx=0.01000 g=1.40000 R=287.000  L1=1.50e-04 L2=2.13e-04 Linf=1.14e-03@x=0.395  Linf_s=2.98e-04 M_exit=2.44311
-  N= 200 dx=0.00500 g=1.40000 R=287.000  L1=3.94e-05 L2=6.96e-05 Linf=6.04e-04@x=0.398  Linf_s=7.60e-05 M_exit=2.44285
-  N= 400 dx=0.00250 g=1.40000 R=287.000  L1=1.01e-05 L2=2.34e-05 Linf=3.11e-04@x=0.399  Linf_s=1.92e-05 M_exit=2.44279
-  N= 800 dx=0.00125 g=1.40000 R=287.000  L1=2.58e-06 L2=8.04e-06 Linf=1.58e-04@x=0.399  Linf_s=4.82e-06 M_exit=2.44277
-# observed order (log-log fit): L1=1.93  L2=1.59  Linf=0.93  Linf_s=1.97  L2_s=1.97
-# Richardson(exit Mach): p=1.987  M_extrap=2.442765  M_true=2.442765  |d|=3.3e-08  GCI_fine=0.0003%  asympt=1.000
-# figures: /data07/montanari/Codes/open-hydra/archive-Q2D/test/2D/euler/planar-nozzle/nozzle_solution.png  /data07/montanari/Codes/open-hydra/archive-Q2D/test/2D/euler/planar-nozzle/nozzle_convergence.png  (+ .svg)

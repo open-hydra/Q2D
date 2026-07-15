@@ -6,7 +6,7 @@ module Q2D_IO_BC
   public :: Setup_BC
   public :: Print_BC_Summary
 
-  ! BC type counters — populated by Read_BCfile, consumed by Print_BC_Summary
+  ! Counters per BC type — populated by Read_BCfile, consumed by Print_BC_Summary
   integer :: nconnect, nwall, ngsi, nSRM, nio, nsym, nper, nchimera, ncoupled, next, nmanifold, nstate
   logical :: has_tdep_bc
 
@@ -18,17 +18,17 @@ contains
     use Q2D_Global_m,         only: model
     implicit none
     type(Q2D_domain_type), intent(inout) :: domain(:)
-    ! Local
+    ! Local variables
     integer :: m, error
 
     do m = 1, obj_multigrid%MGL
 
-      !! Phase 1: Allocate and check
+      !! Phase 1: allocation and validation
       call Allocate_BC ( domain(m) )
 
-      ! 4 faces 2D (vs the 3D peer's 6 faces). The flags are allocated as (nb*6, 4).
-      ! Slot 6 in `nb*6` is kept for layout symmetry with the 3D peer, but only
-      ! 4 faces are used.
+      ! 2D solver: 4 faces per block. The flags are allocated as (nb*6, 4):
+      ! the factor 6 in the first dimension is kept for layout symmetry with
+      ! the 3D six-face case, but only 4 faces are actually used.
       if (allocated(obj_io_bc%viscous_flag))  deallocate(obj_io_bc%viscous_flag)
       allocate ( obj_io_bc%viscous_flag( 6 * domain(m) % nb, 4 ) )
       obj_io_bc%viscous_flag = .false.
@@ -40,7 +40,7 @@ contains
       error = Check_BC ( domain(m) % nbound, m )
       if (error /= 0) cycle
 
-      !! Phase 2: Read
+      !! Phase 2: reading
       call Read_BCfile ( domain(m) % bc, domain(m) % n_bf, m )
 
       if ((any(obj_io_bc%viscous_flag)) .and. (model==0)) then
@@ -56,10 +56,10 @@ contains
     use Q2D_Advanced_Types_m, only: Q2D_domain_type
     implicit none
     class(Q2D_domain_type) :: domain
-    ! Local
+    ! Local variables
     integer :: b, n, ni, nj
 
-    ! 4 faces 2D per block — n = sum_b (2*nj + 2*ni).
+    ! 4 2D faces per block — n = sum_b (2*nj + 2*ni).
     n = 0
     do b = 1, domain % nb
       ni = domain % blk(b) % dim(1)
@@ -86,7 +86,7 @@ contains
 
     ios = 0
 
-    ! Open file
+    ! Open the file
     if (level == 1) then
       open(newunit=unitfile, file='INPUT/'//trim(Q2D_phase_prefix)//'bc.txt', &
            status='old', iostat=ios, action='read')
@@ -99,37 +99,37 @@ contains
       return
     end if
 
-    ! Check BC file consistency.
-    ! ATLAS meshType==-2 head is ALWAYS 5 ints (b, i, j, f, type); no k, no
-    ! dual-format autodetection. bc%type is read DIRECTLY (codes are already the
-    ! new ATLAS-emitted set; no legacy translation).
-    ! `n_proof = -1` init + no exit guard. The EOF iteration performs a no-op
-    ! increment that compensates the -1 init, so the final `n_proof` equals the
-    ! number of successful head reads.
+    ! Consistency check of the BC file.
+    ! The header (ATLAS format, meshType==-2) is ALWAYS 5 integers
+    ! (b, i, j, f, type); no k field, no autodetection of alternative
+    ! formats. bc%type is read DIRECTLY: the codes are exactly those
+    ! emitted by ATLAS, with no translation.
+    ! Initialization `n_proof = -1` with no exit guard: the EOF iteration
+    ! performs an empty increment that compensates the initial -1, so the
+    ! final value of `n_proof` equals the number of headers read successfully.
     ios = 0; n_proof = -1
     do while (ios == 0)
       read(unitfile, *, iostat=ios) di(1), di(2), di(3), di(4), ti
-      ! BC 410 OUT-OF-SCOPE Q2D-side (a MOSE-peer-only feature.
-      ! Reject early in validation with a clear error message before
-      ! Read_BCfile error_stops.
+      ! BC type 410 (mapped-state) is not supported in Q2D: it is rejected
+      ! already at validation with an explicit message, before Read_BCfile
+      ! terminates with error stop.
       if (ti == 410) then
-        obj_io_bc%error_message = '[ERROR] BC type 410 (mapped-state) is MOSE-only feature; ' // &
-                                  'Q2D-side reciprocal NOT adopted (MOSE-only feature). ' // &
+        obj_io_bc%error_message = '[ERROR] BC type 410 (mapped-state) is not supported. ' // &
                                   'Use BC 401-407 (inflow) or BC 400 (extrapolation) instead.'
-        ! Non-zero return makes Setup_BC skip Read_BCfile (cycle), so the
-        ! reject surfaces through Mod_Diagnostic::Check_BC as the graceful
-        ! '[ERROR] ...' diagnostic instead of Read_BCfile's raw error stop
-        ! (which is kept as a defensive backstop). Governed divergence #18.
+        ! The nonzero return value makes Setup_BC skip Read_BCfile
+        ! (cycle): the rejection surfaces through Mod_Diagnostic::Check_BC as
+        ! a clean '[ERROR] ...' diagnostic, instead of the raw error stop in
+        ! Read_BCfile (kept as a defensive safeguard).
         ios = -1
         close(unitfile)
         return
       end if
-      ! Dispatch to skip the right number of extra lines.
+      ! Dispatch to skip the correct number of additional lines.
       ! IDs with ONE property line:
       !   101/103 = connection/coupled | 201 = periodic | 301-309 = wall |
-      !   401-407,420 = inlet/outlet | 501 = manifold | 502 = srm
-      ! IDs with NO property line:
-      !   200 = axisym | 300 = symmetry | 400 = extrapolation
+      !   401-407,420 = inflow/outflow | 501 = manifold | 502 = srm
+      ! IDs WITHOUT a property line:
+      !   200 = axisymmetry | 300 = symmetry | 400 = extrapolation
       ! IDs with VARIABLE-length property lines:
       !   102 = chimera
       select case (ti)
@@ -153,7 +153,7 @@ contains
       return
     end if
 
-    ! Validation passed: reset ios (non-zero from EOF) to signal success.
+    ! Validation passed: reset ios (nonzero because of the EOF) to signal success.
     ios = 0
     close(unitfile)
 
@@ -169,13 +169,13 @@ contains
     type(Q2D_bc_type), dimension(:), intent(inout) :: bc
     integer,                          intent(in)    :: level
     integer, dimension(1:,1:),        intent(inout) :: n_bf
-    ! Local
+    ! Local variables
     integer :: cc, i, s
     integer :: unitfile, ios
     character(len=32) :: p0file
     character(len=32) :: alpha_tok, beta_tok
 
-    ! Open file
+    ! Open the file
     if (level == 1) then
       open(newunit=unitfile, file='INPUT/'//trim(Q2D_phase_prefix)//'bc.txt', &
            status='old', iostat=ios, action='read')
@@ -188,7 +188,7 @@ contains
       return
     end if
 
-    ! Counters (reset only on coarse-grid level 1)
+    ! Counters (reset only at grid level 1)
     if (level == 1) then
       nconnect = 0; nwall = 0; ngsi = 0; nSRM = 0
       nio = 0; nsym = 0; nper = 0; nchimera = 0
@@ -196,25 +196,27 @@ contains
       has_tdep_bc = .false.
     end if
 
-    ! Counter for number of cells per face in each block
+    ! Counter of the number of cells per face in each block
     n_bf = 0
 
-    ! Read file
+    ! Read the file
     do i = 1, size(bc)
 
       ! ── First line: block, ij, face, ATLAS BC ID ─────────────────────────────
-      ! ATLAS meshType==-2 head = 5 ints (b, i, j, f, type). No k field: set ks=1.
-      ! Codes are already the new ATLAS-emitted set — read bc%type DIRECTLY.
+      ! Header (ATLAS format, meshType==-2) of 5 integers (b, i, j, f, type).
+      ! No k field: ks=1 is imposed. The codes are exactly those emitted by
+      ! ATLAS — bc%type is read DIRECTLY.
       read(unitfile, *, iostat=ios) bc(i)%b, bc(i)%i, bc(i)%j, bc(i)%f, bc(i)%type
       bc(i)%ks = 1
       if (ios /= 0) write(*,'(A,I0)') '  Error in BC file at record ', i
 
-      ! n_bf update
+      ! Update n_bf
       n_bf( bc(i)%b, bc(i)%f ) = n_bf( bc(i)%b, bc(i)%f ) + 1
 
-      ! ── Second line: property data, BC-type dependent ────────────────────────
-      ! 2D shape: connection/coupled property line is 8 ints (bs,is,js,fs +
-      ! d11,d12,d21,d22); no ks. Pg 2nd dim = 4 (4 faces in 2D).
+      ! ── Second line: property data, depending on the BC type ─────────────────
+      ! 2D form: the connection/coupled property line is 8 integers
+      ! (bs,is,js,fs + d11,d12,d21,d22); no ks. The 2nd dimension of Pg is 4
+      ! (4 faces in 2D).
       select case ( bc(i)%type )
 
         ! ─────────────────────────────────────────────────────────────────────
@@ -226,7 +228,7 @@ contains
           allocate( bc(i)%Pg(nprim, 4) )
 
         ! ─────────────────────────────────────────────────────────────────────
-        ! Chimera overlap BC
+        ! Chimera overset BC
         case (102)
           if (level == 1) nchimera = nchimera + 1
           read(unitfile, *, iostat=ios) (bc(i)%ni(cc), cc=1,2)
@@ -246,7 +248,7 @@ contains
           if (level == 1) nper = nper + 1
 
         ! ─────────────────────────────────────────────────────────────────────
-        ! Euler symmetry
+        ! Eulerian symmetry
         case (300)
           if (level == 1) nsym = nsym + 1
 
@@ -290,7 +292,7 @@ contains
           read(unitfile, *, iostat=ios) bc(i)%qrad, bc(i)%k_rough
 
         ! ─────────────────────────────────────────────────────────────────────
-        ! Inlet, stagnation conditions (T0, p0)
+        ! Inflow, stagnation conditions (T0, p0)
         ! Second line: T0, p0, alpha, beta, rel_fac, massf(1:nsc), turb(1:nrans)
         case (401)
           if (level == 1) nio = nio + 1
@@ -302,7 +304,7 @@ contains
           bc(i)%beta  = parse_dir_tok(beta_tok)
 
         ! ─────────────────────────────────────────────────────────────────────
-        ! Inlet, time-varying p0
+        ! Inflow, time-varying p0
         ! Second line: T0, p0_time_file, alpha, beta, rel_fac, massf, turb
         case (402)
           if (level == 1) nio = nio + 1
@@ -316,7 +318,7 @@ contains
           bc(i)%beta  = parse_dir_tok(beta_tok)
 
         ! ─────────────────────────────────────────────────────────────────────
-        ! Inlet, mass-flux g + T0
+        ! Inflow, mass flux g + T0
         ! Second line: T0, g, alpha, beta, rel_fac, massf, turb
         case (403)
           if (level == 1) nio = nio + 1
@@ -328,7 +330,7 @@ contains
           bc(i)%beta  = parse_dir_tok(beta_tok)
 
         ! ─────────────────────────────────────────────────────────────────────
-        ! Inlet, mass-flux g + T (static)
+        ! Inflow, mass flux g + T (static)
         ! Second line: T, g, alpha, beta, rel_fac, massf, turb
         case (404)
           if (level == 1) nio = nio + 1
@@ -340,7 +342,7 @@ contains
           bc(i)%beta  = parse_dir_tok(beta_tok)
 
         ! ─────────────────────────────────────────────────────────────────────
-        ! Supersonic inlet, M + T (static) + p (static)
+        ! Supersonic inflow, M + T (static) + p (static)
         ! Second line: mach, T, p, alpha, beta, rel_fac, massf, turb
         case (405)
           if (level == 1) nio = nio + 1
@@ -352,7 +354,7 @@ contains
           bc(i)%beta  = parse_dir_tok(beta_tok)
 
         ! ─────────────────────────────────────────────────────────────────────
-        ! Outlet, prescribed back pressure (if zero, extrapolation)
+        ! Outflow, prescribed back pressure (extrapolation if zero)
         ! Second line: p_back, rel_fac
         case (406)
           if (level == 1) nio = nio + 1
@@ -371,25 +373,19 @@ contains
           bc(i)%beta  = parse_dir_tok(beta_tok)
 
         ! ─────────────────────────────────────────────────────────────────────
-        ! Mapped state (BC 410) — a MOSE-peer-only feature, OUT-OF-SCOPE Q2D-side
-        ! The Q2D-side reciprocal is NOT adopted; reject
-        ! with an explicit error_stop (no silent fallback / no half-finished
-        ! implementations). Mirrored rejection lives in Check_BC.
+        ! Mapped state (BC 410) — not supported in Q2D: rejected with an
+        ! explicit error stop (no silent fallback, no partial implementation).
+        ! The mirrored, earlier rejection is in Check_BC.
         case (410)
-          obj_io_bc%error_message = '[ERROR] BC type 410 (mapped-state) is MOSE-only feature; '       // &
-                                    'Q2D-side reciprocal NOT adopted (MOSE-only feature). '           // &
+          obj_io_bc%error_message = '[ERROR] BC type 410 (mapped-state) is not supported. '           // &
                                     'Use BC 401-407 (inflow) or BC 400 (extrapolation) instead.'
-          error stop '[FATAL] BC type 410 OUT-OF-SCOPE Q2D-side (see error_message)'
+          error stop '[FATAL] BC type 410 is not supported (see error_message)'
 
         ! ─────────────────────────────────────────────────────────────────────
-        ! Choked-nozzle (Borda flow encoded via BC_Mach==-20 in mach field).
-        ! pamb carries the Borda area ratio A1/A3 (consumed as A1_A3 by
-        ! BC_Nozzle_Borda_Flow); restored to legacy field order (legacy case(22):
-        ! mach,T0,p0,alpha,beta,pamb,rel_fac,ci) — was dropped in the MOSE-style
-        ! rewrite, leaving A1/A3 unread (Sess 35, bc_reachability_audit_sess35.md).
-        ! GOVERNED Q2D-current semantics preserved (CLAUDE peculiarity #4); the
-        ! divergence vs MOSE's psub/psup/rt order is a separate governed
-        ! reconciliation, NOT touched by this reader rewrite.
+        ! Ugello choked (flusso di Borda codificato con BC_Mach==-20 nel campo
+        ! mach). pamb trasporta il rapporto d'area di Borda A1/A3, consumato
+        ! come A1_A3 da BC_Nozzle_Borda_Flow.
+        ! Seconda riga: mach, T0, p0, alpha, beta, pamb, rel_fac, massf, turb
         case (420)
           if (level == 1) nio = nio + 1
           allocate( bc(i)%ci(1 : nsc+nrans) )
@@ -400,24 +396,24 @@ contains
           bc(i)%beta  = parse_dir_tok(beta_tok)
 
         ! ─────────────────────────────────────────────────────────────────────
-        ! Manifold mean-flow connection
+        ! Connessione manifold a flusso medio
         case (501)
           if (level == 1) nmanifold = nmanifold + 1
           read(unitfile, *, iostat=ios) bc(i)%bs, bc(i)%fs
 
         ! ─────────────────────────────────────────────────────────────────────
-        ! SRM grain combustion (BC 502).
-        ! Reads Taf, aCoeff, n, pRef, rhoGrain, SF_geo, massf(1:nsc);
-        ! haf hardcoded to 0 — no longer in ATLAS output format.
+        ! Combustione del grano SRM (BC 502).
+        ! Legge Taf, aCoeff, n, pRef, rhoGrain, SF_geo, massf(1:nsc);
+        ! haf imposto a 0 — non presente nel formato di output ATLAS.
         case (502)
           if (level == 1) nSRM = nSRM + 1
           allocate( bc(i)%ci(1 : nsc) )
-          bc(i)%haf = 0.0_R8   ! haf no longer in ATLAS output; set to zero
+          bc(i)%haf = 0.0_R8   ! haf assente nell'output ATLAS; posto a zero
           read(unitfile, *, iostat=ios) bc(i)%Taf, bc(i)%aCoeff, bc(i)%n, bc(i)%pRef, &
             bc(i)%rhoGrain, bc(i)%SF_geo, (bc(i)%ci(s), s = 1, nsc)
 
         ! ─────────────────────────────────────────────────────────────────────
-        ! Coupled multi-solver wall; To add the old 999 ncoupled1D
+        ! Parete accoppiata multi-solutore
         case (103)
           if (level == 1) ncoupled = ncoupled + 1
           obj_io_bc%coupling_flag( bc(i)%b, bc(i)%f ) = .true.
@@ -427,11 +423,11 @@ contains
           bc(i)%ext_flux = 0.0_R8
           allocate( bc(i)%Pg(1, 4) )
 
-        ! Unhandled codes (e.g. 0 = collapsed-direction zero-gradient
-        ! extrapolation used for the trivial j-direction in 1D shock-tube tests,
-        ! and the 305:309 skip-range which carries no body) fall through —
-        ! no property line, no allocation. There is intentionally NO `case
-        ! default` here.
+        ! I codici non gestiti (es. 0 = estrapolazione a gradiente nullo nella
+        ! direzione collassata, usata per la direzione j banale nei test 1D di
+        ! tubo d'urto, e l'intervallo 305:309, privo di corpo) proseguono senza
+        ! effetti — nessuna riga di proprietà, nessuna allocazione. L'assenza
+        ! di `case default` è intenzionale.
 
       end select
 
@@ -467,11 +463,12 @@ contains
 
 
   ! ---------------------------------------------------------------------------
-  ! parse_dir_tok: convert a direction token (read as character) to real.
-  !   If the token contains 'normal', return huge(R8) (face-normal flag).
-  !   Otherwise parse as a floating-point number.
-  ! ATLAS writes a literal 'normal' token for alpha/beta on
-  ! 401/402/403/404/405/407/420 when the inflow direction is face-normal.
+  ! parse_dir_tok: converte un token di direzione (letto come character) in real.
+  !   Se il token contiene 'normal', restituisce huge(R8) (flag di direzione
+  !   normale alla faccia). Altrimenti lo interpreta come numero reale.
+  ! ATLAS scrive il token letterale 'normal' per alpha/beta nei tipi
+  ! 401/402/403/404/405/407/420 quando la direzione di ingresso è normale
+  ! alla faccia.
   ! ---------------------------------------------------------------------------
   pure function parse_dir_tok(tok) result(val)
     implicit none

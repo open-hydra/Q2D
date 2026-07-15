@@ -81,13 +81,16 @@ def write_case(target, ni):
 
     # bc.txt : face1,2 extrapolation(400) streamwise ends ; face3,4 symmetry(300)
     #          mirror Ein91/Tor99 1D layout (1D = symmetry top/bottom).
+    # Q2D bc.txt head is ALWAYS 5 ints (b, i, j, f, type) -- no K column
+    # (see IO_BC.f90 Check_BC); the 6-column MOSE 3D layout crashes the
+    # metrics setup with misparsed face codes.
     with open(os.path.join(target, "bc.txt"), "w") as f:
-        def rec(b, i, j, k, fc, code):
-            f.write(f"{b:8d}{i:8d}{j:8d}{k:8d}{fc:8d}{code:8d}\n")
-        rec(1, 1,  1, 1, 1, 400)
-        rec(1, ni, 1, 1, 2, 400)
-        for i in range(1, ni+1): rec(1, i, 1, 1, 3, 300)
-        for i in range(1, ni+1): rec(1, i, 1, 1, 4, 300)
+        def rec(b, i, j, fc, code):
+            f.write(f"{b:8d}{i:8d}{j:8d}{fc:8d}{code:8d}\n")
+        rec(1, 1,  1, 1, 400)
+        rec(1, ni, 1, 2, 400)
+        for i in range(1, ni+1): rec(1, i, 1, 3, 300)
+        for i in range(1, ni+1): rec(1, i, 1, 4, 300)
 
 if __name__ == "__main__":
     write_case(TGT, NI)

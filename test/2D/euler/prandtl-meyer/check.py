@@ -9,62 +9,18 @@ Reads the converged Mach at the exit-probe location from ``OUTPUT/exit.txt``
 < 0.5%.
 
 Also enforces sanity check on the field (regression_tolerance.md Section 3.2):
-``min(rho), min(p), min(T) > 0`` everywhere.
+``min(rho), min(p), min(T) > 0`` everywhere (hard, NaN-safe via q2d_check_lib).
 """
 import math
-import os
-import re
 import sys
-import tempfile
 import warnings
 import numpy as np
 from pathlib import Path
 warnings.filterwarnings("ignore")
 
-root = Path(__file__).resolve().parent
-for parent in [root, *root.parents]:
-    candidate = parent / "lib" / "ORION" / "src" / "python"
-    if candidate.exists():
-        sys.path.insert(0, str(candidate))
-        break
-
-try:
-    from ORION import read_TEC
-except ModuleNotFoundError:
-    raise ModuleNotFoundError(
-        "ORION package not found. Run 'conda activate base' or install ORION in the current Python environment."
-    )
-
-
-def patch_q2d_tec_to_3d(in_path):
-    with open(in_path) as f:
-        lines = f.readlines()
-    header = lines[0]
-    zone   = lines[1]
-    m = re.search(r'I=\s*(\d+).*J=\s*(\d+).*K=\s*(\d+)', zone)
-    ni, nj, nk = int(m.group(1)), int(m.group(2)), int(m.group(3))
-    nnodes = ni * nj * nk
-    new_header = header.replace('"y"', '"y" "z"', 1)
-    m2 = re.search(r'VARLOCATION=\(\[(\d+)-(\d+)\]=NODAL,\[(\d+)-(\d+)\]=CELLCENTERED', zone)
-    if m2:
-        na, nb_, ca, cb = (int(m2.group(i)) for i in (1, 2, 3, 4))
-        new_zone = zone.replace(
-            f'[{na}-{nb_}]=NODAL,[{ca}-{cb}]=CELLCENTERED',
-            f'[{na}-{nb_+1}]=NODAL,[{ca+1}-{cb+1}]=CELLCENTERED',
-        )
-    else:
-        new_zone = zone
-    z_block = ' 0.000000000000000E+000\n' * nnodes
-    out = [new_header, new_zone]
-    out.extend(lines[2 : 2 + nnodes])
-    out.extend(lines[2 + nnodes : 2 + 2 * nnodes])
-    out.append(z_block)
-    out.extend(lines[2 + 2 * nnodes :])
-    tmp = tempfile.NamedTemporaryFile(mode='w', suffix='.tec', delete=False)
-    tmp.writelines(out)
-    tmp.close()
-    return tmp.name
-
+sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "common" / "pycheck"))
+from q2d_check_lib import (fail, require_file, assert_positive, assert_finite,
+                           read_q2d_field)
 
 gamma = 1.4
 
@@ -93,62 +49,52 @@ def prandtl_meyer_expansion(theta, M):
     return mach_from_nu(nu2, gamma)
 
 
-# Field-level sanity check
-patched = patch_q2d_tec_to_3d('OUTPUT/field.tec')
-try:
-    [x_, y_, z_, var_, vnames] = read_TEC(patched)
-finally:
-    os.unlink(patched)
+# Field-level sanity check (hard, NaN-safe)
+require_file('OUTPUT/field.tec', "did ./Q2D.sh solve run?")
+x_, y_, var_, vnames = read_q2d_field('OUTPUT/field.tec')
 
 rho = var_[0][0]
+u   = var_[0][1]
+v   = var_[0][2]
 p   = var_[0][3]
 T   = var_[0][4]
-if rho.min() <= 0.0:
-    print(f'Sanity: min(rho)={rho.min()} <= 0'); sys.exit(1)
-if p.min() <= 0.0:
-    print(f'Sanity: min(p)={p.min()} <= 0'); sys.exit(1)
-if T.min() <= 0.0:
-    print(f'Sanity: min(T)={T.min()} <= 0'); sys.exit(1)
+assert_positive("rho", rho)
+assert_positive("p", p)
+assert_positive("T", T)
+assert_finite("u", u)
+assert_finite("v", v)
 
 # Analytical Prandtl-Meyer Mach at the exit
 M1 = 2.0
 theta = 34.971
 M2_analytical = prandtl_meyer_expansion(theta, M1)
 
-# CFD Mach at exit probe (last line of probe output)
+# CFD Mach at exit probe (last line of probe output). Guarded: the probe
+# file must exist, be non-empty and its last line must parse to
+# ``iter  Mach`` -- an empty/truncated probe file is a hard failure, not
+# an IndexError.
+require_file('OUTPUT/exit.txt', "exit probe was not written (Q2D-Probes)")
 with open('OUTPUT/exit.txt', 'r') as file:
-    lines = file.readlines()
-    last_line = lines[-1]
-    columns = last_line.strip().split()
-    CFDval = columns[1]
+    lines = [ln for ln in file.readlines() if ln.strip()]
+if not lines:
+    fail("OUTPUT/exit.txt contains no data lines (probe never sampled)")
+columns = lines[-1].strip().split()
+if len(columns) < 2:
+    fail(f"OUTPUT/exit.txt last line has {len(columns)} column(s), expected >= 2: "
+         f"'{lines[-1].strip()}'")
+try:
+    CFDval = float(columns[1])
+except ValueError:
+    fail(f"OUTPUT/exit.txt last line is not numeric: '{lines[-1].strip()}'")
+if not math.isfinite(CFDval):
+    fail(f"exit-probe Mach is non-finite: {CFDval}")
 
-perr = abs(float(CFDval) - M2_analytical) / M2_analytical * 100
+perr = abs(CFDval - M2_analytical) / M2_analytical * 100
 if perr > 0.5:
-    print('Mach number mismatch (CFD vs analytical)')
     print(f'CFD={CFDval}  Analytical={M2_analytical}')
     print(f'Error = {perr}%, threshold = 0.5%')
-    sys.exit(1)
-else:
-    print(f'(1) Natural reference: M_CFD={CFDval}, M_analytical={M2_analytical:.6f}, eps_rel={perr:.4f}%')
-
-# (2) MOSE bit-exact reference: Q2D field K=0 vs cached MOSE field (2D plane case;
-# bit-exact equivalence verified iter-by-iter from Sess 5b-bis 2026-05-15).
-import subprocess
-mose_ref = Path(__file__).resolve().parents[4] / 'test' / 'regression_baseline' / 'MOSE_K0' / 'prandtl-meyer' / 'field.tec'
-diff_tool = Path(__file__).resolve().parents[4] / 'tools' / 'diff_mose_q2d_field.py'
-if not mose_ref.exists():
-    print(f'(2) WARN: MOSE bit-exact reference not found at {mose_ref}; skipping')
-elif not diff_tool.exists():
-    print(f'(2) WARN: diff utility not found at {diff_tool}; skipping')
-else:
-    print(f"(2) MOSE bit-exact reference vs Q2D field (Linf_rel < 1e-9, L2_rel < 1e-12, atol 1e-10):")
-    res = subprocess.run([sys.executable, str(diff_tool), str(mose_ref), 'OUTPUT/field.tec',
-                          '--tol-linf', '1e-9', '--tol-l2', '1e-12'],
-                         stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
-    print(res.stdout)
-    if res.returncode != 0:
-        print(res.stderr)
-        print('(2) FAIL: MOSE bit-exact mismatch'); sys.exit(1)
-    print('(2) MOSE bit-exact reference: OK')
+    fail('Mach number mismatch (CFD vs analytical)')
+print(f'Natural reference: M_CFD={CFDval}, M_analytical={M2_analytical:.6f}, '
+      f'eps_rel={perr:.4f}%')
 
 print('Correct!')

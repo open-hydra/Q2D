@@ -23,6 +23,6 @@ Q2D builds on the same companion library stack as MOSE:
 
 ## Contributors
 
-The Q2D core team and contributors are listed in the `AUTHORS` file at the repository root.
+The Q2D core team and contributors are listed in the `AUTHORS.md` file at the repository root.
 
 For citation: see `CITATION.cff` at the repository root.

@@ -1,12 +1,10 @@
 module Q2D_Lib_Source_Axisymmetry
-  ! Q2D-extra: MOSE has no numerics/sources/.
-  !
-  ! Q2D-specific axisymmetric source terms:
-  !   Eulerian:  S(nv) = -ρ·v_r²/r,  S(np) = -(ρ·E0+p)·v_r/r, etc.
-  !   Viscous: (τ_rr - τ_θθ)/r — wired via Q2D_Lib_Fluid::Stress_Tensor +
+  ! Termini sorgente assialsimmetrici Q2D:
+  !   euleriani: S(nv) = -ρ·v_r²/r,  S(np) = -(ρ·E0+p)·v_r/r, ecc.
+  !   viscosi: (τ_rr - τ_θθ)/r — realizzati tramite Q2D_Lib_Fluid::Stress_Tensor +
   !            Q2D_Lib_RANS::{Eddy_Viscosity, RANS_Diffusive_SourceQ2D}.
   !
-  ! Axis of symmetry (r → 0): de l'Hôpital fallback with eps=1.d-12.
+  ! Asse di simmetria (r → 0): fallback alla de l'Hôpital con eps=1.d-12.
   use iso_fortran_env, only: I4 => int32, R8 => real64
   use Q2D_Advanced_Types_m, only: Q2D_block_type
   implicit none
@@ -19,9 +17,9 @@ module Q2D_Lib_Source_Axisymmetry
 contains
 
   subroutine Precompute_Axisymmetric_Geometry ( blk )
-    ! Precompute r_ave (cell-centre radius) and r_inv = 1/max(r_ave, eps).
-    ! The axis_r_ave/axis_inv_r fields are allocated by Mod_Allocate_Data
-    ! → no self-allocate here.
+    ! Precalcola r_ave (raggio a centro cella) e r_inv = 1/max(r_ave, eps).
+    ! I campi axis_r_ave/axis_inv_r sono allocati da Mod_Allocate_Data
+    ! → nessuna auto-allocazione qui.
     implicit none
     type(Q2D_block_type), intent(inout) :: blk
     integer  :: i, j
@@ -40,7 +38,7 @@ contains
 
 
   subroutine Source_Axi_Eul_Blk ( Prim, Res, r_ave, r_inv, sur, n )
-    ! Axisymmetric Eulerian source terms: geometric 1/r terms.
+    ! Termini sorgente euleriani assialsimmetrici: termini geometrici in 1/r.
     use Q2D_Global_m,            only: nprim, nsc, nu, nv, np, nt, gc
     use FLINT_Lib_Thermodynamic, only: Co_rotot_Rtot, E0
     implicit none
@@ -50,7 +48,7 @@ contains
     real(R8), dimension(1-gc:n(1)+gc, 1-gc:n(2)+gc),        intent(in)    :: sur
     real(R8), dimension(1:n(1),1:n(2)),                     intent(in)    :: r_ave
     real(R8), dimension(1:n(1),1:n(2)),                     intent(in)    :: r_inv
-    ! Local
+    ! Variabili locali
     integer  :: i, j
     real(R8) :: rho, Rgas, mod_v, invr
     real(R8) :: Source(nprim)
@@ -63,15 +61,14 @@ contains
       mod_v = norm2(Prim(nu:nv,i,j))
       invr  = r_inv(i,j)
 
-      ! Source multiplied by rho since the SA equation is integrated in conservative form
+      ! Sorgente moltiplicata per rho: l'equazione SA è integrata in forma conservativa
       Source(1:nsc) = -Prim(1:nsc,i,j) * Prim(nv,i,j) * invr
       Source(nu)    = -rho * Prim(nu,i,j) * Prim(nv,i,j) * invr
       Source(nv)    = -rho * Prim(nv,i,j) * Prim(nv,i,j) * invr
       Source(np)    = -(rho * E0(Prim(np,i,j),Prim(1:nsc,i,j),mod_v) + Prim(np,i,j)) * Prim(nv,i,j) * invr
 
-      ! Cylindric residual -rho*phi*V_r/r for ALL post-pressure indices
-      ! (soot Nvol, soot rho*Y_s nsoot=2, passive scalars, RANS).
-      ! Verified by the term_by_term_sympy audit (LEMMA 4).
+      ! Residuo cilindrico -rho*phi*V_r/r per TUTTI gli indici oltre la pressione
+      ! (soot Nvol, soot rho*Y_s per nsoot=2, scalari passivi, RANS).
       if (nprim > np) then
         Source(np+1:nprim) = -Prim(nv,i,j) * Prim(np+1:nprim,i,j) * invr
       end if
@@ -82,15 +79,17 @@ contains
 
 
   subroutine Source_Axi_Visc_Blk ( Prim, Res, M, yn, r_ave_arr, r_inv, sur, n )
-    ! Axisymmetric viscous source terms: geometric diffusive terms (cylindrical 1/r).
+    ! Termini sorgente viscosi assialsimmetrici: termini diffusivi geometrici
+    ! (cilindrici in 1/r).
     !
-    ! Pattern viscous geometric sources (cylindrical 1/r):
+    ! Struttura dei termini sorgente geometrici viscosi (cilindrici in 1/r):
     !   - Source(nu) = Stress_t(2,1)/r
     !   - Source(nv) = (Stress_t(2,2)-Stress_t(3,3))/r   ! tau_rr - tau_theta_theta
     !   - Source(np) = (-qr + V·tau + (DiffHFlux - h_mix*V_c)*rho)/r
-    !   - symmetric Hirschfelder closure for species (V_c dormant in current regime,
-    !     Round 6 §3.5; activates with species-dependent Dm via FLINT co_DS).
-    !   - RANS_Diffusive_SourceQ2D for turbulent variables (binding).
+    !   - chiusura di Hirschfelder simmetrica per le specie (V_c dormiente nel regime
+    !     attuale a Dm uniforme; si attiva con Dm dipendente dalla specie via
+    !     FLINT co_DS).
+    !   - RANS_Diffusive_SourceQ2D per le variabili turbolente.
     use Q2D_Base_Types_m,        only: Q2D_tensor_2D_type
     use Q2D_Global_m,            only: nprim, nsc, nu, nv, np, nt, nc, nsoot, gc, model, nRANS
     use Q2D_Config_Types_m,      only: obj_rans, obj_soot
@@ -121,10 +120,10 @@ contains
     do j = 1, n(2)
     do i = 1, n(1)
 
-      ! Pre-zero the full post-pressure band: the passive band nps:nt-1 and the soot nc
-      ! band (nsoot==2) are written only under guards; without this they reach the
-      ! Res(:,i,j) = Res - Source*sur read uninitialized. Port-introduced gap (legacy
-      ! nprim=np+nrans had no soot/passive band). Mirror the Eulerian sibling coverage.
+      ! Pre-azzeramento dell'intera banda oltre la pressione: la banda passiva nps:nt-1
+      ! e la banda soot nc (nsoot==2) sono scritte solo sotto guardia; senza questo
+      ! arriverebbero non inizializzate alla lettura Res(:,i,j) = Res - Source*sur.
+      ! Copertura speculare a quella di Source_Axi_Eul_Blk.
       Source = 0.d0
 
       call Co_rotot_Rtot ( Prim(1:nsc,i,j), rho, Rgas )
@@ -174,8 +173,9 @@ contains
                               vr=Prim(nv,i,j), r_ave=r_ave, walldist=yn(i,j) )
       end if
 
-      ! Sc/Sct scalar (uniform Dm) -> V_c = sum Dm*grad(Y) = D*grad(1) = 0 identically.
-      ! Hirschfelder fix below dormant (Round 6 §3.5; activates with species-dependent Dm).
+      ! Sc/Sct scalari (Dm uniforme) -> V_c = sum Dm*grad(Y) = D*grad(1) = 0 identicamente.
+      ! Correzione di Hirschfelder sottostante dormiente (si attiva con Dm dipendente
+      ! dalla specie).
       Dm (1:nsc) = ( mil/obj_rans%Sc + mie/obj_rans%Sct ) / rho
       kappa = kl + mie*cp/obj_rans%Prt
       Stress_t = Stress_Tensor ( Gradient(nu:nv,:), mil, mie, Prim(nt:,i,j), r_ave, Prim(nv,i,j) )
@@ -198,32 +198,33 @@ contains
       Source(np) = (-qr + Prim(nu,i,j) * Stress_t(1,2) + Prim(nv,i,j) * Stress_t(2,2) &
                   + (DiffHFlux - h_mix*V_c) * rho) * invr
 
-      ! Soot diffusive flux cylindric residual, axi mode (retroactive).
-      ! Verified by the term_by_term_sympy audit (LEMMA 2/6, 7).
+      ! Residuo cilindrico del flusso diffusivo del soot, modo assialsimmetrico.
       !
-      ! Mod_Soot propagates the complete flux to Nvol via assignment:
+      ! Mod_Soot propaga il flusso completo a Nvol tramite l'assegnazione:
       !   flux(nc) = flux(i_CS) / (rho * Y_s / N) = flux(i_CS) * Prim(nc)/Prim(i_CS)
-      ! where flux(i_CS) post-Hirschfelder + Thermo = (Fick + Hirschfelder + Thermo).
+      ! dove flux(i_CS) dopo Hirschfelder + termoforesi = (Fick + Hirschfelder + Thermo).
       !
-      ! Cylindric residual at cell-level for Nvol = -j_total,Y_s,r/r · Prim(nc)/Prim(i_CS)
+      ! Residuo cilindrico a livello di cella per Nvol =
+      !   -j_total,Y_s,r/r · Prim(nc)/Prim(i_CS)
       !
-      ! Decomposition for clarity:
-      ! - Thermo (i_CS / N propagated): explicit formula with (mil+mie)·Y_s/T·∂_r T·invr
-      ! - Fick propagated (N): rho·Dm(i_CS)·∂_r Y_s · N/Y_s · invr (requires Y_s>0 guard)
-      ! - Hirschfelder propagated (N): -V_c · N · invr (Prim(i_CS) cancels, always safe)
+      ! Decomposizione per chiarezza:
+      ! - Thermo (i_CS / propagata a N): formula esplicita con (mil+mie)·Y_s/T·∂_r T·invr
+      ! - Fick propagato (N): rho·Dm(i_CS)·∂_r Y_s · N/Y_s · invr (richiede guardia Y_s>0)
+      ! - Hirschfelder propagato (N): -V_c · N · invr (Prim(i_CS) si semplifica,
+      !   sempre sicuro)
       !
-      ! Skip nsoot=2 (i_CS=-1): soot thermophoretic diffusion is defined only for
-      ! nsoot=1 (it is keyed on the soot species index i_CS and propagated to Nvol).
-      ! The nsoot=2 heavy-gas model has no soot diffusive face-flux in ANY regime, so
-      ! there is no curvature correction of it to add here. (The inviscid cylindric
-      ! residual for the nsoot=2 soot eqs nc/nc+1 is applied via Source(np+1:nprim)
-      ! in Source_Axi_Eul_Blk.)
+      ! Salta nsoot=2 (i_CS=-1): la diffusione termoforetica del soot è definita solo
+      ! per nsoot=1 (è agganciata all'indice di specie soot i_CS e propagata a Nvol).
+      ! Il modello heavy-gas nsoot=2 non ha flusso diffusivo di faccia per il soot in
+      ! ALCUN regime, quindi non esiste alcuna sua correzione di curvatura da aggiungere
+      ! qui. (Il residuo cilindrico inviscido per le equazioni soot nc/nc+1 di nsoot=2
+      ! è applicato via Source(np+1:nprim) in Source_Axi_Eul_Blk.)
       if (obj_soot%enabled .and. i_CS > 0) then
-        ! Y_s thermo + N thermo propagated
+        ! Termoforesi su Y_s + termoforesi propagata a N
         Source(i_CS) = Source(i_CS) + 0.55_R8*(mil + mie)*Prim(i_CS,i,j)/(rho*T) * Gradient(np,2) * invr
         Source(nc)   = Source(nc)   + 0.55_R8*(mil + mie)*Prim(nc,  i,j)/(rho*T) * Gradient(np,2) * invr
-        ! N Fick + Hirschfelder propagated (extension of the cylindric residual)
-        Source(nc)   = Source(nc)   - V_c * Prim(nc,i,j) * invr   ! Hirschfelder propagated (always safe)
+        ! Fick + Hirschfelder propagati a N (estensione del residuo cilindrico)
+        Source(nc)   = Source(nc)   - V_c * Prim(nc,i,j) * invr   ! Hirschfelder propagato (sempre sicuro)
         if (Prim(i_CS,i,j) > 1.0e-10_R8 * rho) then
           Source(nc) = Source(nc)   + rho * DmGradYi(i_CS) * Prim(nc,i,j) / Prim(i_CS,i,j) * invr
         end if

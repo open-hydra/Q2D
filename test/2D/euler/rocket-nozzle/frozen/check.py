@@ -2,120 +2,74 @@
 
 Validates the Q2D converged solution for the rocket-nozzle frozen-chemistry
 case (CEA-equilibrium upstream stagnation, frozen evolution through nozzle).
-Single-block 121x41 2D-axi (peculiarità #2 axisymmetric source). 13 species
-from chamber composition.
+Single-block 121x41 2D-axi (axisymmetric source active). 13 species from
+chamber composition.
 
-References:
-  (1) Natural: MOSE reference/field.tec (3D wedge K=2) compared cell-by-cell
-      with Q2D 2D-axi K=1. Tolerance 5% Linf_rel / 1% L2_rel: inherent
-      2D-axi vs 3D-wedge discretization difference (peculiarità #1, cf.
-      T-1.2D.axis-discrepancy chang-nozzle pattern). Observed actual ~1.5%
-      Linf max (v near axis).
-  (2) Sanity: min(rho), min(p), min(T) > 0 (hard).
-
-Tolerances per docs/vv/regression_tolerance.md §3.2 (2D-axi rocket-nozzle):
-  L2_rel < 1.0e-2 (1%), Linf_rel < 5.0e-2 (5%), atol 1e-8.
+Gates (all hard):
+  (1) Cell-by-cell field comparison vs the committed reference/field.tec
+      (3D-wedge K=2 snapshot of the same physics; the Q2D 2D-axi K=1 strip
+      is compared on the single common cell layer, 120x40). Per-variable
+      tolerances Linf_rel < 5e-2, L2_rel < 1e-2. Measured 2026-07-15
+      (gfortran TESTING build): worst Linf_rel = 1.36e-2 (v near axis),
+      worst L2_rel = 1.63e-3; all species ~1.0e-3 Linf_rel.
+  (2) Species/ideal-gas consistency: max_cells |p - sum_s rho_s*R*T| / p
+      < 1e-8 (no total-rho variable is written, so the mixture gas law is
+      the available closure; measured 9.3e-15 -- tec ASCII roundoff only).
+  (3) NaN-safe positivity: every species density, p, T, g, R > 0 strictly;
+      u, v finite (v is legitimately negative toward the axis).
 """
-import os
-import subprocess
 import sys
-import warnings
 from pathlib import Path
 
 import numpy as np
-warnings.filterwarnings("ignore")
 
-root = Path(__file__).resolve().parent
-for parent in [root, *root.parents]:
-    candidate = parent / "lib" / "ORION" / "src" / "python"
-    if candidate.exists():
-        sys.path.insert(0, str(candidate))
-        break
+sys.path.insert(0, str(Path(__file__).resolve().parents[4] / "common" / "pycheck"))
+from q2d_check_lib import (assert_finite, assert_positive, compare_fields,
+                           fail, gate, read_q2d_field, require_file)
 
-try:
-    from ORION import read_TEC
-except ModuleNotFoundError:
-    raise ModuleNotFoundError("ORION package not found. Run 'conda activate base'.")
+N_SPECIES = 13
+OUT = "OUTPUT/field.tec"
+REF = "reference/field.tec"
+require_file(OUT, "solver did not write the field")
+require_file(REF, "committed reference field missing")
 
-# =============================================================
-# Sanity check Q2D field
-# =============================================================
-import re
-import tempfile
+x, y, var, names = read_q2d_field(OUT)
+cc = [n.strip() for n in names[3:]]  # cell-centered variables (after x, y, z)
+species = ["rho(%d)" % (s + 1) for s in range(N_SPECIES)]
+missing = [n for n in species + ["u", "v", "p", "T", "g", "R"] if n not in cc]
+if missing:
+    fail("missing variables in %s: %s (found %s)" % (OUT, missing, cc))
 
 
-def patch_q2d_tec_to_3d(in_path):
-    with open(in_path) as f:
-        lines = f.readlines()
-    header = lines[0]
-    zone = lines[1]
-    m = re.search(r'I=\s*(\d+).*J=\s*(\d+).*K=\s*(\d+)', zone)
-    ni, nj, nk = int(m.group(1)), int(m.group(2)), int(m.group(3))
-    nnodes = ni * nj * nk
-    new_header = header.replace('"y"', '"y" "z"', 1)
-    m2 = re.search(r'VARLOCATION=\(\[(\d+)-(\d+)\]=NODAL,\[(\d+)-(\d+)\]=CELLCENTERED', zone)
-    if m2:
-        na, nb_, ca, cb = (int(m2.group(i)) for i in (1, 2, 3, 4))
-        new_zone = zone.replace(
-            f'[{na}-{nb_}]=NODAL,[{ca}-{cb}]=CELLCENTERED',
-            f'[{na}-{nb_+1}]=NODAL,[{ca+1}-{cb+1}]=CELLCENTERED',
-        )
-    else:
-        new_zone = zone
-    out = [new_header, new_zone]
-    out.extend(lines[2 : 2 + nnodes])
-    out.extend(lines[2 + nnodes : 2 + 2 * nnodes])
-    out.append(' 0.000000000000000E+000\n' * nnodes)
-    out.extend(lines[2 + 2 * nnodes :])
-    tmp = tempfile.NamedTemporaryFile(mode='w', suffix='.tec', delete=False)
-    tmp.writelines(out); tmp.close()
-    return tmp.name
+def field(name):
+    return np.asarray(var[0][cc.index(name)], float)
 
 
-patched = patch_q2d_tec_to_3d('OUTPUT/field.tec')
-try:
-    [x_, y_, z_, var_, vnames] = read_TEC(patched)
-finally:
-    os.unlink(patched)
+# (3) NaN-safe positivity / finiteness for ALL variables
+for name in species + ["p", "T", "g", "R"]:
+    assert_positive(name, field(name))
+for name in ("u", "v"):
+    assert_finite(name, field(name))
+print("(3) positivity/finiteness OK: %d species densities, p, T, g, R > 0; u, v finite"
+      % N_SPECIES)
 
-# Q2D 13 species output layout (cellcentered, 0-indexed):
-#   0..12  rho1..rho13   13  u   14  v   15  p   16  T   17  g   18  R
-rho_sum = sum(var_[0][i] for i in range(13))
-u = var_[0][13]; v = var_[0][14]
-p = var_[0][15]; T = var_[0][16]; gam = var_[0][17]; R = var_[0][18]
+# (2) species/ideal-gas consistency: p == (sum_s rho_s) * R_mix * T
+rho_sum = sum(field(s) for s in species)
+p, T, R = field("p"), field("T"), field("R")
+cons = float(np.max(np.abs(p - rho_sum * R * T) / p))
+print("(2) species consistency:")
+gate("max |p - sum(rho_s)*R*T| / p", cons, 1e-8)
 
-if rho_sum.min() <= 0:
-    print(f'Sanity FAIL: min(rho_sum)={rho_sum.min()}'); sys.exit(1)
-if p.min() <= 0:
-    print(f'Sanity FAIL: min(p)={p.min()}'); sys.exit(1)
-if T.min() <= 0:
-    print(f'Sanity FAIL: min(T)={T.min()}'); sys.exit(1)
-print(f'Sanity OK: min(rho_sum)={rho_sum.min():.3e} min(p)={p.min():.3e} min(T)={T.min():.3e}')
+# (1) committed reference comparison (hard per-variable gates)
+print("(1) reference comparison:")
+compare_fields(OUT, REF, tol_linf=5e-2, tol_l2=1e-2)
 
-# =============================================================
-# Natural reference: MOSE reference/field.tec K=0 layer vs Q2D K=1
-# =============================================================
-mose_ref = root.parents[4] / 'test' / 'regression_baseline' / 'MOSE_K0' / 'rocket-nozzle-frozen' / 'field.tec'
-diff_tool = root.parents[4] / 'tools' / 'diff_mose_q2d_field.py'
-if not mose_ref.exists():
-    print(f'(1) WARN: MOSE reference not found at {mose_ref}; skipping')
-elif not diff_tool.exists():
-    print(f'(1) WARN: diff utility not found at {diff_tool}; skipping')
-else:
-    print('(1) MOSE reference vs Q2D 2D-axi (relaxed Linf_rel < 5e-2, L2_rel < 1e-2):')
-    res = subprocess.run([sys.executable, str(diff_tool), str(mose_ref), 'OUTPUT/field.tec',
-                          '--tol-linf', '5e-2', '--tol-l2', '1e-2'],
-                         stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
-    print(res.stdout)
-    if res.returncode != 0:
-        print(res.stderr)
-        print('(1) FAIL: MOSE reference comparison mismatch'); sys.exit(1)
-    print('(1) MOSE reference comparison: OK')
+# Diagnostic report (not a gate): Mach on the axis at the throat
+u, v, g = field("u"), field("v"), field("g")
+i_throat = int(np.argmin(np.abs(x[0][:, 0, 0])))
+M_axis = (np.sqrt(u[i_throat, 0, 0] ** 2 + v[i_throat, 0, 0] ** 2)
+          / np.sqrt(g[i_throat, 0, 0] * R[i_throat, 0, 0] * T[i_throat, 0, 0]))
+print("  throat at i=%d (x=%.3f); Mach axis: %.3f  p=%.3e  T=%.1f"
+      % (i_throat, x[0][i_throat, 0, 0], M_axis, p[i_throat, 0, 0], T[i_throat, 0, 0]))
 
-# Diagnostic: report Mach + species at axis and wall mid-nozzle
-i_throat = int(np.argmin(np.abs(x_[0][:, 0, 0])))
-print(f'  Throat at i={i_throat} (x={x_[0][i_throat, 0, 0]:.3f})')
-M_axis = np.sqrt(u[i_throat, 0, 0]**2 + v[i_throat, 0, 0]**2) / np.sqrt(gam[i_throat, 0, 0] * R[i_throat, 0, 0] * T[i_throat, 0, 0])
-print(f'  Mach axis at throat: {M_axis:.3f}  p={p[i_throat, 0, 0]:.3e}  T={T[i_throat, 0, 0]:.1f}')
-
-print('Correct!')
+print("Correct!")

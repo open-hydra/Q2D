@@ -32,13 +32,15 @@ that values match the field):
              the flow -- Mach up (anchored to inflow M=2 at the line start), p/rho/T
              down -- the qualitative invariant of what the line-probe samples.
 """
-import os
 import re
 import sys
 import warnings
 from pathlib import Path
 
 warnings.filterwarnings("ignore")
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "common" / "pycheck"))
+from q2d_check_lib import fail, require_file, assert_finite
 
 LP_FILE = "OUTPUT/midrow.tec"
 FIELD_FILE = "OUTPUT/field.tec"
@@ -65,14 +67,8 @@ def read_last_zone(path):
     return ni, nj, nk, toks
 
 
-def fail(msg):
-    print(f"FAIL: {msg}")
-    sys.exit(1)
-
-
 # --- structural check: the line-probe file exists with the expected header ----
-if not os.path.exists(LP_FILE):
-    fail(f"{LP_FILE} not written -- line-probe registry binding/setup did not run")
+require_file(LP_FILE, "line-probe registry binding/setup did not run")
 
 with open(LP_FILE) as f:
     header = f.readline()
@@ -100,6 +96,10 @@ for name in LP_VARS:
     idx += Ni
 if idx != len(lp_toks):
     fail(f"line-probe token count {len(lp_toks)} != expected {idx} (Ni={Ni}, {len(LP_VARS)} vars)")
+for name in LP_VARS:
+    assert_finite(f"line-probe '{name}'", lp[name])
+assert_finite("line-probe x", lp_x)
+assert_finite("line-probe y", lp_y)
 
 print(f"(struct) line-probe OUTPUT/midrow.tec OK: {len(LP_VARS)} vars, Ni={Ni} sampled cells, J=2")
 
@@ -108,6 +108,7 @@ print(f"(struct) line-probe OUTPUT/midrow.tec OK: {len(LP_VARS)} vars, Ni={Ni} s
 # row = mesh node row j=FIXED_J-1 and upper row = mesh node row j=FIXED_J
 # (Setup_Nodes dir=2: node(ip, idx-1) / node(ip, idx)). Confirm the written (x,y)
 # really is that geometric line in the domain, read from the case's own ic.tec mesh.
+require_file("INPUT/ic.tec", "case mesh missing")
 with open("INPUT/ic.tec") as f:
     ic_lines = f.read().splitlines()
 m = re.search(r"I=\s*(\d+).*J=\s*(\d+)", ic_lines[1])
@@ -151,9 +152,7 @@ print(f"(physical) Prandtl-Meyer expansion along line OK: M {M[0]:.3f}->{M[-1]:.
       f"T {lp['T'][0]:.3f}->{lp['T'][-1]:.3f} (all dropping)")
 
 # --- self-consistency check: line-probe vs field at row j=25 -------------------
-if not os.path.exists(FIELD_FILE):
-    fail(f"{FIELD_FILE} not written")
-
+require_file(FIELD_FILE, "did ./Q2D.sh solve run?")
 f_ni, f_nj, f_nk, f_toks = read_last_zone(FIELD_FILE)
 nnode = f_ni * f_nj
 ncell = (f_ni - 1) * (f_nj - 1)
@@ -165,6 +164,7 @@ fvars = {}
 for name in FIELD_VARS:
     fvars[name] = f_toks[idx:idx + ncell]
     idx += ncell
+    assert_finite(f"field '{name}'", fvars[name])
 
 
 def fcell(name, i, j):             # 1-based cell indices; BLOCK = i fastest within j

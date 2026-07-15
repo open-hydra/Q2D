@@ -4,7 +4,7 @@ title: Overview
 
 # Overview
 
-Q2D (Quasi-2D solver for compressible flow — 2D planar, 2D axisymmetric, and q2D area-variation) is an open-source compressible-flow solver for the Euler and Navier-Stokes equations on multi-block structured grids, written in modern Fortran. It targets a wide range of inviscid and viscous compressible flow problems — from classical shock-tube benchmarks to turbulent reacting flows.
+Q2D (Quasi-2D solver for compressible flow — 2D planar, 2D axisymmetric, and Q2D area-variation) is an open-source compressible-flow solver for the Euler and Navier-Stokes equations on multi-block structured grids, written in modern Fortran. It targets a wide range of inviscid and viscous compressible flow problems — from classical shock-tube benchmarks to turbulent reacting flows.
 
 ---
 
@@ -54,13 +54,18 @@ Q2D models the gas mixture as a collection of $N_s$ **thermally perfect** specie
 
 ### Chemistry
 
-Q2D supports two chemistry modes that can be used independently or together:
+Q2D supports three chemistry modes, selected via
+`[Q2D-Physics] chemistry = frozen | equilibrium | finite-rate`
+(default `frozen`):
+
+**Frozen composition** — the species mass fractions are transported
+but do not react (the default; multi-species thermodynamics only).
 
 **Finite-rate kinetics** — species mass fractions evolve by elementary, three-body, and pressure-dependent reactions following the modified Arrhenius law $k_f = A\,T^b\,\exp(-E_a/R_u T)$. The kinetics framework is provided by [FLINT](https://github.com/MarcoGrossi92/FLINT). Stiff source terms are integrated with Strang operator splitting via the [OSlo](https://github.com/MarcoGrossi92/OSlo) ODE library.
 
 **Chemical equilibrium** — NASA CEA integration for flows where the chemistry time scale is much shorter than the flow time scale (e.g. rocket nozzle expansions).
 
-**Soot formation** — volume-fraction and sectional models for soot precursor growth and oxidation in hydrocarbon combustion.
+**Soot formation** — Leung–Lindstedt (1991) formation/oxidation model (`LL91`) and a linear formation/oxidation model (`LIN`), selected via `[Q2D-Physics] soot-generation = LL91 | LIN | none`.
 
 | Capability | Details |
 |------------|---------|
@@ -68,23 +73,30 @@ Q2D supports two chemistry modes that can be used independently or together:
 | Rate law | Modified Arrhenius; forward–backward via equilibrium constants |
 | Stiff integration | Strang splitting + [OSlo](https://github.com/MarcoGrossi92/OSlo) / SUNDIALS |
 | Equilibrium | NASA CEA back-end |
-| Soot | Volume-fraction and sectional models |
+| Soot | `LL91` (Leung–Lindstedt 1991) and `LIN` (linear) models |
 
 ### Turbulence
 
-All turbulence models are RANS eddy-viscosity closures selected at run time. The Boussinesq hypothesis links the Reynolds stress tensor to the mean strain rate via the turbulent viscosity $\mu_t$.
+All turbulence models are RANS closures selected at run time. The eddy-viscosity models link the Reynolds stress tensor to the mean strain rate via the Boussinesq hypothesis; the SSG/LRR-$\omega$ Reynolds-stress model transports the stresses directly.
 
 | Model | Type | Key feature |
 |-------|------|-------------|
-| Spalart–Allmaras (SA) | 1-equation | Rotation/curvature correction (SARC) |
+| Spalart–Allmaras (SA) | 1-equation | Variants: `SA-R`, `SA-RC` (rotation/curvature), `SAcomp` |
 | Menter SST | 2-equation | $k$–$\omega$ / $k$–$\varepsilon$ blending; robust in adverse pressure gradients |
 | Wilcox k-$\omega$ 2006 | 2-equation | Updated cross-diffusion; improved freestream sensitivity |
-| SSGLRR | Reynolds-stress (7-equation) | Speziale–Sarkar–Gatski / Launder–Reece–Rodi |
-| QCR2000 | Algebraic correction | Non-linear Boussinesq (Quadratic Constitutive Relation) |
+| SSG/LRR-$\omega$ (`SSGLRR`, `SSGLRR-SD`) | Reynolds-stress | Speziale–Sarkar–Gatski / Launder–Reece–Rodi blend; `-SD` shock-detector diffusive flux |
+| QCR2000 | Algebraic correction | Non-linear Boussinesq (Quadratic Constitutive Relation), `-QCR2000` model suffix |
+
+The `-QCR2000` and `-blowcorr` (wall-blowing correction) suffixes are
+parsed as substrings of the `[Q2D-Physics] turbulence` model string
+(e.g. `turbulence = SA-RC-QCR2000`); the
+[registry](user/registry.md#q2d-physics) lists the base model values.
 
 ### Gas-Surface Interaction (GSI)
 
 The GSI model enables **reactive wall boundary conditions** for high-enthalpy flows where the gas composition at the wall changes due to heterogeneous reactions (catalysis, ablation). Species mass fluxes at the surface are computed from user-specified catalytic efficiencies or recombination probabilities.
+
+GSI is **BC-code driven, not registry-exposed**: it is activated through the wall BC codes `303`/`304` in `INPUT/bc.txt` (see [Boundary Conditions](user/boundary-conditions.md)), has no `[Q2D-*]` INI keys yet, and is not exercised by the ctest suite (see the [Coverage Matrix](vv/coverage-matrix.md)).
 
 | Capability | Details |
 |------------|---------|
@@ -119,16 +131,16 @@ Typical applications: turbomachinery (impellers, rotors), swirling jets, and pro
 | | Details |
 |-|---------|
 | Framework | Cell-centred finite volume on structured multi-block hexahedral grids |
-| Reconstruction | MUSCL — first- and second-order accurate |
-| Flux limiters | van Leer · van Albada · minmod · MC · superbee |
-| Riemann solvers | HLLC · HLLE · SLAU · AUSM⁺-up · Godunov · Lax-Friedrichs |
+| Reconstruction | `MUSCL` (second-order), `MUSCL-SD` (MUSCL with shock-detector blending), `first-order` — `space-reconstruction` key |
+| Flux limiters | van Leer · van Albada · minmod · MC · superbee · LIMO3 |
+| Riemann solvers | HLLC · HLLC+ · HLLE · HLLE++ · HLLEM · SLAU · SLAU2 · AUSM⁺ · AUSM⁺-up · AUSM⁺-up2 · exact |
 | Diffusive fluxes | 10-point stencil with face-metric tensor mapping |
 
 ### Time integration
 
 | | Details |
 |-|---------|
-| Explicit | Multi-stage Runge–Kutta (up to RK3) |
+| Explicit | Forward Euler, RK2, RK3 (`time-scheme = euler | RK2 | RK3`) |
 | Implicit | Implicit Residual Smoothing (IRS) |
 | Chemistry coupling | Strang operator splitting for stiff source terms (via [OSlo](https://github.com/MarcoGrossi92/OSlo)) |
 
@@ -137,8 +149,8 @@ Typical applications: turbomachinery (impellers, rotors), swirling jets, and pro
 | Mode | Details |
 |------|---------|
 | Shared memory | OpenMP thread-level parallelism within a block |
-| Distributed memory | MPI domain decomposition across blocks |
-| Hybrid | OpenMP + MPI combined runs on HPC clusters |
+| Distributed memory | MPI block distribution (compile-time option `USE_MPI`); greedy load balancing by cell count |
+| Hybrid | OpenMP + MPI combined runs (`MPI_THREAD_FUNNELED`) |
 
 ---
 
@@ -167,8 +179,8 @@ Typical applications: turbomachinery (impellers, rotors), swirling jets, and pro
 
 | Tool | Minimum version |
 |------|----------------|
-| CMake | 3.19 |
-| Fortran compiler | GNU gfortran 11+ or Intel ifx/ifort |
+| CMake | 3.23 (`cmake_minimum_required` in `CMakeLists.txt`) |
+| Fortran compiler | GNU gfortran (CI-tested 12–14) or Intel ifx/ifort |
 | C compiler | GCC or ICC (for C bindings) |
 | Python | 3.9+ (for validation scripts) |
 

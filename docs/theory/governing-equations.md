@@ -3,7 +3,7 @@
 Q2D solves the compressible Navier–Stokes equations for multi-species
 ideal-gas mixtures in conservative form on structured multi-block grids,
 specialised for **three geometric regimes**: 2D planar, 2D axisymmetric
-(without swirl), and q2D area-variation.  Both the inviscid (Euler) and
+(without swirl), and Q2D area-variation.  Both the inviscid (Euler) and
 the viscous (Navier–Stokes) limits are supported.
 
 The governing system is written in conservative form as
@@ -202,7 +202,7 @@ $$
 
     with $\mathbf{G} = -\nabla h/h$ the height-gradient vector.
     The full derivation is in
-    [q2D Area-Variation Derivation](area-variation-derivation.md#63-theorem-63-depth-averaged-newton-stress).
+    [Q2D Area-Variation Derivation](area-variation-derivation.md#63-theorem-63-depth-averaged-newton-stress).
 
 ### Species diffusion
 
@@ -219,7 +219,8 @@ D_{m,s} = \frac{\mu_\ell}{\rho\,\text{Sc}}
          + \frac{\mu_t}{\rho\,\text{Sc}_t}
 $$
 
-A Hirschfelder correction velocity
+A Hirschfelder correction velocity (Hirschfelder, Curtiss & Bird
+1954 — see the [thermo references](thermo.md#references))
 $\mathbf{V}_c = \sum_s D_{m,s}\,\nabla Y_s$ enforces
 $\sum_s \mathbf{j}_s^\ast = 0$ exactly; the corrected fluxes
 $\mathbf{j}_s^\ast = \mathbf{j}_s + \rho Y_s\,\mathbf{V}_c$ are

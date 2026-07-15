@@ -222,16 +222,16 @@ latter is preserved for the Definition A stress storage,
     modulo the sanctioned 2D↔3D dimensional reduction (peculiarity #1).
     The AoS layout is a **shared open-hydra architectural choice**, not a
     Q2D inefficiency. An SoA migration would create a Q2D-only divergence
-    from byte-shared MOSE outside piano §1 → it is **parity-coupled (M1.F)**,
-    applied only as a joint MOSE+Q2D change (back-port draft), never
-    Q2D-unilaterally. Cf. `g10_upstream_pr_drafts.md` G-10.ak.
+    from byte-shared MOSE → it is **parity-coupled**, applicable only
+    as a joint MOSE+Q2D change (upstream back-port), never
+    Q2D-unilaterally.
 
 ---
 
 ## Priority 7 — OMP `do` vs `task` strategy
 
 Q2D ships **two** OpenMP loop strategies in `Mod_Fluxes`, selected
-at run time via `[Q2D-Numerics] omp_name = do | task`:
+at run time via `[Q2D-Numerics] OMP-parallel = do | task`:
 
 | Strategy | Pragma pattern | When preferred |
 |---|---|---|

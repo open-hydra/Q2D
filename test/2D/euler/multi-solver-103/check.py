@@ -13,70 +13,24 @@ With ext_flux=0 (IO_BC.f90:256 default initialization), BC 103 behaves
 bit-identically to BC 300 (symmetry/wall). Test verifies BC 103 dispatcher
 path executes without crash + maintains quiescent IC equilibrium.
 
-Acceptance:
-    - simulation completes iter=500 without NaN
+Acceptance (hard, NaN-safe via q2d_check_lib):
+    - simulation completes iter=500 without NaN/Inf anywhere in the field
+    - min(rho), min(p), min(T) > 0
     - velocity remains bounded (|u|, |v| < 1 m/s)
     - pressure stays near p_0 (within 1%)
 """
-import os
-import re
 import sys
-import tempfile
 import warnings
 import numpy as np
 from pathlib import Path
 warnings.filterwarnings("ignore")
 
-root = Path(__file__).resolve().parent
-for parent in [root, *root.parents]:
-    candidate = parent / "lib" / "ORION" / "src" / "python"
-    if candidate.exists():
-        sys.path.insert(0, str(candidate))
-        break
+sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "common" / "pycheck"))
+from q2d_check_lib import (fail, require_file, assert_positive, assert_finite,
+                           read_q2d_field)
 
-try:
-    from ORION import read_TEC
-except ModuleNotFoundError:
-    raise ModuleNotFoundError(
-        "ORION package not found. Run 'conda activate base' or install ORION in the current Python environment."
-    )
-
-
-def patch_q2d_tec_to_3d(in_path):
-    with open(in_path) as f:
-        lines = f.readlines()
-    header = lines[0]
-    zone = lines[1]
-    m = re.search(r'I=\s*(\d+).*J=\s*(\d+).*K=\s*(\d+)', zone)
-    ni, nj, nk = int(m.group(1)), int(m.group(2)), int(m.group(3))
-    nnodes = ni * nj * nk
-    new_header = header.replace('"y"', '"y" "z"', 1)
-    m2 = re.search(r'VARLOCATION=\(\[(\d+)-(\d+)\]=NODAL,\[(\d+)-(\d+)\]=CELLCENTERED', zone)
-    if m2:
-        na, nb_, ca, cb = (int(m2.group(i)) for i in (1, 2, 3, 4))
-        new_zone = zone.replace(
-            f'[{na}-{nb_}]=NODAL,[{ca}-{cb}]=CELLCENTERED',
-            f'[{na}-{nb_+1}]=NODAL,[{ca+1}-{cb+1}]=CELLCENTERED',
-        )
-    else:
-        new_zone = zone
-    z_block = ' 0.000000000000000E+000\n' * nnodes
-    out = [new_header, new_zone]
-    out.extend(lines[2 : 2 + nnodes])
-    out.extend(lines[2 + nnodes : 2 + 2 * nnodes])
-    out.append(z_block)
-    out.extend(lines[2 + 2 * nnodes :])
-    tmp = tempfile.NamedTemporaryFile(mode='w', suffix='.tec', delete=False)
-    tmp.writelines(out)
-    tmp.close()
-    return tmp.name
-
-
-patched = patch_q2d_tec_to_3d('OUTPUT/field.tec')
-try:
-    [x_, y_, z_, var_, vnames] = read_TEC(patched)
-finally:
-    os.unlink(patched)
+require_file('OUTPUT/field.tec', "did ./Q2D.sh solve run?")
+x_, y_, var_, vnames = read_q2d_field('OUTPUT/field.tec')
 
 rho = var_[0][0][:, :, 0]
 u = var_[0][1][:, :, 0]
@@ -84,16 +38,16 @@ v = var_[0][2][:, :, 0]
 p = var_[0][3][:, :, 0]
 T = var_[0][4][:, :, 0]
 
-if rho.min() <= 0.0:
-    print(f'Sanity: min(rho)={rho.min()} <= 0'); sys.exit(1)
-if p.min() <= 0.0:
-    print(f'Sanity: min(p)={p.min()} <= 0'); sys.exit(1)
-if T.min() <= 0.0:
-    print(f'Sanity: min(T)={T.min()} <= 0'); sys.exit(1)
+# Sanity (hard, NaN-safe): a NaN anywhere is a dispatcher failure.
+assert_positive("rho", rho)
+assert_positive("p", p)
+assert_positive("T", T)
+assert_finite("u", u)
+assert_finite("v", v)
 
-u_max = np.abs(u).max()
-v_max = np.abs(v).max()
-p_min, p_max = p.min(), p.max()
+u_max = float(np.abs(u).max())
+v_max = float(np.abs(v).max())
+p_min, p_max = float(p.min()), float(p.max())
 p_0 = 1.0e5
 p_rel_dev = max(abs(p_max - p_0), abs(p_min - p_0)) / p_0
 print(f'max |u| = {u_max:.4e} m/s')
@@ -104,13 +58,10 @@ print(f'pressure rel deviation from p_0: {p_rel_dev:.3e}')
 thr_uv = 1.0
 thr_p = 0.01
 if u_max > thr_uv:
-    print(f'Velocity u drift exceeds threshold: {u_max:.3e} > {thr_uv}')
-    sys.exit(1)
+    fail(f'Velocity u drift exceeds threshold: {u_max:.3e} > {thr_uv}')
 if v_max > thr_uv:
-    print(f'Velocity v drift exceeds threshold: {v_max:.3e} > {thr_uv}')
-    sys.exit(1)
+    fail(f'Velocity v drift exceeds threshold: {v_max:.3e} > {thr_uv}')
 if p_rel_dev > thr_p:
-    print(f'Pressure drift exceeds threshold: {p_rel_dev:.3e} > {thr_p}')
-    sys.exit(1)
+    fail(f'Pressure drift exceeds threshold: {p_rel_dev:.3e} > {thr_p}')
 
 print('Correct!')

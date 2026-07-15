@@ -31,9 +31,16 @@ Acceptance criteria:
     Committed converged run (SOLUTIONTIME=1e5): x_sep=0.3390, x_reatt=0.3435
     (== MOSE bit-coincident).
 
-  - SA-INFORMATIVE mode (Sess 12.A Option γ): if the wall comparison is NOT
-    available (no wall.tec OR insufficient convergence), fall back to smoke-only
-    pass (test infrastructure preserved for future activation).
+Exit semantics (2026-07 hardening; replaces the old "SA-INFORMATIVE mode"
+that silently PASSED smoke-only when the quantitative gates could not run):
+  - exit 0  : smoke + BOTH quantitative gates ran and passed.
+  - exit 1  : any failure — missing OUTPUT/field*.tec, missing OUTPUT/wall.tec,
+    missing committed reference files, NaN/Inf in the field, parse errors, or
+    a quantitative-gate violation. A missing solver output is always a
+    failure (Q2D.sh wipes OUTPUT/ before each solve).
+  - exit 77 : SKIP (CTest SKIP_RETURN_CODE — reported "Skipped", never
+    "Passed") ONLY when wall.tec exists but SOLUTIONTIME < 95000, i.e. the
+    run is genuinely under-converged for the engineering V&V gates.
 
 References:
   - MOSE-SA.tec: extracted from MOSE upstream commit 6d5a3a7 Sess 11.A
@@ -45,24 +52,27 @@ References:
 import os
 import sys
 import glob
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "common" / "pycheck"))
+from q2d_check_lib import fail, skip, require_file, assert_finite
 
 
 def smoke_check():
+    """Field-output smoke gate: missing output or NaN/Inf -> fail() (exit 1)."""
     out_dir = "OUTPUT"
     if not os.path.isdir(out_dir):
-        print("[swbli check] OUTPUT/ missing")
-        return 1
+        fail("OUTPUT/ missing (solver did not run)")
 
     candidates = glob.glob(os.path.join(out_dir, "field*.tec"))
     if not candidates:
-        print("[swbli check] no field*.tec in OUTPUT/")
-        return 1
+        fail("no field*.tec in OUTPUT/ (solver produced no field output)")
 
     field_file = max(candidates, key=os.path.getmtime)
+    require_file(field_file)
     print("[swbli check] inspecting {0}".format(field_file))
 
-    nnan = 0
-    n_tot = 0
+    values = []
     with open(field_file, "r") as fh:
         for line in fh:
             tok = line.strip()
@@ -70,19 +80,14 @@ def smoke_check():
                 continue
             for piece in tok.split():
                 try:
-                    val = float(piece)
+                    values.append(float(piece))
                 except ValueError:
                     continue
-                n_tot += 1
-                if val != val:
-                    nnan += 1
 
-    print("[swbli check] tokens parsed: {0}, NaN/Inf: {1}".format(n_tot, nnan))
-    if nnan > 0:
-        return 1
-    if n_tot == 0:
-        return 1
-    return 0
+    print("[swbli check] tokens parsed: {0}".format(len(values)))
+    if not values:
+        fail("no numeric data parsed from {0} (truncated output?)".format(field_file))
+    assert_finite("{0} values".format(field_file), values)
 
 
 def _parse_tecplot_block(path, nodal_var_count, cc_var_count):
@@ -177,22 +182,12 @@ def _wall_tec_solutiontime(path):
 def cf_check():
     """Compare Q2D wall.tec tauX vs MOSE-SA.tec wall tauX (K=1 slice).
 
-    Returns: (pass_bool, status_msg).  pass_bool=None signals SKIP (insufficient
-    convergence or missing reference); the caller treats SKIP as pass.
+    Returns: (pass_bool, status_msg). The caller has already verified that
+    wall.tec + the reference exist and the run is converged; any problem here
+    is a hard failure.
     """
     q2d_wall = "OUTPUT/wall.tec"
     mose_ref = "reference/MOSE-SA.tec"
-    if not os.path.isfile(q2d_wall):
-        return None, "no Q2D wall.tec (SA-INFORMATIVE mode, smoke-only)"
-    if not os.path.isfile(mose_ref):
-        return None, "no MOSE-SA.tec reference (SA-INFORMATIVE mode, smoke-only)"
-
-    # Skip Cf comparison if Q2D run is not fully converged (require SOLUTIONTIME
-    # ≥ 95k iter, since 100k is the target convergence per input.ini).
-    q2d_st = _wall_tec_solutiontime(q2d_wall)
-    if q2d_st is not None and q2d_st < 95000:
-        return None, ("Q2D SOLUTIONTIME={0:.0f}<95000 (insufficient convergence "
-                      "for Cf engineering V&V; smoke-only)").format(q2d_st)
 
     # Q2D wall.tec: NODAL (x, y) + CC (y+, tauX, tauY, pw, Tw, qw)
     try:
@@ -224,7 +219,7 @@ def cf_check():
             len(q2d_tauX), len(mose_tauX))
 
     # Skip leading-edge + trailing-edge (boundary effects)
-    skip = 5
+    n_skip = 5  # boundary cells excluded (renamed: do not shadow lib skip())
     n_cells = len(q2d_tauX)
     cell_x = _cell_centers_x(q2d_x_nodal, Iq, Jq, 1)
 
@@ -238,7 +233,7 @@ def cf_check():
                   # max_rel_diff ≈ 9e-04 (0.09%) vs MOSE-SA.tec reference; ±0.1% is
                   # comfortable headroom while signalling Q2D ≠ MOSE divergence if it
                   # ever arises. Reference: docs/vv/regression_tolerance.md §2.3.
-    for k in range(skip, n_cells - skip):
+    for k in range(n_skip, n_cells - n_skip):
         tq = q2d_tauX[k]
         tm = mose_tauX[k]
         if abs(tm) < 1e-30:
@@ -302,17 +297,11 @@ def separation_check():
     scale-invariant physical V&V metric. Bracket the solver's bubble against the
     envelope of the independent references (Schulein exp + SU2 + Wind).
 
-    Returns (pass_bool, status_msg); pass_bool=None signals SKIP (insufficient
-    convergence / missing data); the caller treats SKIP as pass.
+    Returns (pass_bool, status_msg). The caller has already verified that
+    wall.tec exists and the run is converged; any problem here (including
+    unparseable committed references) is a hard failure.
     """
     q2d_wall = "OUTPUT/wall.tec"
-    if not os.path.isfile(q2d_wall):
-        return None, "no Q2D wall.tec (separation V&V skipped)"
-
-    q2d_st = _wall_tec_solutiontime(q2d_wall)
-    if q2d_st is not None and q2d_st < 95000:
-        return None, ("Q2D SOLUTIONTIME={0:.0f}<95000 (insufficient convergence "
-                      "for separation V&V; smoke-only)").format(q2d_st)
 
     try:
         Iq, Jq, Kq, nq, cq = _parse_tecplot_block(q2d_wall,
@@ -342,7 +331,11 @@ def separation_check():
             seps.append(zc[0])
             reatts.append(zc[-1])
     if len(seps) < 2:
-        return None, "insufficient independent references parsed (separation V&V skipped)"
+        # The references are committed files: failing to parse >= 2 of them is
+        # a repository/parse regression, not an optional artifact -> FAIL.
+        return False, ("insufficient independent references parsed "
+                       "({0}/3 usable; committed reference/*.dat corrupt or "
+                       "missing)").format(len(seps))
 
     # Engineering V&V band around the independent envelope. The references
     # themselves disagree by ~1.1% on x_sep (Schulein 0.3337 vs SU2 0.3375) —
@@ -372,43 +365,49 @@ def separation_check():
 
 
 def main():
-    rc = smoke_check()
-    if rc != 0:
-        print("[swbli check] SMOKE FAIL")
-        return rc
+    smoke_check()  # fail()s (exit 1) on any smoke violation
+
+    # The quantitative gates need the wall output and the committed MOSE
+    # reference. Q2D.sh wipes OUTPUT/ before each solve, so a missing wall.tec
+    # means the fresh run did not produce it -> hard FAIL (never smoke-pass).
+    q2d_wall = "OUTPUT/wall.tec"
+    require_file(q2d_wall, "solver did not write the wall output "
+                 "(required for the Cf + separation V&V gates)")
+    require_file("reference/MOSE-SA.tec",
+                 "committed MOSE consistency reference missing from the repo")
+
+    # Under-converged run: the engineering V&V gates are meaningless below
+    # SOLUTIONTIME 95k (target 100k per input.ini) -> SKIP (exit 77, reported
+    # "Skipped" by CTest, never "Passed").
+    q2d_st = _wall_tec_solutiontime(q2d_wall)
+    if q2d_st is not None and q2d_st < 95000:
+        skip("Q2D SOLUTIONTIME={0:.0f} < 95000: insufficient convergence for "
+             "the Cf/separation engineering V&V gates".format(q2d_st))
 
     failed = False
 
     # (1) Cf consistency vs MOSE-SA.tec (Sess 12.A) — MOSE-shared SA, bit-tight.
     cf_pass, cf_status = cf_check()
-    if cf_pass is None:
-        print("[swbli check] {0}".format(cf_status))
-        print("[swbli check] Cf consistency skipped (SA-INFORMATIVE mode)")
-    elif cf_pass:
-        print("[swbli check] Cf vs MOSE-SA.tec: {0}".format(cf_status))
+    print("[swbli check] Cf vs MOSE-SA.tec: {0}".format(cf_status))
+    if cf_pass:
         print("[swbli check] Cf consistency PASS (tolerance 0.1%)")
     else:
-        print("[swbli check] Cf vs MOSE-SA.tec: {0}".format(cf_status))
         print("[swbli check] Cf consistency FAIL (tolerance 0.1% exceeded)")
         failed = True
 
     # (2) Separation-bubble independent-reference V&V (F13, Sess 39) —
     #     Schulein exp + SU2 + Wind envelope.
     sep_pass, sep_status = separation_check()
-    if sep_pass is None:
-        print("[swbli check] {0}".format(sep_status))
-        print("[swbli check] separation V&V skipped (SA-INFORMATIVE mode)")
-    elif sep_pass:
-        print("[swbli check] separation vs independent refs: {0}".format(sep_status))
+    print("[swbli check] separation vs independent refs: {0}".format(sep_status))
+    if sep_pass:
         print("[swbli check] separation-bubble V&V PASS (within exp/CFD envelope)")
     else:
-        print("[swbli check] separation vs independent refs: {0}".format(sep_status))
         print("[swbli check] separation-bubble V&V FAIL (outside exp/CFD envelope)")
         failed = True
 
     if failed:
         return 1
-    print("[swbli check] ALL ACTIVE GATES PASS")
+    print("[swbli check] ALL GATES PASS")
     return 0
 
 

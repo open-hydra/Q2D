@@ -17,11 +17,11 @@ contains
     use oslo,                     only: Setup_ODEsolver
     implicit none
 
-    ! Initialize chemistry model
+    ! Inizializza il modello di chimica
     if (obj_chemistry%model=='equilibrium') then
 
-      ! Master thread initializes; other threads will lazy-init
-      ! inside CEA_solve on first call (threadprivate variables).
+      ! Il thread master inizializza; gli altri thread eseguono la lazy-init
+      ! dentro CEA_solve alla prima chiamata (variabili threadprivate).
       call CEA_initialize_global()
       obj_chemistry%use_strang = .false.
       obj_chemistry%imodel = 2
@@ -45,10 +45,11 @@ contains
 
     endif
 
-    ! exclude-blocks (no-chemistry block list) is read upstream with no length cap
-    ! by Scan_NoChem (Q2D_Backend_INI), invoked from both INI read paths before
-    ! Setup_Chemistry runs. Guarantee an allocated (possibly empty) list here so the
-    ! consumers (Mod_Allocate_Data, Mod_Diagnostic) never see an unallocated array.
+    ! exclude-blocks (lista dei blocchi senza chimica) è letta a monte, senza limite
+    ! di lunghezza, da Scan_NoChem (Q2D_Backend_INI), invocata da entrambi i percorsi
+    ! di lettura INI prima di Setup_Chemistry. Qui si garantisce una lista allocata
+    ! (eventualmente vuota) affinché i consumatori (Mod_Allocate_Data, Mod_Diagnostic)
+    ! non vedano mai un array non allocato.
     if (.not. allocated(obj_chemistry%no_chem_list)) allocate(obj_chemistry%no_chem_list(0))
 
   end subroutine Setup_Chemistry
@@ -64,13 +65,13 @@ contains
     integer,  intent(in) :: n(2)
     real(R8), intent(in) :: dt(n(1),n(2))
     real(R8) :: P(nprim, 1-gc:n(1)+gc, 1-gc:n(2)+gc)
-    ! Local
+    ! Variabili locali
     integer  :: lz
     real(R8) :: Z(nsc+1)
     real(R8) :: dtchem, t0, rho
     integer  :: i, j, s, err
 
-    lz = nsc + 1 ! Z vector length: number of species + temperature.
+    lz = nsc + 1 ! lunghezza del vettore Z: numero di specie + temperatura.
 
     !$omp do collapse (2) schedule (dynamic) private(i,j,s,Z,dtchem,t0,err,rho)
     do j = 1, n(2); do i = 1, n(1)
@@ -82,16 +83,16 @@ contains
       dtchem   = dt(i,j)
       t0 = 0d0
 
-      ! ODE integration according to selected method
+      ! Integrazione ODE con il metodo selezionato
       call Run_ODESolver ( lz, t0, dtchem, Z, rhs_native, err )
 
-      ! New state from ODE integration in dtchem
+      ! Nuovo stato dall'integrazione ODE sull'intervallo dtchem
       do s = 1, nsc
         if (Z(s)<=1d-20) Z(s) = 1d-20
-        ! mass fractions
+        ! densità parziali delle specie
         P(s,i,j) = Z(s)
       end do
-      ! pressure
+      ! pressione
       P(np,i,j) = rho*f_Rtot(Z(1:nsc))*Z(lz)
 
     enddo; enddo
@@ -106,7 +107,7 @@ contains
     implicit none
     integer,  intent(in) :: n(2)
     real(R8) :: P(nprim, 1-gc:n(1)+gc, 1-gc:n(2)+gc)
-    ! Local
+    ! Variabili locali
     real(R8) :: rho, temp, teq, yeq(nsc), departure
     integer  :: i, j, s
 
@@ -119,7 +120,7 @@ contains
 
       call CEA_solve(temp, P(1:nsc,i,j), teq, yeq)
 
-      ! Measure departure from equilibrium (max relative change in Y)
+      ! Misura lo scostamento dall'equilibrio (massima variazione relativa di Y)
       departure = 0.0_R8
       do s = 1, nsc
         if (yeq(s) > 1d-20) then
@@ -128,16 +129,16 @@ contains
       end do
       departure = max(departure, abs(teq - temp)/teq)
 
-      ! Skip correction if state is already at equilibrium to avoid noise accumulation
+      ! Salta la correzione se lo stato è già all'equilibrio, per evitare accumulo di rumore
       if (departure < 1d-2) cycle
 
-      ! Replace composition with equilibrium
+      ! Sostituisce la composizione con quella di equilibrio
       do s = 1, nsc
         if (yeq(s) <= 1d-20) yeq(s) = 1d-20
         P(s,i,j) = yeq(s)*rho
       end do
 
-      ! Pressure from flow-solver EOS
+      ! Pressione dall'equazione di stato del solutore
       P(np,i,j) = rho*f_Rtot(P(1:nsc,i,j))*teq
 
     enddo; enddo

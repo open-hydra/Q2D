@@ -1,56 +1,55 @@
-!>@brief: SSG/LRR-omega Reynolds-stress transport (Q2D 2D-reduced, 4-stress + omega).
+!>@brief: SSG/LRR-omega Reynolds-stress transport (Q2D 2D reduction, 4 stresses + omega).
 !         see https://turbmodels.larc.nasa.gov/rsm-ssglrr.html.
 !
-! Model identity (verified against the authoritative source Eisfeld & Rumsey,
+! Model identity (verified against the primary source Eisfeld & Rumsey,
 ! "Length-Scale Correction for Reynolds-Stress Modeling", AIAA J. 2020, Appendix A
-! Eqs 17-37 + Table 2): the algebra below is the SSG/LRR-omega *baseline*
-! ("w2012") — the omega-destruction is beta*rho*omega**2 (Eq 7/29 with the
-! length-scale correction F^(LSC) == 0). The w2019 variant adds only the LSC term
-! to the omega-destruction (Eq 29), active solely near stagnation/reattachment
-! (chi != 0 for L_t/l_log > 1.466) — absent here, as in the MOSE peer (whose
-! "w2019" header label is imprecise: its code omits the LSC); on attached flows
-! (e.g. the flat plate) the LSC is inactive, so baseline == w2019 there.
+! Eqs 17-37 + Table 2): the algebra below is the *baseline* SSG/LRR-omega
+! ("w2012") — the omega destruction is beta*rho*omega**2 (Eq 7/29 with the
+! length-scale correction F^(LSC) == 0). The w2019 variant adds to the omega
+! destruction only the LSC term (Eq 29), active solely near stagnation/
+! reattachment (chi != 0 for L_t/l_log > 1.466) — absent here; on attached flows
+! (e.g. flat plate) the LSC is inactive, so there baseline == w2019.
 ! Coefficient convention: the anisotropy is a_ij = R_ij/k - 2/3 delta = 2 b_ij
-! (b_ij the Table-2 normalization R_ij/2k - 1/3 delta), so the constants below are
-! Table 2 rescaled (C1,C1*,C3*,C4,C5 halved; C2 quartered; C3,D unchanged) —
-! algebraically identical to the paper.
+! (with b_ij the Table 2 normalization, R_ij/2k - 1/3 delta), so the constants
+! below are Table 2 rescaled (C1,C1*,C3*,C4,C5 halved; C2 divided by four;
+! C3,D unchanged) — algebraically identical to the paper.
 !
-! Q2D per-regime reduction (formally derived top-down Sess 24-25, gate MET):
-!   docs/theory/q2d-rans-closures.md §6 + Appendix A;
-!   tools/audit/ssglrr_regime_reduction_sympy.py (ALL CHECKS PASS).
+! Per-regime Q2D reduction, formally derived in:
+!   docs/theory/q2d-rans-closures.md §6 + Appendix A.
 !
-! The 3D model carries 7 variables (rho*R11,R22,R33,R12,R13,R23, rho*omega).
-! Each Q2D geometric regime drops the two cross-stresses R13,R23 that vanish
-! under a regime mirror symmetry (theta-reflection in 2D-axi; z-parity in
-! area-variation; partial_z==0 in 2D-plane) and are never regenerated
-! (7->5 reduction proved closed, Appendix A.6 / sympy §S2). Hence nRANS=5:
+! The 3D model transports 7 variables (rho*R11,R22,R33,R12,R13,R23, rho*omega).
+! Every Q2D geometric regime eliminates the two cross stresses R13,R23, which
+! vanish by a mirror symmetry of the regime (reflection in theta in 2D-axi;
+! parity in z in area variation; partial_z==0 in 2D-plane) and are never
+! regenerated (7->5 reduction proven closed, Appendix A.6).
+! Hence nRANS=5:
 !   var(1)=rho*R11  var(2)=rho*R22  var(3)=rho*R33  var(4)=rho*R12  var(5)=rho*omega.
-! R33 is RETAINED in every regime (normal stress fed by pressure-strain even
-! where its direct production P33 vanishes — "four-stress, not three").
+! R33 is RETAINED in every regime (normal stress fed by the pressure-strain even
+! where its direct production P33 vanishes — "four stresses, not three").
 !
-! All three regimes share ONE structure (theory §6.1, sympy §S2-S6):
-!   - the SAME 3x3 SSG+LRR pressure-strain / dissipation / realizability algebra
-!     (full traces over 3x3), transcribed verbatim from the MOSE 3D peer
-!     archive-MOSE/src/lib/physics/turbulence/Lib_SSGLRR.f90 (read in-session);
-!   - the SAME exact production P_ij = -rho(R_ik d_k U_j + R_jk d_k U_i) fed a
-!     BLOCK-DIAGONAL mean-velocity gradient whose only out-of-plane entry is the
-!     regime dilatation (grad U)_33 = S_33 in {0, u_r/r, -V·G}, exactly the value
-!     Strain_Tensor_Std/_Axi already supply (Q2D peculiarità #1/#3 — no 2x2->3x3
-!     widening). The out-of-plane curvature/dilatation production is then
-!     P33 = -2 rho R33 S_33 (sympy §S3).
+! The three regimes share ONE SINGLE structure (theory §6.1):
+!   - the SAME 3x3 SSG+LRR algebra for pressure-strain / dissipation /
+!     realizability (full traces over 3x3);
+!   - the SAME exact production P_ij = -rho(R_ik d_k U_j + R_jk d_k U_i)
+!     fed by a BLOCK-DIAGONAL mean-velocity gradient whose only out-of-plane
+!     component is the regime dilatation
+!     (grad U)_33 = S_33 in {0, u_r/r, -V·G}, exactly the value already provided
+!     by Strain_Tensor_Std/_Axi (no 2x2->3x3 widening). The out-of-plane
+!     curvature/dilatation production is therefore P33 = -2 rho R33 S_33.
 !   - geometric transport/diffusion sources IDENTICAL IN FORM to the scalar
-!     mean-flow RANS sources: the convective -rho*u_r*R_ij/r (2D-axi) /
-!     +rho*R_ij*(V·G) (area-var) are applied generically over the post-pressure
-!     indices by Source_Axi_Eul_Blk / Source_Area_Eul_Blk; the diffusive +F_r/r
-!     (2D-axi) / -F·G (area-var) is routed through RANS_Diffusive_SourceQ2D
-!     (SSGLRR_Source_Diffusive_Q2D) by Source_Axi/Area_Visc_Blk.
+!     mean-flow RANS ones: the convective -rho*u_r*R_ij/r (2D-axi) /
+!     +rho*R_ij*(V·G) (area variation) are applied generically to the
+!     post-pressure indices by Source_Axi_Eul_Blk / Source_Area_Eul_Blk; the
+!     diffusive +F_r/r (2D-axi) / -F·G (area variation) is routed through
+!     RANS_Diffusive_SourceQ2D (SSGLRR_Source_Diffusive_Q2D) by
+!     Source_Axi/Area_Visc_Blk.
 !
-! Momentum coupling (no Boussinesq, theory §6.8): total stress = laminar(mu_l)
-! minus rho*R_ij, via Stress_Vector_RSM / Stress_Tensor_RSM (Q2D_Lib_Fluid).
+! Momentum coupling (no Boussinesq, theory §6.8): total stress =
+! laminar(mu_l) minus rho*R_ij, via Stress_Vector_RSM /
+! Stress_Tensor_RSM (Q2D_Lib_Fluid).
 !
-! Interface conformance: the Q2D Lib_RANS abstract interfaces (2D, 9/12-arg with
-! vr/r_ave + V_dot_G extras) differ from the MOSE peer (3D, 6/9-arg); the bodies
-! below conform to the Q2D interfaces while reproducing the MOSE algebra.
+! Interface conformity: the bodies below follow the abstract 2D interfaces
+! of Q2D's Lib_RANS (9/12 arguments, with the extra vr/r_ave + V_dot_G).
 module Q2D_Lib_SSGLRR
   use iso_fortran_env, only: I4 => int32, R8 => real64
 
@@ -64,7 +63,7 @@ module Q2D_Lib_SSGLRR
 
   real(R8), parameter, private :: &
   C_mu = 0.09d0, &
-  ! omega-branch (near-wall LRR-omega) coefficients
+  ! omega-branch coefficients (near-wall LRR-omega)
   alphaw_w = 0.5556d0, &
   betaw_w = 0.075d0, &
   sigmaw_w = 0.5d0, &
@@ -78,7 +77,7 @@ module Q2D_Lib_SSGLRR
   C4_w = 0.5d0*(18d0*C2_LRR + 12d0)/11d0, &
   C5_w = 0.5d0*(-14d0*C2_LRR+20d0)/11d0, &
   D_w = 0.75d0*C_mu, &
-  ! epsilon-branch (free-stream SSG-epsilon) coefficients
+  ! epsilon-branch coefficients (free-stream SSG-epsilon)
   alphaw_e = 0.44d0, &
   betaw_e = 0.0828d0, &
   sigmaw_e = 0.856d0, &
@@ -128,15 +127,16 @@ contains
 
 
   subroutine SSGLRR_Blk ( Prim, Res, M, sur, WDist, r, n, geom_x, geom_y )
-    ! 2D block loop. sur is the 2D analogue of the 3D cell volume.
-    ! The block-diagonal velocity gradient is built from the stored 2x2 gradient
-    ! plus the regime out-of-plane strain S_33 supplied by Strain_Tensor_Std/_Axi
-    ! (0 / u_r/r de l'Hopital / -V·G Definition A). Production, pressure-strain,
-    ! dissipation and the omega source are the verbatim MOSE 3x3 algebra over the
-    ! retained 5 variables; the cross-stresses R13,R23 are identically zero and
-    ! never regenerated (7->5, sympy §S2), so only 5 residuals are assembled.
-    ! The geometric convective/diffusive sources are added separately by the
-    ! Source_Axi/Area_{Eul,Visc}_Blk wiring (theory §6.1).
+    ! Loop di blocco 2D. sur è l'analogo 2D del volume di cella 3D.
+    ! Il gradiente di velocità diagonale a blocchi si costruisce dal gradiente
+    ! 2x2 memorizzato più la deformazione fuori piano di regime S_33 fornita da
+    ! Strain_Tensor_Std/_Axi (0 / u_r/r con de l'Hopital / -V·G Definizione A).
+    ! Produzione, pressure-strain, dissipazione e sorgente di omega sono
+    ! l'algebra 3x3 completa del modello valutata sulle 5 variabili mantenute;
+    ! gli sforzi incrociati R13,R23 sono identicamente nulli e mai rigenerati
+    ! (riduzione 7->5, Appendice A.6), quindi si assemblano solo 5 residui.
+    ! Le sorgenti geometriche convettive/diffusive sono aggiunte a parte dal
+    ! cablaggio Source_Axi/Area_{Eul,Visc}_Blk (teoria §6.1).
     use Q2D_Base_Types_m,        only: Q2D_tensor_2D_type, Q2D_vector_2D_type
     use Q2D_Global_m,            only: nprim, nsc, nu, nv, np, nt, gc
     use Q2D_Config_Types_m,      only: obj_rot
@@ -172,7 +172,7 @@ contains
 
       r_ave = 0.25d0 * ( r(i,j)%c(2) + r(i-1,j)%c(2) + r(i,j-1)%c(2) + r(i-1,j-1)%c(2) )
 
-      ! Local variables (var(1:4)=rho*Rij, var(5)=rho*omega; R13=R23 dropped)
+      ! Variabili locali (var(1:4)=rho*Rij, var(5)=rho*omega; R13=R23 eliminati)
       call Co_rotot_Rtot ( Prim(1:nsc,i,j), rho, Rgas )
       mil = f_laminarViscosity ( Prim(1:nsc,i,j), Prim(np,i,j), rho, Rgas )
       rhoRij(1,1) = Prim(nt  ,i,j)
@@ -180,22 +180,22 @@ contains
       rhoRij(3,3) = Prim(nt+2,i,j)
       rhoRij(1,2) = Prim(nt+3,i,j)
       rhoRij(2,1) = rhoRij(1,2)
-      rhoRij(1,3) = 0d0 ; rhoRij(3,1) = 0d0   ! R13 dropped (regime mirror symmetry)
-      rhoRij(2,3) = 0d0 ; rhoRij(3,2) = 0d0   ! R23 dropped
+      rhoRij(1,3) = 0d0 ; rhoRij(3,1) = 0d0   ! R13 eliminato (simmetria speculare di regime)
+      rhoRij(2,3) = 0d0 ; rhoRij(3,2) = 0d0   ! R23 eliminato
       omega = Prim(nt+4,i,j) / rho
       kappa = 0.5d0 * ( rhoRij(1,1) + rhoRij(2,2) + rhoRij(3,3) ) / rho
       rhoe = rho * C_mu * kappa * omega
       dist = WDist(i,j)
 
-      ! In-plane velocity gradient d u_a / d x_b (a,b in {1,2})
+      ! Gradiente di velocità nel piano d u_a / d x_b (a,b in {1,2})
       Gradvel(:,1) = ( Prim(nu:nv,i+1,j) - Prim(nu:nv,i-1,j) ) * 0.5d0
       Gradvel(:,2) = ( Prim(nu:nv,i,j+1) - Prim(nu:nv,i,j-1) ) * 0.5d0
       Gradvel = Matmul ( Gradvel, M(i,j) % c )
 
-      ! Q2D Definition A: V·G at cell centre -> Strain_Tensor S_33 = -V·G (area-var).
+      ! Definizione A di Q2D: V·G al centro cella -> Strain_Tensor S_33 = -V·G (variazione d'area).
       V_dot_G = Prim(nu,i,j)*geom_x(i,j) + Prim(nv,i,j)*geom_y(i,j)
 
-      ! Gradient of (R11,R22,R33,R12,omega) and of k = 0.5(R11+R22+R33).
+      ! Gradiente di (R11,R22,R33,R12,omega) e di k = 0.5(R11+R22+R33).
       Grad(:,1) = ( Prim(nt:nt+4,i+1,j) / sum( Prim(1:nsc,i+1,j) ) - &
                     Prim(nt:nt+4,i-1,j) / sum( Prim(1:nsc,i-1,j) ) ) * 0.5d0
       Grad(:,2) = ( Prim(nt:nt+4,i,j+1) / sum( Prim(1:nsc,i,j+1) ) - &
@@ -203,8 +203,8 @@ contains
       Grad = Matmul ( Grad, M(i,j) % c )
       gradk = 0.5d0 * ( Grad(1,:) + Grad(2,:) + Grad(3,:) )
 
-      ! Block-diagonal mean-velocity gradient (Appendix A.1): (grad U)_33 = S_33
-      ! from Strain_Tensor (procedure pointer _Std/_Axi -> 0 / vr/r / -V·G).
+      ! Gradiente di velocità media diagonale a blocchi (Appendice A.1):
+      ! (grad U)_33 = S_33 da Strain_Tensor (procedure pointer _Std/_Axi -> 0 / vr/r / -V·G).
       Sij = Strain_Tensor ( Gradvel, Prim(nv,i,j), r_ave, V_dot_G=V_dot_G )
       Gradvel3 = 0d0
       Gradvel3(1:2,1:2) = Gradvel
@@ -212,12 +212,12 @@ contains
       Divel = Gradvel3(1,1) + Gradvel3(2,2) + Gradvel3(3,3)
       Sij_star = Sij - 1d0/3d0 * Divel * deltaij
 
-      ! In-plane vorticity (only omega_3 = dv/dx - du/dy survives), absolute frame.
+      ! Vorticità nel piano (sopravvive solo omega_3 = dv/dx - du/dy), assi assoluti.
       omega_w = Vorticity_Vector ( Gradvel )
       if (obj_rot%enabled) omega_w = omega_w + 2.0_R8 * obj_rot%Omega_vec
       Wij = Vorticity_Tensor ( omega_w )
 
-      ! Blending of coefficients (F1 near-wall -> 1, free-stream -> 0)
+      ! Blending dei coefficienti (F1 -> 1 a parete, -> 0 in corrente libera)
       F1 = compute_F1 ( rho=rho, w=omega, k=kappa, mil=mil, gradw=Grad(5,:), gradk=gradk, d=dist )
       F2 = 1d0 - F1
       alphaw = F1*alphaw_w + F2*alphaw_e
@@ -231,7 +231,7 @@ contains
       C1star = F1*C1star_w + F2*C1star_e
       C3star = F1*C3star_w + F2*C3star_e
 
-      ! Production rho*P_ij = -rho(R_ik d_k U_j + R_jk d_k U_i), block-diagonal gradient.
+      ! Produzione rho*P_ij = -rho(R_ik d_k U_j + R_jk d_k U_i), gradiente diagonale a blocchi.
       rhoP = 0d0
       do ii = 1, 3
       do jj = 1, 3
@@ -249,18 +249,18 @@ contains
       enddo
       rhoP = -rhoP
 
-      ! Dissipation (isotropic)
+      ! Dissipazione (isotropa)
       rhoeij = 2d0/3d0 * rhoe * deltaij
 
-      ! Pressure-strain correlation (SSG slow + LRR rapid). Full 3x3 traces.
+      ! Correlazione pressure-strain (parte lenta SSG + parte rapida LRR). Tracce complete 3x3.
       aij = rhoRij/(rho*kappa) - 2d0/3d0 * deltaij
       aklakl = Sum (aij*aij)
 
-      ! C1 term
+      ! Termine C1
       rhoPkk = rhoP(1,1) + rhoP(2,2) + rhoP(3,3)
       C1_term = -( C1*rhoe + 0.5d0*C1star*rhoPkk )*aij
 
-      ! C2 term
+      ! Termine C2
       aikakj = 0d0
       do ii = 1, 3
       do jj = 1, 3
@@ -271,10 +271,10 @@ contains
       enddo
       C2_term = C2*rhoe * ( aikakj - 1d0/3d0*aklakl*deltaij )
 
-      ! C3 term
+      ! Termine C3
       C3_term = ( C3 - C3star * Sqrt( aklakl ) ) * rho*kappa*Sij_star
 
-      ! C4 term
+      ! Termine C4
       C4_term = 0d0
       aklSkl = Sum ( aij*Sij )
       do ii = 1, 3
@@ -294,7 +294,7 @@ contains
       C4_term = C4_term - 2d0/3d0*aklSkl*deltaij
       C4_term = C4*rho*kappa * C4_term
 
-      ! C5 term
+      ! Termine C5
       C5_term = 0d0
       do ii = 1, 3
       do jj = 1, 3
@@ -314,16 +314,41 @@ contains
 
       rhoPI = C1_term + C2_term + C3_term + C4_term + C5_term
 
-      ! omega cross-diffusion
+      ! Diffusione incrociata di omega
       Diff = sigmad * rho/omega * Max( Dot_Product ( gradk, Grad(5,:) ), 0d0 )
 
-      ! Source terms (5 retained: R11,R22,R33,R12,omega). Source(13)=Source(23)=0
-      ! identically (7->5, Appendix A.6) so they are not assembled.
+      ! Termini sorgente (5 mantenuti: R11,R22,R33,R12,omega). Source(13)=Source(23)=0
+      ! identicamente (riduzione 7->5, Appendice A.6), quindi non vengono assemblati.
       Source(1) = rhoP(1,1) + rhoPI(1,1) - rhoeij(1,1)
       Source(2) = rhoP(2,2) + rhoPI(2,2) - rhoeij(2,2)
       Source(3) = rhoP(3,3) + rhoPI(3,3) - rhoeij(3,3)
       Source(4) = rhoP(1,2) + rhoPI(1,2) - rhoeij(1,2)
       Source(5) = alphaw*omega/kappa*0.5d0*rhoPkk - betaw*rho*omega**2 + Diff
+
+      ! ── Sistema rotante: produzione di Coriolis (rotazionale) esatta ───────
+      ! In un sistema rotante a Omega = (0,0,Oz) costante l'equazione di
+      ! trasporto dei momenti secondi contiene il termine ESATTO (senza chiusura)
+      !   G_ij = -2 Omega_k ( eps_ikl R_lj + eps_jkl R_li ),
+      ! ottenuto prendendo i momenti dell'equazione della quantità di moto
+      ! fluttuante, la cui accelerazione di Coriolis è -2 eps_ikl Omega_k u'_l.
+      ! È a traccia nulla (G_kk = 0: il contenuto di k e la riga di omega non
+      ! sono toccati) e NON è assorbibile nella produzione costruita dai
+      ! gradienti relativi: P(grad_abs) - P(grad_rel) = G/2 esattamente, quindi
+      ! G va aggiunto in forma esplicita. Coesiste senza doppi conteggi con la
+      ! traslazione W_abs nel pressure-strain rapido C5 qui sopra (forma non
+      ! inerziale di Speziale-Sarkar-Gatski 1991).
+      ! Con asse [0,0,1] (vincolo imposto da Setup_RotatingFrame) e R13 = R23 = 0:
+      !   G11 = +4 Oz R12,  G22 = -4 Oz R12,  G33 = 0,  G12 = 2 Oz (R22 - R11),
+      !   G13 = G23 = 0  -> la riduzione 7->5 resta chiusa anche in rotazione.
+      ! Invarianza di sistema: con G la soluzione in assi rotanti coincide con
+      ! la soluzione inerziale ruotata; senza G resta un errore O(1)
+      ! indipendente dal passo temporale. Regressione a livello solutore:
+      ! il caso V&V rotating-channel-rsm.
+      if (obj_rot%enabled) then
+        Source(1) = Source(1) + 4d0*obj_rot%Omega_vec(3)*rhoRij(1,2)
+        Source(2) = Source(2) - 4d0*obj_rot%Omega_vec(3)*rhoRij(1,2)
+        Source(4) = Source(4) + 2d0*obj_rot%Omega_vec(3)*(rhoRij(2,2) - rhoRij(1,1))
+      end if
 
       Res(nt:nt+4,i,j) = Res(nt:nt+4,i,j) - Source * sur(i,j)
 

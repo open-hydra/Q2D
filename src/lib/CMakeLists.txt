@@ -11,10 +11,10 @@ link_FLINT_dependencies(Q2DL)
 target_include_directories(Q2DL INTERFACE $<BUILD_INTERFACE:${CMAKE_Fortran_MODULE_DIRECTORY}>)
 
 IF(USE_OPENMP)
-    # Use the imported target so compile *and* link flags propagate
-    # transitively to every consumer of Q2DL (PUBLIC).
-    # The old SET_TARGET_PROPERTIES(LINK_FLAGS) approach is deprecated and
-    # its LINK_FLAGS are silently ignored for static libraries by CMake.
+    # The imported target is used so that both the compile AND link flags
+    # propagate transitively to every consumer of Q2DL (PUBLIC).
+    # The SET_TARGET_PROPERTIES(LINK_FLAGS) alternative is deprecated and, for
+    # static libraries, CMake silently ignores LINK_FLAGS.
     target_link_libraries(Q2DL PUBLIC OpenMP::OpenMP_Fortran)
 ENDIF(USE_OPENMP)
 

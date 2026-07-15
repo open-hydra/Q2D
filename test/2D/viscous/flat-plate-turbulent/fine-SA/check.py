@@ -32,7 +32,6 @@ def main():
     print(f"[FP-turb-SA-coarse check] inspecting {field_file}")
 
     nrho_neg = 0
-    np_neg = 0
     nnan = 0
     n_tot = 0
     with open(field_file, "r") as fh:
@@ -48,8 +47,6 @@ def main():
                 n_tot += 1
                 if v != v:
                     nnan += 1
-                if -1e-12 < v < 0:
-                    pass
 
     print(f"[FP-turb-SA-coarse check] n_tot={n_tot} nnan={nnan}")
     if nnan > 0:
@@ -58,7 +55,7 @@ def main():
     if n_tot == 0:
         print(f"[FP-turb-SA-coarse check] FAIL: empty output")
         return 1
-    print(f"[FP-turb-SA-coarse check] PASS smoke (NASA TMR Cf reference deferred Sess 11 V&V)")
+    print(f"[FP-turb-SA-coarse check] PASS smoke: NaN + non-empty only. No positivity gate here: the raw token scan covers mixed-sign variables (x, y, u, v). (NASA TMR Cf reference deferred Sess 11 V&V)")
     return 0
 
 

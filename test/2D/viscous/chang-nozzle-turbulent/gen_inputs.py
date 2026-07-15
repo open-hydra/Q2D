@@ -129,7 +129,10 @@ def gen_bc(variant, k_in, omega_in):
         rss = TWO_THIRDS * k_in
         rans = [f"{rss:.6E}"] * 3 + [f"{0.0:.6E}", f"{omega_in:.6E}"]
     out, transform_next = [], False
-    idx_re = re.compile(r"^\s*\d+\s+\d+\s+\d+\s+\d+\s+\d+\s+(\d+)\s*$")
+    # ATLAS meshType==-2 head line = 5 ints (b, i, j, f, TYPE) -- IO_BC.f90
+    # Read_BCfile reads exactly 5; a previous 6-int pattern never matched, so
+    # the turbulence tokens were silently never appended (root-caused 2026-07-15).
+    idx_re = re.compile(r"^\s*\d+\s+\d+\s+\d+\s+\d+\s+(\d+)\s*$")
     for ln in lines:
         m = idx_re.match(ln)
         if m:

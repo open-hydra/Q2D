@@ -108,8 +108,8 @@ $$
 
 #### SAcomp — Compressibility Correction
 
-Paciorri–Sabetta correction that scales the production term with a
-function of the turbulent stress ratio:
+Paciorri–Sabetta (2003) correction that scales the production term
+with a function of the turbulent stress ratio:
 
 $$
 S_\tau = \frac{\omega\,\tilde\nu\,f_{v1}}{a^2}
@@ -118,7 +118,7 @@ $$
 Activated when compressibility effects on turbulence are significant
 (high-speed boundary layers, mixing layers).
 
-#### SAR — Rotation Correction
+#### SA-R — Rotation Correction
 
 Adds a rotation term proportional to the difference between the strain
 rate and the vorticity magnitude:
@@ -285,8 +285,8 @@ where $\omega$ is small relative to the strain rate.
 
 ### Destruction with stress-limiter correction
 
-The $\omega$-destruction coefficient is modified by the Baerten
-correction:
+The $\omega$-destruction coefficient is modified by the
+vortex-stretching correction $f_\beta$ of the Wilcox (2006) model:
 
 $$
 \beta = \beta_0\,f_\beta, \qquad
@@ -318,11 +318,11 @@ $$
 ## QCR2000 — Quadratic Constitutive Relation
 
 Optional non-linear constitutive correction applied on top of the
-linear Boussinesq closure (SA, SST, Wilcox).  The Reynolds stress is
+linear Boussinesq closure of the SA family.  The Reynolds stress is
 augmented with a quadratic strain-rotation product term, improving
 the prediction of secondary flows in corners and curved
-boundary layers.  Activated by the INI key
-`[Q2D-Turbulence] QCR2000 = .true.`.
+boundary layers.  Activated by appending the `-QCR2000` suffix to
+the model string, e.g. `[Q2D-Physics] turbulence = SA-QCR2000`.
 
 ---
 
@@ -358,7 +358,7 @@ This design allows switching models at run time without recompilation.
 
     - `Stress_Vector_Std` — 2D planar; builds the in-plane viscous
       stress without geometric coupling.
-    - `Stress_Vector_Axi` — 2D axisymmetric and q2D
+    - `Stress_Vector_Axi` — 2D axisymmetric and Q2D
       area-variation; carries the optional `V_dot_G` argument
       (Definition A).  When `V_dot_G` is present, the out-of-plane
       stress component
@@ -367,14 +367,15 @@ This design allows switching models at run time without recompilation.
 
     The `Stress_t(3,3)` storage is therefore genuinely 3×3, even in
     2D — see [Governing Equations](governing-equations.md#viscous-fluxes)
-    and [q2D Area-Variation Derivation](area-variation-derivation.md).
+    and [Q2D Area-Variation Derivation](area-variation-derivation.md).
 
 ### Blowing / wall-suction correction
 
 An optional correction (`blowing_corr`) modifies the wall
 boundary-layer treatment for SST and Wilcox 2006 models in the
-presence of wall injection or suction.  Configured via the INI key
-`[Q2D-Turbulence] blowing_corr = .true.`.
+presence of wall injection or suction.  Activated by appending the
+`-blowcorr` suffix to the model string, e.g.
+`[Q2D-Physics] turbulence = SST-blowcorr`.
 
 ### Surface kinetics — `Lib_GSI`
 
@@ -416,3 +417,7 @@ for the full physics.
    1997.
 6. P. Spalart, "Strategies for turbulence modelling and simulations,"
    *Int. J. Heat Fluid Flow*, 21(3), 2000 (QCR2000).
+7. R. Paciorri, F. Sabetta, "Compressibility correction for the
+   Spalart–Allmaras model in free-shear flows," *J. Spacecraft
+   Rockets*, 40(3), 2003, 326–331. doi:10.2514/2.3967 (the DOI cited
+   in `Lib_Spalart.f90`).

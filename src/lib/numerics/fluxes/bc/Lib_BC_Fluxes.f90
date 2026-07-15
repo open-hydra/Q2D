@@ -1,7 +1,7 @@
 module Q2D_Lib_BC_Fluxes
-  ! Common BC helpers (face indexing, face-centred trapezoidal quadratures
-  ! for nozzle/inflow real-gas, wall-property packing). 2D reduction:
-  ! 4 faces, no Km.
+  ! Common utilities for the BCs (face indexing, trapezoidal quadratures at
+  ! face centers for real-gas nozzle/inflow, packing of wall properties).
+  ! 2D reduction: 4 faces, no Km metric.
   use iso_fortran_env, only: I4 => int32, R8 => real64
   use Q2D_Global_m,    only: nsc
 
@@ -71,10 +71,11 @@ contains
 
 
   subroutine Trapezoidal ( sup_T, BC_T0, BC_ci, Rgas, integral )
-    ! Composite trapezoidal integration of f(T) = cp(T)/(R*T) on the integer-K grid
-    ! between min(sup_T, BC_T0) and max. Result is the oriented integral
+    ! Composite trapezoidal quadrature of f(T) = cp(T)/(R*T) on the integer-step
+    ! temperature grid (K) between min(sup_T, BC_T0) and max. The result is the
+    ! oriented integral
     !   integral = int_{BC_T0}^{sup_T} cp/(R*T) dT
-    ! (sign flipped at the end if sup_T > BC_T0 — convention preserved from legacy).
+    ! (sign flipped at the end if sup_T > BC_T0, to respect the orientation).
     use FLINT_Lib_Thermodynamic, only: cp_tab, f_tabT
     implicit none
     real(R8), intent(in)  :: sup_T, BC_T0, Rgas, BC_ci(nsc)
@@ -128,10 +129,10 @@ contains
 
 
   subroutine Trapezoidal_RiemU ( T_from, T_to, BC_ci, Rgas, integral )
-    ! Generalised real-gas Riemann invariant integral (Glaister 1988):
+    ! Integral of the generalized real-gas Riemann invariant (Glaister 1988):
     !   integral = int_{T_from}^{T_to} a(T) / ((gamma(T)-1)*T) dT
     ! with a(T) = sqrt(gamma(T)*Rgas*T), gamma(T) = cp(T)/(cp(T)-Rgas).
-    ! Reduces exactly to 2(a_to - a_from)/(gamma - 1) for constant gamma.
+    ! For constant gamma it reduces exactly to 2(a_to - a_from)/(gamma - 1).
     use FLINT_Lib_Thermodynamic, only: cp_tab, f_tabT
     implicit none
     real(R8), intent(in)  :: T_from, T_to, Rgas, BC_ci(nsc)
@@ -186,10 +187,11 @@ contains
 
 
   subroutine Trapezoidal_Riem_PU ( T_from, T_to, BC_ci, Rgas, J_int, K_int )
-    ! Fused trapezoidal quadrature returning BOTH the isentropic-pressure
-    ! integral J and the generalised-Riemann-invariant integral K with a
-    ! single grid traversal (single species loop per node, twice cheaper than
-    ! Trapezoidal + Trapezoidal_RiemU). Bit-exact w.r.t. those callees.
+    ! Fused trapezoidal quadrature returning BOTH the isentropic pressure
+    ! integral J AND the generalized Riemann-invariant integral K in a single
+    ! traversal of the grid (one species loop per node: half the cost of
+    ! Trapezoidal + Trapezoidal_RiemU). Results are bit-exact with respect to
+    ! those two routines.
     use FLINT_Lib_Thermodynamic, only: cp_tab, f_tabT
     implicit none
     real(R8), intent(in)  :: T_from, T_to, Rgas, BC_ci(nsc)

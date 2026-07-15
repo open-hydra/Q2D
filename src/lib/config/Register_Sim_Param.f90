@@ -14,7 +14,7 @@ contains
     use Q2D_Config_Types_m, only: obj_sim_param
     use Q2D_Parameters_m,   only: codename
     implicit none
-    ! Local
+    ! Variabili locali
     character(len=:), allocatable :: section
 
     obj_sim_param%warning_message = 'none'

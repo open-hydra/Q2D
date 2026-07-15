@@ -4,12 +4,12 @@ module Q2D_Lib_Newstate
   implicit none
   private
   public :: Newstate_Conservative, Newstate_Primitive
-  ! Check_And_Fix_State is private.
+  ! Check_And_Fix_State è privata.
 
 contains
 
   ! ===========================================================================
-  !  CONSERVATIVE NEWSTATE
+  !  NEWSTATE IN VARIABILI CONSERVATIVE
   ! ===========================================================================
   subroutine Newstate_Conservative ( domain, irk )
     use Q2D_Advanced_Types_m, only: Q2D_domain_type
@@ -21,7 +21,7 @@ contains
     implicit none
     type(Q2D_domain_type), intent(inout) :: domain
     integer, intent(in)                   :: irk
-    ! Local
+    ! Variabili locali
     integer  :: i, j, b
     integer  :: n_rk
     logical  :: irs_enabled
@@ -32,10 +32,10 @@ contains
     irs_beta    = obj_irs%beta
     strangcoeff = obj_chemistry%strangcoeff
 
-    ! Branch on IRS once outside all loops.
+    ! Ramo IRS valutato una sola volta, fuori da tutti i cicli.
     if ( irs_enabled ) then
 
-      ! PHASE 1: scale residuals only (no state update yet)
+      ! Fase 1: sola scalatura dei residui (nessun aggiornamento di stato)
       do b = 1, domain%nb
         if (.not. is_local_block(b)) cycle
         !$omp do collapse(2) schedule(static) private(i,j)
@@ -48,10 +48,10 @@ contains
         !$omp end do
       enddo
 
-      ! PHASE 2: smooth residuals (serial across blocks by design)
+      ! Fase 2: smoothing dei residui (seriale sui blocchi per costruzione)
       call Residual_Smoothing( domain, irs_beta )
 
-      ! PHASE 3: update state after smoothing
+      ! Fase 3: aggiornamento dello stato dopo lo smoothing
       do b = 1, domain%nb
         if (.not. is_local_block(b)) cycle
         !$omp do collapse(2) schedule(static) private(i,j)
@@ -67,7 +67,7 @@ contains
 
     else
 
-      ! No IRS: one pass — compute and update in same loop
+      ! Senza IRS: passata unica — calcolo e aggiornamento nello stesso ciclo
       do b = 1, domain%nb
         if (.not. is_local_block(b)) cycle
         !$omp do collapse(2) schedule(static) private(i,j)
@@ -87,8 +87,8 @@ contains
 
   contains
 
-    ! Scale residual in-place for conservative integration (IRS path).
-    ! Q2D divides by the cell surface (the 2D analogue of the 3D volume).
+    ! Scala il residuo in-place per l'integrazione conservativa (ramo IRS).
+    ! La divisione è per la superficie di cella (analogo 2D del volume di cella).
     subroutine Scale_Residual_Cons( residual, dt, surface, strangcoeff )
       use Q2D_Global_m, only: nprim
       implicit none
@@ -97,7 +97,7 @@ contains
       residual = -residual / surface * dt * strangcoeff
     end subroutine Scale_Residual_Cons
 
-    ! Apply RK stage + cons2prim after IRS smoothing (residual already scaled).
+    ! Applica lo stadio RK + cons2prim dopo lo smoothing IRS (residuo già scalato).
     subroutine Update_State_Cons_IRS( prim, primold, residual, irk, n_rk, b, i, j )
       use Q2D_Global_m,            only: nsc, np, nprim
       use FLINT_Lib_Thermodynamic, only: prim2cons, cons2prim, co_rotot_Rtot
@@ -116,7 +116,7 @@ contains
 
       cons = RK_stage( irk, n_rk, cons, consold, residual )
 
-      ! Reuse current prim pressure/density for temperature guess (cheap)
+      ! Stima economica della temperatura da pressione/densità primitive correnti
       call co_rotot_Rtot( prim(1:nsc), rho, Rgas )
       temperature = prim(np) / ( rho * Rgas )
 
@@ -127,7 +127,7 @@ contains
 
     end subroutine Update_State_Cons_IRS
 
-    ! Full compute+update without IRS: prim => cons => RK stage => prim => check.
+    ! Calcolo+aggiornamento completo senza IRS: prim => cons => stadio RK => prim => check.
     subroutine Compute_Cons_NoIRS( prim, primold, residual, dt, surface, irk, n_rk, b, i, j, strangcoeff )
       use Q2D_Global_m,            only: nsc, np, nprim
       use FLINT_Lib_Thermodynamic, only: prim2cons, cons2prim, co_rotot_Rtot
@@ -162,7 +162,7 @@ contains
 
 
   ! ===========================================================================
-  !  PRIMITIVE NEWSTATE
+  !  NEWSTATE IN VARIABILI PRIMITIVE
   ! ===========================================================================
   subroutine Newstate_Primitive ( domain, irk )
     use Q2D_Advanced_Types_m, only: Q2D_domain_type
@@ -174,7 +174,7 @@ contains
     implicit none
     type(Q2D_domain_type), intent(inout) :: domain
     integer, intent(in)                   :: irk
-    ! Local
+    ! Variabili locali
     integer  :: i, j, b
     integer  :: n_rk
     logical  :: irs_enabled
@@ -185,10 +185,10 @@ contains
     irs_beta    = obj_irs%beta
     strangcoeff = obj_chemistry%strangcoeff
 
-    ! Branch on IRS once outside all loops.
+    ! Ramo IRS valutato una sola volta, fuori da tutti i cicli.
     if ( irs_enabled ) then
 
-      ! PHASE 1: convert residual to primitive space + scale (no state update yet)
+      ! Fase 1: conversione del residuo in spazio primitivo + scalatura (nessun aggiornamento di stato)
       do b = 1, domain%nb
         if (.not. is_local_block(b)) cycle
         !$omp do collapse(2) schedule(static) private(i,j)
@@ -202,10 +202,10 @@ contains
         !$omp end do
       enddo
 
-      ! PHASE 2: smooth primitive residuals
+      ! Fase 2: smoothing dei residui primitivi
       call Residual_Smoothing( domain, irs_beta )
 
-      ! PHASE 3: apply RK stage after smoothing
+      ! Fase 3: applicazione dello stadio RK dopo lo smoothing
       do b = 1, domain%nb
         if (.not. is_local_block(b)) cycle
         !$omp do collapse(2) schedule(static) private(i,j)
@@ -241,7 +241,7 @@ contains
 
   contains
 
-    ! Converts conservative residual to primitive residual in-place
+    ! Converte in-place il residuo conservativo in residuo primitivo
     subroutine Compute_Prim_Residual( prim, residual, dt, surface, strangcoeff )
       use Q2D_Global_m,            only: nsc, nu, nv, np, nprim
       use FLINT_Lib_Thermodynamic, only: co_rotot_Rtot, f_tabT_expr, h_tab, cp_tab, Ri_tab
@@ -265,14 +265,14 @@ contains
       inv_rhosurface = inv_surface / rho
       velocity       = prim(nu:nv)
 
-      ! Species densities
+      ! Densità delle specie
       residual(1:nsc) = -residual(1:nsc) * inv_surface
       dwrotot = sum( residual(1:nsc) )
 
-      ! Velocity (2 components, no nw)
+      ! Velocità (2 componenti: nu, nv)
       residual(nu:nv) = -residual(nu:nv) * inv_rhosurface - velocity / rho * dwrotot
 
-      ! Pressure via energy
+      ! Pressione ricavata dall'equazione dell'energia
       dwE   = -residual(np) * inv_surface
       dwroe = dwE - rho * dot_product( velocity, residual(nu:nv) ) &
                   - 0.5d0 * dwrotot * sum( velocity**2 )
@@ -285,15 +285,15 @@ contains
 
       residual(np) = sum( Ri_tab(1:nsc) * ( temperature*residual(1:nsc) + prim(1:nsc)*dwTemp ) )
 
-      ! Turbulence + soot + passive scalars (everything beyond np)
+      ! Turbolenza + soot + scalari passivi (tutta la banda oltre np)
       if (nprim > np) residual(np+1:nprim) = -residual(np+1:nprim) * inv_surface
 
-      ! Time scaling (Strang operator splitting)
+      ! Scalatura temporale (splitting degli operatori di Strang)
       residual = residual * dt * strangcoeff
 
     end subroutine Compute_Prim_Residual
 
-    ! Full primitive residual + RK update in one shot (no IRS)
+    ! Residuo primitivo completo + aggiornamento RK in un solo passo (senza IRS)
     subroutine Compute_And_Update_Prim( prim, primold, residual, dt, surface, irk, n_rk, b, i, j, strangcoeff )
       use Q2D_Global_m, only: nprim
       implicit none
@@ -311,7 +311,7 @@ contains
 
 
   ! ===========================================================================
-  !  STATE SANITY CHECK AND FLOOR ENFORCEMENT
+  !  CONTROLLO DI VALIDITÀ DELLO STATO E APPLICAZIONE DEI FLOOR
   ! ===========================================================================
   subroutine Check_And_Fix_State ( prim, b, i, j )
     use Q2D_Global_m, only: nsc, nt, np, nc, nsoot, nprim, model
@@ -322,24 +322,24 @@ contains
     integer, intent(in) :: b, i, j
     integer :: s
 
-    ! Bail out on NaN or negative pressure (any(isnan) + a separate pressure
-    ! check is cheaper than the product trick).
+    ! Arresto su NaN o pressione negativa: any(isnan) più un controllo separato
+    ! sulla pressione è la forma di verifica più economica.
     if ( any( isnan(prim(1:nprim)) ) .or. prim(np) < 0d0 ) then
       write(*,'(A,3I4)') "Integration failed at b, i, j:", b, i, j
       write(*,*) prim(1:nprim)
       stop "NaN or p<0 detected"
     endif
 
-    ! Floor species densities
+    ! Floor sulle densità delle specie
     do s = 1, nsc
       if ( prim(s) < 1d-20 ) prim(s) = 1d-20
     enddo
 
-    ! Realizability for turbulence (gate `model==2`; formally
-    ! equivalent to the Q2D legacy `if (RANS)` — RANS .iff. model==2).
+    ! Realizability delle variabili di turbolenza (il gate `model==2`
+    ! identifica il modello RANS attivo: RANS ⇔ model==2).
     if (model==2) call RANS_Enforce_Realizability ( prim(nt:nprim) )
 
-    ! Floor soot variables.
+    ! Floor sulle variabili soot.
     if (nsoot == 2) then
       if ( prim(nc)   < 1d-20 ) prim(nc)   = 1d-20
       if ( prim(nc+1) < 1d+10 ) prim(nc+1) = 1d+10

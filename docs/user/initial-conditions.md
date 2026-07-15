@@ -65,7 +65,7 @@ ordered as in `phase.txt`.
       solver (No-$w$ principle).  Tecplot/VTK
       visualisations that read `w` will see zero out-of-plane
       velocity.
-    - In q2D area-variation cases, the local height $h(x, y)$ is
+    - In Q2D area-variation cases, the local height $h(x, y)$ is
       provided as a separate `INPUT/height.tec` file, **not** as the
       `z` coordinate.
 
@@ -128,6 +128,52 @@ p(1,1,1)  ...
  1.01325E+005     ← p
  ...
 ```
+
+### Tecplot Binary (`.szplt`)
+
+Compact binary format produced by TecIO, selected with
+`ini-format = tecplot binary` in `[Q2D-IO]`. Recommended for large
+multi-block cases where ASCII I/O becomes a bottleneck; requires
+ORION built with TecIO support (`USE_TECIO=ON`, the default local
+build — the CI builds use `USE_TECIO=OFF` and are ASCII-only). The
+variable list and zone structure are identical to the ASCII format.
+
+### VTK Structured (`.vts` / `.vtm`)
+
+Open-standard XML format readable by ParaView and VisIt, selected
+with `ini-format = vtk ascii` or `vtk raw` in `[Q2D-IO]`. Multi-block
+cases use a `.vtm` container referencing individual `.vts` structured
+pieces under `INPUT/vtk/` (Q2D reads them through ORION's
+`vtk_read_structured_multiblock`; see `src/lib/io/IO_Solution.f90`).
+Variable names and layout follow the same conventions as the Tecplot
+formats.
+
+## Required Variables
+
+Every file-based IC must contain node coordinates and the
+cell-centred flow state:
+
+| Variable | Description | Units |
+|----------|-------------|-------|
+| `x`, `y` | Node coordinates | m |
+| `rho1` … `rhoN` | Partial density of each species | kg/m³ |
+| `u`, `v` | Velocity components | m/s |
+| `p` | Pressure | Pa |
+
+If a turbulence model is active, the IC file must also carry its
+transported variables, appended after `p` (the reader maps variables
+positionally; the names below are the ones Q2D's own solution writer
+emits, `src/lib/io/IO_Solution.f90`):
+
+| Model (`turbulence =`) | Additional variables | Example case |
+|---|---|---|
+| `SA` family (1 eq.) | `mi_tilde` | `test/2D/viscous/swbli` |
+| `SST`, `Wilcox2006` (2 eq.) | `kappa`, `omega` | `test/2D/euler/planar-nozzle-turbulent/kw` |
+| `SSGLRR(-SD)` (5 eq.) | `ruu`, `rvv`, `rww`, `ruv`, `omega` | `test/2D/euler/planar-nozzle-turbulent/rsm` |
+
+Because the mapping is positional, an IC written for a different
+model family (wrong number of transported variables) is not a valid
+restart file for the active model.
 
 ---
 
@@ -246,7 +292,7 @@ introduce specific requirements on the initial condition:
   satisfy $v(r = 0) = 0$ for regularity; near the axis Q2D applies a
   $r_\text{ave} \to 10^{-6}$ de l'Hôpital fallback in the source-term
   evaluation.
-- **q2D area-variation** — additional `INPUT/height.tec` file
+- **Q2D area-variation** — additional `INPUT/height.tec` file
   (Tecplot ASCII, same grid as `ic.tec`) prescribing the local
   out-of-plane height $h(x, y)$.  The depth-averaged primitive state
   in `ic.tec` is interpreted as the volume-averaged state over the

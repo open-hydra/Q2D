@@ -19,15 +19,15 @@ contains
     use Q2D_Parameters_m,   only: llen
     use Q2D_Mod_MPI,        only: mpi_is_root
     implicit none
-    ! Local
+    ! Variabili locali
     type(file_ini) :: fini
     integer :: nprobes, nlineprobes, nmgl
     character(len=16),   allocatable :: probes_name(:)
     character(len=llen), allocatable :: lineprobes_names(:)
     logical :: have_ini
 
-    ! Bootstrap guard: without input.ini the setup is a no-op consistent with the
-    ! main loop (obj_sim_param%TODO=3 → bypass do-while).
+    ! Guardia di bootstrap: senza input.ini il setup è un no-op coerente con il
+    ! ciclo principale (obj_sim_param%TODO=3 → bypass del do-while).
     inquire(file='input.ini', exist=have_ini)
     if (.not. have_ini) then
       if (mpi_is_root) write(*,'(A)') &
@@ -38,24 +38,25 @@ contains
 
     allocate(obj_chemistry%RT(1:nsc+1), obj_chemistry%AT(1:nsc+1))
 
-    ! Load input.ini
+    ! Caricamento di input.ini
     call fini%load(filename='input.ini')
 
-    ! Scan input.ini for unknown number of probes and multigrid levels (also obj_rot stationary faces)
+    ! Scansione di input.ini per il numero non noto a priori di probe e di livelli
+    ! multigrid (oltre alle facce stazionarie di obj_rot)
     call Scan_Ini(fini, nprobes, probes_name, nlineprobes, lineprobes_names, nmgl)
 
-    ! Build registry entries
+    ! Costruzione delle voci del registry
     call Register_Sim_Param()
     call Register_IO_Fields()
     call Register_Probes(nprobes, probes_name)
-    call Register_LineProbes(nlineprobes, lineprobes_names)   ! Q2D-extra (peculiarità #5)
+    call Register_LineProbes(nlineprobes, lineprobes_names)
     call Register_Numerics(nmgl)
     call Register_Physics()
-    ! Q2D-specific: register the geometric sources. After the standard singletons
-    ! so that Register_Sources sees the base types already active.
+    ! Registrazione delle sorgenti geometriche, dopo i singleton standard così
+    ! che Register_Sources trovi i tipi base già attivi.
     call Register_Sources()
 
-    ! Registry is built, now load the values from the ini file
+    ! Registry costruito: caricamento dei valori dal file ini
     call Load_Ini(fini)
 
   end subroutine Read_Inifile
@@ -66,21 +67,22 @@ contains
     use Q2D_Backend_INI, only: Load_Ini, Scan_NoChem
     use Q2D_Registry_m,  only: Validate_Registry
     implicit none
-    ! Local
+    ! Variabili locali
     type(file_ini) :: fini
     character(len=1024) :: out
 
-    ! Load input.ini
+    ! Caricamento di input.ini
     call fini%load(filename='input.ini')
 
-    ! Registry is built, now load the values from the ini file
+    ! Registry già costruito: caricamento dei valori dal file ini
     call Load_Ini(fini)
 
-    ! No-chemistry block list: unbounded read (not a Registry param), so the
-    ! coupled/runtime path picks it up too (the standalone path reads it via Scan_Ini).
+    ! Lista dei blocchi esclusi dalla chimica: lettura senza limiti (non è un
+    ! parametro del Registry), così anche il percorso runtime/accoppiato la
+    ! acquisisce (il percorso standalone la legge via Scan_Ini).
     call Scan_NoChem(fini)
 
-    ! Validate registry
+    ! Validazione del registry
     out = Validate_Registry()
 
   end subroutine Read_Inifile_Runtime

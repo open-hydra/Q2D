@@ -101,7 +101,7 @@ riemann-solver = HLLE        # HLLE numerical flux
 space-reconstruction = MUSCL # 2nd-order spatial reconstruction
 flux-limiter = vanleer       # van Leer slope limiter
 integration-variables = cons # Conserved variables (ρ, ρu, ρv, E)
-omp_name = do                # 'do' or 'task' OMP loop dispatcher
+OMP-parallel = do            # 'do' or 'task' OMP loop dispatcher
 
 [Q2D-IO]
 shell-diter = 100            # Diagnostic output every 100 iterations
@@ -111,7 +111,7 @@ sol-format = tecplot ascii   # Tecplot ASCII output format
 probe1 = exit                # Probe at the exit plane
 
 [exit]
-index-position = 1 50 33 1   # Probe location (b, i, j, k=1) — k always 1 in Q2D
+index-position = 1 50 33     # Probe location (b, i, j)
 variables = M                # Mach number output
 diter = 100                  # Probe output frequency
 ```
@@ -154,8 +154,12 @@ hardware).
 To run with N OpenMP threads:
 
 ```bash
-./Q2D.sh solve -p 4    # Run with 4 threads
+./Q2D.sh -p 4 solve    # Run with 4 threads
 ```
+
+Note that the options must come **before** the task keyword: the
+`Q2D.sh` option parser stops at the first non-option token, so
+`./Q2D.sh solve -p 4` would silently ignore the thread count.
 
 For best performance, use `N = (number of physical cores)` on your
 machine.
@@ -215,15 +219,17 @@ During execution, Q2D prints iteration count, residuals, and solver
 status.  Example:
 
 ```
-  Iteration:    100  Time:  0.00000E+00  RMS Res:  1.23E-02
-  Iteration:    200  Time:  0.00000E+00  RMS Res:  4.56E-03
-  Iteration:    300  Time:  0.00000E+00  RMS Res:  1.89E-03
-  ...
-  Converged: RMS Res < 1E-6
+Q2D | Iter =      100 | Global iter =      100 | Density residual = 0.125027E-03
+Q2D | Iter =      200 | Global iter =      200 | Density residual = 0.231340E-06
+Q2D | Iter =      300 | Global iter =      300 | Density residual = 0.221740E-08
+Q2D | Iter =      384 | Global iter =      384 | Density residual = 0.998459E-10
 ```
 
-Watch for the RMS residual decreasing smoothly.  If it stalls or
-grows, the simulation is not stable.
+Watch for the density residual decreasing smoothly (the run above is
+the `prandtl-meyer` case converging to its `res-threshold`).  If it
+stalls or grows, the simulation is not stable.  See
+[Logging and Diagnostics](../user/using.md#logging-and-diagnostics)
+for the full annotated console output.
 
 ### Output Files
 
@@ -242,7 +248,7 @@ Now that you understand the basic workflow:
 - **Run other 2-D cases:** see `test/2D/euler/` for additional
   verification problems (oblique shock, hypersonic cylinder, rocket
   nozzle, ...).
-- **Try the q2D area-variation regime:** use a case with an
+- **Try the Q2D area-variation regime:** use a case with an
   `INPUT/height.tec` height field to exercise the geometric source
   terms and Definition A V·G coupling.
 - **Study the code:** refer to [Code Structure](../development/structure.md)

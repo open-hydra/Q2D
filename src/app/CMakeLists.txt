@@ -12,9 +12,9 @@ function(add_fortran_executable target source)
       $<BUILD_INTERFACE:${CMAKE_Fortran_MODULE_DIRECTORY}>)
 
   if (USE_OPENMP)
-    # OpenMP::OpenMP_Fortran carries both compile and link flags.
-    # Q2DL already links it as PUBLIC so this is transitive, but
-    # being explicit here documents the dependency clearly.
+    # OpenMP::OpenMP_Fortran carries both the compile flags and the link flags.
+    # Q2DL already links it as PUBLIC, so the dependency is transitive, but
+    # stating it here documents the dependency explicitly.
     target_link_libraries(${target} PRIVATE OpenMP::OpenMP_Fortran)
   endif()
 

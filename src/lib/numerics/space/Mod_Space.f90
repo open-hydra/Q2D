@@ -66,10 +66,10 @@ contains
       case ('superbee')
         rlimiter => rlimiter_SB
         marker = 'Super-Bee'
-      ! Q2D-extra 7th entry. Case `'LIMO3'` uppercase, matching the
-      ! Register_Numerics allowed-values list. The previous lowercase
-      ! `case ('limo3')` caused a silent fallback to rlimiter_IORD for the user
-      ! input `flux-limiter = LIMO3` (case-sensitive mismatch).
+      ! Case `'LIMO3'` maiuscolo, coerente con la lista dei valori ammessi in
+      ! Register_Numerics: il confronto è case-sensitive, e un case minuscolo
+      ! farebbe ricadere in silenzio l'input utente `flux-limiter = LIMO3`
+      ! sul default rlimiter_IORD.
       case ('LIMO3')
         rlimiter => rlimiter_LIMO3
         marker = 'LIMO3'

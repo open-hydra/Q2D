@@ -1,15 +1,15 @@
-!>@brief: Spalart-Allmaras model (no ft2 term). https://turbmodels.larc.nasa.gov/spalart.html
+!>@brief: Modello Spalart-Allmaras (senza termine ft2). https://turbmodels.larc.nasa.gov/spalart.html
 !
-! 12 procedures plus 1 Q2D-extra procedure
-! (Spalart_Source_Diffusive_Q2D). 2D loops, 9/12-arg signatures with
-! the extra vr/r_ave (axisymmetric) and V_dot_G (Definition A) arguments.
+! 12 procedure più Spalart_Source_Diffusive_Q2D (sorgente diffusiva di variazione
+! d'area). Loop 2D, firme a 9/12 argomenti con gli argomenti aggiuntivi
+! vr/r_ave (assialsimmetrico) e V_dot_G (Definizione A).
 !
-! When obj_rans%SpalartShur is set, Spalart_Source_Terms invokes
-! Compute_Velocity_Gradient + Compute_RC_Terms and SA_Source_Blk computes
-! fr1 = (1+cr1)*(2*rstar/(1+rstar))*(1-cr3*atan(cr2*rtilde)) - cr1, so that
-! Production = fr1*cb1*Stilde*nit. The SAR and SAcomp variants are
-! read from obj_rans flags (set in Setup_RANS_Model); obj_rot%enabled wires the
-! absolute-vorticity correction.
+! Con obj_rans%SpalartShur attivo, Spalart_Source_Terms invoca
+! Compute_Velocity_Gradient + Compute_RC_Terms e SA_Source_Blk calcola
+! fr1 = (1+cr1)*(2*rstar/(1+rstar))*(1-cr3*atan(cr2*rtilde)) - cr1, cosicché
+! Production = fr1*cb1*Stilde*nit. Le varianti SAR e SAcomp sono lette dai flag
+! obj_rans (impostati in Setup_RANS_Model); obj_rot%enabled attiva la correzione
+! di vorticità assoluta.
 module Q2D_Lib_Spalart
   use iso_fortran_env, only: I4 => int32, R8 => real64
 
@@ -23,10 +23,9 @@ module Q2D_Lib_Spalart
     cw3 = 2.0d0, &
     cv1 = 7.1d0, &
     cK = 0.41d0, &
-    ct1 = 1.d0, &
-    ct2 = 2.d0, &
-    ct3 = 1.2d0, &
-    ct4 = 0.5d0, &
+    ! ct1..ct4 intenzionalmente assenti: questa è la variante SA-noft2 del TMR
+    ! (nessun trip, f_t2 == 0); le costanti della funzione di trip sarebbero
+    ! codice morto qui.
     sigma = 2d0/3d0, &
     c2 = 0.7d0, &
     c3 = 0.9d0, &
@@ -35,7 +34,7 @@ module Q2D_Lib_Spalart
     cr3 = 1.d0, &
     Crot = 2.d0, &
     cw1 = cb1/cK**2 + (1d0+cb2)/sigma, &
-    C_cr1 = 0.3d0, &
+    ! (la costante QCR C_cr1 è definita in Q2D_Lib_QCR2000, non qui.)
     tolerance = 1.d-2
 
   public :: Spalart_Source_Terms
@@ -57,17 +56,17 @@ contains
     type(Q2D_domain_type), intent(inout) :: domain
     integer :: b
 
-    ! Spalart-Shur rotation/curvature precomputation.
-    ! Compute_Velocity_Gradient + Compute_RC_Terms populate vel_gradient +
-    ! rc_term1 + rc_term2 BEFORE the block loop. Conditional allocation in
-    ! Mod_Allocate_Data guarantees the arrays exist iff SpalartShur.
+    ! Precalcolo rotazione/curvatura di Spalart-Shur.
+    ! Compute_Velocity_Gradient + Compute_RC_Terms popolano vel_gradient +
+    ! rc_term1 + rc_term2 PRIMA del loop sui blocchi. L'allocazione condizionale in
+    ! Mod_Allocate_Data garantisce che gli array esistano se e solo se SpalartShur.
     if ( obj_rans%SpalartShur ) then
       call Compute_Velocity_Gradient ( domain )
       call Compute_RC_Terms ( domain )
     end if
 
     do b = 1, domain % nb
-      if (.not. is_local_block(b)) cycle  ! MPI: skip non-local blocks
+      if (.not. is_local_block(b)) cycle  ! MPI: salta i blocchi non locali
 
       call SA_Source_Blk ( domain % blk(b) % P,                 &
                            domain % blk(b) % r,                 &
@@ -88,9 +87,10 @@ contains
 
 
   subroutine SA_Source_Blk ( Prim, Res, M, yn, sur, gradv, rc1, rc2, r, n, geom_x, geom_y )
-    ! Signature 12-args (sur, r, geom_x, geom_y for area-variation);
-    ! body 2D loop (do j; do i — no do k).
-    ! sur is the 2D analogue of the 3D cell volume (face vs cell-volume metric).
+    ! Firma a 12 argomenti (sur, r, geom_x, geom_y per la variazione d'area);
+    ! corpo con loop 2D (do j; do i — nessun do k).
+    ! sur è l'analogo 2D del volume di cella 3D (superficie di cella come metrica
+    ! di volume).
     use Q2D_Base_Types_m,        only: Q2D_tensor_2D_type, Q2D_vector_2D_type
     use Q2D_Global_m,            only: nprim, nsc, nu, nv, np, nt, gc
     use Q2D_Config_Types_m,      only: obj_rans, obj_rot
@@ -107,10 +107,12 @@ contains
     type(Q2D_tensor_2D_type), dimension(1-gc:n(1)+gc, 1-gc:n(2)+gc), intent(in) :: gradv
     real(R8), dimension(n(1), n(2)), intent(in) :: rc1, rc2
     type(Q2D_vector_2D_type), dimension(0:n(1), 0:n(2)), intent(in) :: r
-    ! Q2D area-variation geom (Definition A): cell-centered, universal zero-fill.
-    ! Used only if SAR=true (Strain-based |S|); for standard SA-noft2
-    ! (vorticity-based |omega|) the 2(V·G)^2 correction does not apply ->
-    ! V_dot_G ignored in Eij.
+    ! Geometria Q2D di variazione d'area (Definizione A): centrata in cella,
+    ! azzeramento universale quando la variazione d'area è spenta.
+    ! Rileva per i rami strain-based (SAR: |S| nella Production; SpalartShur:
+    ! denominatore D2); per la SA-noft2 standard (vorticity-based |omega|) la
+    ! correzione 2(V·G)^2 non si applica -> Eij (e quindi V_dot_G) non entra
+    ! nella Production.
     real(R8), dimension(1:n(1), 1:n(2)), intent(in) :: geom_x, geom_y
     integer :: i, j
     real(R8) :: rho, Rgas, nit, mil, Gradvel(2,2), Gradnit(2), omega(3), Om, abs_Eij, Wij(3,3)
@@ -129,17 +131,17 @@ contains
       call Co_rotot_Rtot ( Prim(1:nsc,i,j), rho, Rgas )
       mil = f_laminarViscosity ( Prim(1:nsc,i,j), Prim(np,i,j), rho, Rgas )
       nit = Prim (nt,i,j) / rho  ! nu-tilde
-      chi = Prim (nt,i,j) / mil  ! Spalart X variable
+      chi = Prim (nt,i,j) / mil  ! variabile chi di Spalart
 
       Gradvel(:,1) = ( Prim(nu:nv,i+1,j) - Prim(nu:nv,i-1,j) ) * 0.5d0
       Gradvel(:,2) = ( Prim(nu:nv,i,j+1) - Prim(nu:nv,i,j-1) ) * 0.5d0
       Gradvel = Matmul ( Gradvel, M(i,j) % c )
 
-      omega = Vorticity_Vector ( Gradvel )    ! 2D-reduced (only omega(3) ≠ 0)
-      ! Absolute vorticity for SA:
-      ! omega_abs = omega_rel + 2*Omega_frame, physically correct for Om,
-      ! Stilde, and D2 (SA-RC denominator). Q2D Vorticity_Vector returns
-      ! vector(3) (omega(1)=omega(2)=0); Omega_vec axis [0,0,1] strict.
+      omega = Vorticity_Vector ( Gradvel )    ! riduzione 2D (solo omega(3) ≠ 0)
+      ! Vorticità assoluta per SA:
+      ! omega_abs = omega_rel + 2*Omega_frame, fisicamente corretta per Om,
+      ! Stilde e D2 (denominatore SA-RC). Vorticity_Vector restituisce
+      ! vector(3) (omega(1)=omega(2)=0); asse di Omega_vec [0,0,1] stretto.
       if (obj_rot%enabled) omega = omega + 2.0_R8 * obj_rot%Omega_vec
       Om    = Sqrt ( sum ( omega**2 ) )
 
@@ -151,31 +153,31 @@ contains
       endif
       if ( Stilde == 0d0 ) Stilde = 1d-40
 
-      ! Strain rate tensor (Q2D Def A: V_dot_G correction; Eij(3,3)=-V·G).
-      ! Always computed: SAR uses abs_Eij in Production, SpalartShur uses abs_Eij in the
-      ! D2 denominator for rtilde. Standard SA does not use it (negligible overhead).
+      ! Tensore di velocità di deformazione (Q2D Def A: correzione V_dot_G; Eij(3,3)=-V·G).
+      ! Calcolato sempre: SAR usa abs_Eij nella Production, SpalartShur usa abs_Eij nel
+      ! denominatore D2 per rtilde. La SA standard non lo usa (overhead trascurabile).
       V_dot_G = Prim(nu,i,j)*geom_x(i,j) + Prim(nv,i,j)*geom_y(i,j)
       Eij     = Strain_Tensor ( Gradvel, Prim(nv,i,j), r_ave, V_dot_G=V_dot_G )
       abs_Eij = sqrt ( 2*sum (Eij**2) )
 
       if ( obj_rans%SpalartShur ) then
-        ! SA-RC (Spalart & Shur 1997): rotation/curvature correction.
-        ! fr1 multiplies production; rc_term1=rstar=S/Omega
-        ! from Compute_RC_Terms (cylindrical+area-var formal handling); rc_term2 is the
-        ! numerator of rtilde (SA-specific denominator applied here: D2^2).
-        Wij = Vorticity_Tensor ( omega )    ! omega ABSOLUTE (wired above)
+        ! SA-RC (Spalart & Shur 1997): correzione di rotazione/curvatura.
+        ! fr1 moltiplica la produzione; rc_term1=rstar=S/Omega
+        ! da Compute_RC_Terms (trattamento formale cilindrico+area-var); rc_term2 è il
+        ! numeratore di rtilde (denominatore specifico di SA applicato qui: D2^2).
+        Wij = Vorticity_Tensor ( omega )    ! omega ASSOLUTA (impostata sopra)
         rstar  = rc1(i,j)
-        D2     = 0.5d0*(abs_Eij**2 + Om**2)        ! SA-RC denominator (Spalart-Shur 1997 §3.2)
+        D2     = 0.5d0*(abs_Eij**2 + Om**2)        ! denominatore SA-RC (Spalart-Shur 1997 §3.2)
         rtilde = rc2(i,j) / D2**2
         fr1 = (1.d0 + cr1)*(2.d0*rstar/(1.d0 + rstar))*(1.d0 - cr3*datan(cr2*rtilde)) - cr1
         Production = fr1 * cb1 * Stilde * nit
 
       else if ( obj_rans%SAR ) then
-        ! SA-R (Spalart 2000 strain-based): adds |Sij| beyond |omega|.
+        ! SA-R (Spalart 2000, strain-based): aggiunge |Sij| oltre a |omega|.
         Production = cb1 * ( Stilde + Crot * Min(0d0, abs_Eij - Om) ) * nit
 
       else
-        ! SA standard (vorticity-based |omega| only)
+        ! SA standard (solo |omega|, vorticity-based)
         Production = cb1 * Stilde * nit
       end if
 
@@ -230,7 +232,7 @@ contains
   end function fv2
 
 
-  ! Compressibility correction Paciorri-Sabetta https://doi.org/10.2514/2.3967
+  ! Correzione di comprimibilità Paciorri-Sabetta https://doi.org/10.2514/2.3967
   subroutine Compressibility_Correction ( nit, rho, chi, rhoi, p, Rgas, om, prod )
     use Q2D_Global_m,            only: nsc
     use FLINT_Lib_Thermodynamic, only: f_ss
@@ -271,13 +273,13 @@ contains
     real(R8), intent(in)                     :: mi_l
     real(R8), intent(in)                     :: dist
 
-    mitilde = 0d0 ! Smooth solid surface condition
+    mitilde = 0d0 ! condizione di parete solida liscia
 
   end subroutine Spalart_Set_Wall_Values
 
 
   subroutine Spalart_Set_Blowing_Wall ( rho, mil, tau, mitilde, mdot, dist )
-    ! tau(2) (2D-reduced); the MOSE peer has tau(3).
+    ! tau(2): vettore sforzo a parete ridotto 2D.
     use Q2D_Global_m, only: nRANS
 
     implicit none
@@ -285,7 +287,7 @@ contains
     real(R8), intent(in)                     :: rho, mil, mdot, dist
     real(R8), dimension(2), intent(in)       :: tau
 
-    mitilde = 0d0 ! Smooth solid surface condition
+    mitilde = 0d0 ! condizione di parete solida liscia
 
   end subroutine Spalart_Set_Blowing_Wall
 
@@ -298,7 +300,7 @@ contains
     real(R8), intent(in) :: rho, wall_rho
     real(R8), intent(out), dimension(nRANS) :: ghost_prim
 
-    ghost_prim(1) = - prim(1) ! enforcing mit_wall == 0
+    ghost_prim(1) = - prim(1) ! impone mit_wall == 0
 
   end subroutine Spalart_Extrapolate_Wall
 
@@ -313,8 +315,8 @@ contains
 
 
   subroutine Spalart_Eddy_Viscosity ( mut, mitilde, milam, rho, Gradvel, vr, r_ave, dist, V_dot_G )
-    ! Signature 9-args Q2D-form (vr, r_ave, V_dot_G optional accepted for
-    ! interface conformance; SA-noft2 standard chi-based, not used in body).
+    ! Firma a 9 argomenti (vr, r_ave, V_dot_G opzionale accettati per conformità
+    ! di interfaccia; la SA-noft2 standard è chi-based e non li usa nel corpo).
     use Q2D_Global_m, only: nRANS
 
     implicit none
@@ -335,9 +337,9 @@ contains
 
 
   subroutine Spalart_RANS_Diffusive_Flux (flux, mitilde, milam, gradvel, gradnit, rho, int_l, normal, vr, r_ave, dist, mut)
-    ! Signature 12-args. int_l is the 2D analogue of the 3D face area.
-    ! gradvel/vr/r_ave/dist/mut accepted for interface conformance (SA flux uses
-    ! mitilde directly).
+    ! Firma a 12 argomenti. int_l è l'analogo 2D dell'area di faccia 3D.
+    ! gradvel/vr/r_ave/dist/mut accettati per conformità di interfaccia (il flusso
+    ! SA usa direttamente mitilde).
     use Q2D_Global_m, only: nRANS
 
     implicit none
@@ -357,8 +359,8 @@ contains
 
 
   subroutine Spalart_Source_Diffusive_Q2D (source, mitilde, milam, mut, gradvel, gradnit, rho, dist)
-    ! Q2D-extra: SA diffusion projected onto G in Source_Area_Visc_Blk.
-    ! mut/gradvel accepted for interface conformance (SA does not use them).
+    ! Diffusione SA proiettata su G in Source_Area_Visc_Blk (sorgente di variazione d'area).
+    ! mut/gradvel accettati per conformità di interfaccia (SA non li usa).
     use Q2D_Global_m, only: nRANS
 
     implicit none

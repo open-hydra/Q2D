@@ -102,6 +102,8 @@ $$
 
 ## Transport Properties
 
+### Viscosity and thermal conductivity
+
 Mixture transport properties are computed using **Wilke's mixing
 rule** [3, 4], which accounts for molecular interactions between
 different species.
@@ -133,6 +135,24 @@ $$
 X_s = \frac{Y_s / M_s}{\sum_{j=1}^{N_s} Y_j / M_j}
 $$
 
+### Species diffusion
+
+Each species carries a diffusive mass flux
+$\mathbf{j}_s = -\rho\, D_s\, \nabla Y_s$. Q2D closes the diffusion
+coefficient with a **constant-Schmidt-number** model that combines the
+laminar and turbulent contributions
+(`src/lib/numerics/fluxes/Lib_Diffusive.f90`):
+
+$$
+D_s = \frac{1}{\rho}\left(\frac{\mu_\ell}{Sc} + \frac{\mu_t}{Sc_t}\right)
+$$
+
+with a single diffusivity shared by all species. `Sc` (laminar,
+default 0.7) and `Sct` (turbulent) are set in `[Q2D-Turbulence]`
+(registry constraint `Sc > 0`; Q2D has no multicomponent /
+mixture-averaged closure — that is a MOSE-only feature). Unity-Lewis
+transport is obtained by setting $Sc = Pr$.
+
 ---
 
 ## References
@@ -151,3 +171,6 @@ Phenomena*, 2nd edition. John Wiley & Sons, 2002.
 
 [5] Blazek, J. *Computational Fluid Dynamics: Principles and
 Applications*, 3rd edition. Butterworth-Heinemann, 2015.
+
+[6] Hirschfelder, J. O., Curtiss, C. F., and Bird, R. B. *Molecular
+Theory of Gases and Liquids*. John Wiley & Sons, 1954.

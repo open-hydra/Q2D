@@ -46,7 +46,7 @@ regimes, the thermochemistry framework, and the equilibrium solver.
 
     ---
 
-    Spalart–Allmaras (+ SA-RC, SAcomp, SAR), Menter SST $k$–$\omega$, Wilcox 2006 $k$–$\omega$
+    Spalart–Allmaras (+ SA-R, SA-RC, SAcomp), Menter SST $k$–$\omega$, Wilcox 2006 $k$–$\omega$, SSG/LRR-$\omega$ RSM (SSGLRR, SSGLRR-SD)
 
     [:octicons-arrow-right-24: Turbulence models](turbulence.md)
 
@@ -62,7 +62,7 @@ regimes, the thermochemistry framework, and the equilibrium solver.
 
     ---
 
-    Overview hub for the axisymmetric ($1/r$ cylindric residual) and area-variation ($\mathbf{V}\!\cdot\!\mathbf{G}$ depth-averaging) regimes, with full formal derivations in [2D Axisymmetric](axisymmetric-derivation.md), [q2D Area-Variation](area-variation-derivation.md), and [Q2D RANS Closures](q2d-rans-closures.md)
+    Overview hub for the axisymmetric ($1/r$ cylindric residual) and area-variation ($\mathbf{V}\!\cdot\!\mathbf{G}$ depth-averaging) regimes, with full formal derivations in [2D Axisymmetric](axisymmetric-derivation.md), [Q2D Area-Variation](area-variation-derivation.md), and [Q2D RANS Closures](q2d-rans-closures.md)
 
     [:octicons-arrow-right-24: Geometric source terms](geometric-sources.md)
 
@@ -104,7 +104,7 @@ dimensions**, with three supported geometric regimes:
 |--------|----------|------------------|
 | **2D planar** | Standard Cartesian $(x, y)$ | None |
 | **2D axisymmetric** | Cylindrical $(x, r)$, $u_\theta \equiv 0$ | $\sim 1/r$ cylindric residual |
-| **q2D area-variation** | Depth-averaged channel with height $h(x, y)$ | $\sim \mathbf{V}\!\cdot\!\mathbf{G}$ depth-averaging |
+| **Q2D area-variation** | Depth-averaged channel with height $h(x, y)$ | $\sim \mathbf{V}\!\cdot\!\mathbf{G}$ depth-averaging |
 
 The numerical pipeline can be summarised as follows:
 
@@ -112,9 +112,9 @@ The numerical pipeline can be summarised as follows:
 |-------|--------|------|
 | **Governing system** | Multi-species Euler / Navier–Stokes (two-dimensional) | [Governing Equations](governing-equations.md) |
 | **Spatial discretization** | Cell-centred FVM + MUSCL-limited reconstruction | [Spatial Discretization](numerics.md) |
-| **Interface fluxes** | Approximate Riemann solvers (AUSM, HLL, Godunov, LF, SLAU) | [Riemann Solvers](riemann-solvers.md) |
+| **Interface fluxes** | Riemann solvers (HLL family, AUSM⁺ family, SLAU/SLAU2, exact) | [Riemann Solvers](riemann-solvers.md) |
 | **Time marching** | 3-stage SSP RK3, IRS, geometric multigrid | [Time Integration](time-integration.md) |
-| **Turbulence closure** | SA, SST $k$–$\omega$, Wilcox 2006 $k$–$\omega$ | [Turbulence Modelling](turbulence.md) |
+| **Turbulence closure** | SA, SST $k$–$\omega$, Wilcox 2006 $k$–$\omega$, SSG/LRR-$\omega$ RSM | [Turbulence Modelling](turbulence.md) |
 | **Geometric sources** | Cylindrical axisymmetric or depth-averaged area-variation | [Geometric Source Terms](geometric-sources.md) |
 | **Thermochemistry** | Ideal-gas mixture, NASA polynomials | [Thermodynamic Properties](thermo.md) |
 | **Chemistry** | Finite-rate (Arrhenius/Troe) or equilibrium (CEA) | [Kinetics](kinetics.md), [Equilibrium](equilibrium.md) |
