@@ -1,23 +1,23 @@
 """swbli 2D viscous RANS-SA acceptance regression check.
 
-History:
-  Sess 8 (2026-05-11): smoke infrastructure (positivity + NaN check).
-  Sess 12.A (2026-05-22): Cf wall extraction + comparison vs MOSE-SA.tec
-    reference (±10% engineering V&V tolerance).
-  Sess 39 (2026-06-15, F13): independent-reference V&V on the separation
-    bubble — the shock/boundary-layer interaction's defining physics. The
-    separation and reattachment locations (where the wall shear tauX changes
-    sign) are a nondimensional, scale-invariant V&V metric (independent of the
-    tauX->Cf normalization). They are bracketed against the independent
-    references already in reference/ (Schulein-2002 experiment + SU2-SA CFD +
-    Wind-US tunnel), turning the case from consistency-only (vs MOSE) into an
-    independent-reference gate (closes F13).
+The check has three layers:
+  - Smoke: field-output positivity + NaN/Inf check.
+  - Cf consistency: wall skin-friction extraction and comparison against the
+    MOSE-SA.tec reference (same SA model).
+  - Independent-reference V&V on the separation bubble — the shock/boundary-
+    layer interaction's defining physics. The separation and reattachment
+    locations (where the wall shear tauX changes sign) are a nondimensional,
+    scale-invariant V&V metric (independent of the tauX->Cf normalization).
+    They are bracketed against the independent references already in
+    reference/ (Schulein-2002 experiment + SU2-SA CFD + Wind-US tunnel),
+    making the case an independent-reference gate rather than
+    consistency-only (vs MOSE).
 
 Acceptance criteria:
   - Smoke: OUTPUT/field*.tec exists, no NaN/Inf, n_tokens > 0.
-  - Cf consistency (vs MOSE-SA.tec, Sess 12.A): max rel diff of tauX <= 0.1%
+  - Cf consistency (vs MOSE-SA.tec): max rel diff of tauX <= 0.1%
     over the developed-plate range (MOSE-shared SA -> essentially bit-tight).
-  - Separation-bubble independent-reference V&V (F13, Sess 39): the solver's
+  - Separation-bubble independent-reference V&V: the solver's
     separation x_sep and reattachment x_reatt (tauX sign changes in the
     interaction zone) must fall inside the envelope of the independent
     references within a 1.5% engineering band. The envelope (separation
@@ -43,7 +43,7 @@ that silently PASSED smoke-only when the quantitative gates could not run):
     run is genuinely under-converged for the engineering V&V gates.
 
 References:
-  - MOSE-SA.tec: extracted from MOSE upstream commit 6d5a3a7 Sess 11.A
+  - MOSE-SA.tec: extracted from MOSE upstream commit 6d5a3a7
     (consistency reference, same SA model).
   - schulein.dat: Schulein 2002 experimental skin-friction (independent).
   - SU2-SA.dat: SU2 Spalart-Allmaras CFD (independent code).
@@ -228,11 +228,11 @@ def cf_check():
     n_compared = 0
     n_diverge = 0
     tol = 0.001  # 0.1% tight tolerance — Q2D + MOSE both SA model + same 2D plane case
-                  # should produce essentially bit-tight match per user-direction Sess 13
-                  # "stesso modello → identici, molto più basse". Empirically Q2D achieves
+                  # should produce an essentially bit-tight match (same model → identical
+                  # results, far below engineering tolerances). Empirically Q2D achieves
                   # max_rel_diff ≈ 9e-04 (0.09%) vs MOSE-SA.tec reference; ±0.1% is
-                  # comfortable headroom while signalling Q2D ≠ MOSE divergence if it
-                  # ever arises. Reference: docs/vv/regression_tolerance.md §2.3.
+                  # comfortable headroom while signalling a Q2D vs MOSE divergence if it
+                  # ever arises.
     for k in range(n_skip, n_cells - n_skip):
         tq = q2d_tauX[k]
         tm = mose_tauX[k]
@@ -290,7 +290,7 @@ def _ref_zero_crossings(path):
 
 
 def separation_check():
-    """Independent-reference V&V on the separation bubble (F13, Sess 39).
+    """Independent-reference V&V on the separation bubble.
 
     The shock/boundary-layer interaction separates the wall boundary layer; the
     separation x_sep and reattachment x_reatt (tauX sign changes) are a
@@ -386,7 +386,7 @@ def main():
 
     failed = False
 
-    # (1) Cf consistency vs MOSE-SA.tec (Sess 12.A) — MOSE-shared SA, bit-tight.
+    # (1) Cf consistency vs MOSE-SA.tec — MOSE-shared SA, bit-tight.
     cf_pass, cf_status = cf_check()
     print("[swbli check] Cf vs MOSE-SA.tec: {0}".format(cf_status))
     if cf_pass:
@@ -395,7 +395,7 @@ def main():
         print("[swbli check] Cf consistency FAIL (tolerance 0.1% exceeded)")
         failed = True
 
-    # (2) Separation-bubble independent-reference V&V (F13, Sess 39) —
+    # (2) Separation-bubble independent-reference V&V —
     #     Schulein exp + SU2 + Wind envelope.
     sep_pass, sep_status = separation_check()
     print("[swbli check] separation vs independent refs: {0}".format(sep_status))

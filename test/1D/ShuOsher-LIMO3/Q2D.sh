@@ -5,8 +5,8 @@
 #
 #         USAGE: run "./Q2D.sh [options] {solve|kill}" in the current shell
 #
-#   DESCRIPTION: Compile/run script for the ShuOsher-LIMO3 1D test case (Q2D_new).
-#                Activates the Q2D-only third-order limiter LIMO3 (peculiarità #7).
+#   DESCRIPTION: Compile/run script for the ShuOsher-LIMO3 1D test case.
+#                Activates the third-order LIMO3 limiter.
 #===============================================================================
 
 function print_usage {

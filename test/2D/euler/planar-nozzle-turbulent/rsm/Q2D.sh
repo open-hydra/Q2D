@@ -3,8 +3,8 @@
 #
 #          FILE: Q2D.sh
 #         USAGE: run "./Q2D.sh [options] {solve|kill}" in the current shell
-#   DESCRIPTION: Compile/run script for chang-nozzle-turbulent/rsm (axisymmetric
-#                core-flow RANS, SSGLRR axi V&V family) (Q2D_new).
+#   DESCRIPTION: Compile/run script for the Chang nozzle turbulent RSM case
+#                (axisymmetric core-flow RANS, SSGLRR axi V&V family).
 #
 #===============================================================================
 

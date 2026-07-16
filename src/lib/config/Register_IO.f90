@@ -27,14 +27,14 @@ contains
     call reg%add( section, 'sol-dtime', obj_io%sol_dtime, '1e30', 'Solution output time frequency', '> 0', .false. )
     call reg%add( section, 'sol-overwrite', obj_io%sol_overwrite, 'true', 'Overwrite solution files', 'true, false', .false. )
 
-    ! Definizione delle variabili da scrivere
+    ! Definition of the variables to write
     call reg%add( section, 'sol-variables', obj_io%sol_variables, 'thermo', 'Solution variables to write', '', .false. )
     call reg%add( section, 'wall-variables', obj_io%wall_variables, 'mech thermal', 'Wall variables to write', '', .false. )
 
-    ! File di storia dei residui
+    ! Residual history file
     call reg%add( section, 'res-diter', obj_io%res_diter, '1', 'Residual history iter frequency', '> 0', .false. )
 
-    ! Opzioni della shell
+    ! Shell options
     call reg%add( section, 'shell-diter', obj_io%shell_diter, '1', 'Shell update iter frequency', '> 0', .false. )
     call reg%add( section, 'ini-diter', obj_io%ini_diter, '10000', 'input.ini update iter frequency', '> 0', .false. )
 
@@ -68,14 +68,14 @@ contains
     obj_io_probes(p)%error_message   = 'none'
     obj_io_probes(p)%description     = 'none'
 
-    ! Nomi delle variabili
+    ! Variable names
     call reg%add( trim(probe_name), 'variables', obj_io_probes(p)%varnames, 'none', 'Probe variables to write', '', .false. )
 
-    ! Frequenza
+    ! Frequency
     call reg%add( trim(probe_name), 'dtime', obj_io_probes(p)%dtime, '1e30', 'Probe output time frequency', '> 0', .false. )
     call reg%add( trim(probe_name), 'diter', obj_io_probes(p)%diter, '1000000000', 'Probe output iter frequency', '> 0', .false. )
 
-    ! Posizione — indici 2D (b,i,j) e coordinate (x,y); nessun indice k né coordinata z.
+    ! Position — 2D indices (b,i,j) and coordinates (x,y); no k index nor z coordinate.
     call reg%add( trim(probe_name), 'index-position', obj_io_probes(p)%iloc, '0 0 0', 'Probe location by index (b i j)', '>= 0', .false. )
     call reg%add( trim(probe_name), 'position', obj_io_probes(p)%loc, '0.0 0.0', 'Probe location by 2D coordinates', '', .false. )
 
@@ -83,10 +83,10 @@ contains
 
 
   subroutine Register_LineProbes(n, lineprobes_names)
-    ! Line-probe: campionamento lungo una linea a indice i o j fissato.
-    ! Gestione via registry (stessa struttura di Register_Probes): la
-    ! configurazione di ogni line-probe è legata a obj_io_lineprobes(p) e
-    ! Setup_LineProbes usa i valori caricati — nessun accesso diretto fini%get.
+    ! Line-probe: sampling along a line at fixed i or j index.
+    ! Handled via the registry (same structure as Register_Probes): the
+    ! configuration of each line-probe is bound to obj_io_lineprobes(p) and
+    ! Setup_LineProbes uses the loaded values — no direct fini%get access.
     use Q2D_Parameters_m, only: codename
     use IR_Precision,     only: str
     implicit none
@@ -118,16 +118,16 @@ contains
     call reg%add( trim(lineprobe_name), 'variables', obj_io_lineprobes(p)%varnames, 'none', &
                   'Variables to record along the line (whitespace-separated)', '', .false. )
 
-    ! Frequenza
+    ! Frequency
     call reg%add( trim(lineprobe_name), 'dtime', obj_io_lineprobes(p)%dtime, '1e30', &
                   'Line-probe time frequency', '> 0', .false. )
     call reg%add( trim(lineprobe_name), 'diter', obj_io_lineprobes(p)%diter, '1000000000', &
                   'Line-probe iter frequency', '> 0', .false. )
 
-    ! Posizione — `[block, direction]` a 2 componenti (direction=1 linea a i
-    ! fissato, direction=2 a j fissato) + `fixed-index` scalare. Entrambi
-    ! OBBLIGATORI al momento del solve: i default sentinella `0` permettono a
-    ! Setup_LineProbes di emettere `error stop` se l'utente li omette.
+    ! Position — 2-component `[block, direction]` (direction=1 line at fixed i,
+    ! direction=2 at fixed j) + scalar `fixed-index`. Both MANDATORY at solve
+    ! time: the sentinel defaults `0` let Setup_LineProbes emit an `error stop`
+    ! if the user omits them.
     call reg%add( trim(lineprobe_name), 'index-position', obj_io_lineprobes(p)%iloc, '0 0', &
                   'Line-probe location [block, direction]: direction=1 (i-fixed) | 2 (j-fixed)', &
                   '>= 0', .false. )

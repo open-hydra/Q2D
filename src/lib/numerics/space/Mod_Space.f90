@@ -66,10 +66,10 @@ contains
       case ('superbee')
         rlimiter => rlimiter_SB
         marker = 'Super-Bee'
-      ! Case `'LIMO3'` maiuscolo, coerente con la lista dei valori ammessi in
-      ! Register_Numerics: il confronto è case-sensitive, e un case minuscolo
-      ! farebbe ricadere in silenzio l'input utente `flux-limiter = LIMO3`
-      ! sul default rlimiter_IORD.
+      ! Case `'LIMO3'` in upper case, consistent with the list of allowed values
+      ! in Register_Numerics: the comparison is case-sensitive, and a lower-case
+      ! case would silently make the user input `flux-limiter = LIMO3` fall back
+      ! to the default rlimiter_IORD.
       case ('LIMO3')
         rlimiter => rlimiter_LIMO3
         marker = 'LIMO3'

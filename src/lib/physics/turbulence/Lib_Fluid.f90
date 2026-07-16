@@ -256,9 +256,9 @@ contains
 
 
   pure function Stress_Tensor_2eq_Std ( Gradvel, mi_l, mi_t, rhok, r_ave, vr, V_dot_G ) result ( Stress_t )
-    ! Q2D Definizione A: Divervel = div_2D - V_dot_G,
+    ! Q2D Definition A: Divervel = div_2D - V_dot_G,
     ! Tau_zz = lam*Divervel - 2*mi*VG + rhokdelta = -(4mi/3)*VG -(2mi/3)*div_2D -(2/3)rhok.
-    ! Il Boussinesq a 2 equazioni aggiunge rhokdelta = -(2/3)rho*k alla diagonale.
+    ! The two-equation Boussinesq closure adds rhokdelta = -(2/3)rho*k to the diagonal.
     implicit none
     real(R8), intent(in) :: Gradvel(2,2), mi_t, mi_l, rhok(:), r_ave, vr
     real(R8), intent(in), optional :: V_dot_G
@@ -294,7 +294,7 @@ contains
 
 
   pure function Stress_Tensor_2eq_Axi ( Gradvel, mi_l, mi_t, rhok, r_ave, vr, V_dot_G ) result ( Stress_t )
-    ! Argomento opzionale V_dot_G per uniformità di interfaccia (NON usato in Axi).
+    ! Optional argument V_dot_G for interface uniformity (NOT used in Axi).
     implicit none
     real(R8), intent(in) :: Gradvel(2,2), mi_t, mi_l, rhok(:), r_ave, vr
     real(R8), intent(in), optional :: V_dot_G
@@ -327,12 +327,12 @@ contains
 
 
   pure function Stress_Vector_RSM_Std ( Gradvel, Normal, mi_l, mi_t, var, r_ave, vr, V_dot_G ) result ( Stress )
-    ! Accoppiamento RSM SSG/LRR-omega con la quantità di moto (niente Boussinesq,
-    ! docs/theory/q2d-rans-closures.md §6.8): lo sforzo totale alla faccia è il
-    ! tensore newtoniano LAMINARE (solo mi_l, mi_t ignorato) MENO lo sforzo di
-    ! Reynolds trasportato rho*R_ij. var = Prim(nt:) quindi var(1)=rho*R11,
-    ! var(2)=rho*R22, var(4)=rho*R12 (blocco nel piano; R13=R23=0).
-    ! Definizione A: Divervel = div_2D - V·G (divergenza in z alle pareti virtuali).
+    ! RSM SSG/LRR-omega coupling with momentum (no Boussinesq,
+    ! docs/theory/q2d-rans-closures.md §6.8): the total face stress is the
+    ! LAMINAR Newtonian tensor (only mi_l, mi_t ignored) MINUS the transported
+    ! Reynolds stress rho*R_ij. var = Prim(nt:), hence var(1)=rho*R11,
+    ! var(2)=rho*R22, var(4)=rho*R12 (in-plane block; R13=R23=0).
+    ! Definition A: Divervel = div_2D - V·G (z divergence at the virtual walls).
     implicit none
     real(R8), intent(in) :: Gradvel(2,2), Normal(2), mi_t, mi_l, var(:), r_ave, vr
     real(R8), intent(in), optional :: V_dot_G
@@ -357,9 +357,9 @@ contains
 
 
   pure function Stress_Vector_RSM_Axi ( Gradvel, Normal, mi_l, mi_t, var, r_ave, vr, V_dot_G ) result ( Stress )
-    ! Accoppiamento RSM assialsimmetrico con la quantità di moto: divergenza
-    ! cilindrica laminare (mi_l, de l'Hopital sull'asse) MENO rho*R_ij. V_dot_G
-    ! accettato per uniformità di interfaccia, NON usato in Axi.
+    ! Axisymmetric RSM coupling with momentum: laminar cylindrical
+    ! divergence (mi_l, de l'Hopital on the axis) MINUS rho*R_ij. V_dot_G
+    ! accepted for interface uniformity, NOT used in Axi.
     implicit none
     real(R8), intent(in) :: Gradvel(2,2), Normal(2), mi_t, mi_l, var(:), r_ave, vr
     real(R8), intent(in), optional :: V_dot_G
@@ -371,7 +371,7 @@ contains
     if (r_ave .le. 1.d-6) then
       Divervel = Gradvel(1,1) + Gradvel(2,2) + Gradvel(2,2) ! de l'Hopital vr/r --> dv/dr
     else
-      Divervel = Gradvel(1,1) + Gradvel(2,2) + vr/r_ave     ! divergenza cilindrica
+      Divervel = Gradvel(1,1) + Gradvel(2,2) + vr/r_ave     ! cylindrical divergence
     endif
     lamDivervel = lam*Divervel
 
@@ -385,10 +385,10 @@ contains
 
 
   pure function Stress_Tensor_RSM_Std ( Gradvel, mi_l, mi_t, var, r_ave, vr, V_dot_G ) result ( Stress_t )
-    ! Sforzo totale 3x3 per la sorgente geometrica RSM della quantità di moto
+    ! 3x3 total stress for the RSM geometric source of momentum
     ! (Source_Area_Visc_Blk: G·(tau_33 - tau_ii); Source_Axi_Visc_Blk:
-    ! (tau_rr - tau_theta)/r): tensore laminare (mi_l) MENO rho*R_ij. var(3)=rho*R33
-    ! entra in tau_33. Definizione A:
+    ! (tau_rr - tau_theta)/r): laminar tensor (mi_l) MINUS rho*R_ij. var(3)=rho*R33
+    ! enters tau_33. Definition A:
     ! tau_33^lam = lam*Divervel - 2*mi_l*VG, Divervel = div_2D - V·G.
     implicit none
     real(R8), intent(in) :: Gradvel(2,2), mi_t, mi_l, var(:), r_ave, vr
@@ -422,9 +422,9 @@ contains
 
 
   pure function Stress_Tensor_RSM_Axi ( Gradvel, mi_l, mi_t, var, r_ave, vr, V_dot_G ) result ( Stress_t )
-    ! Sforzo totale 3x3 assialsimmetrico: tensore cilindrico laminare (mi_l) MENO
+    ! 3x3 axisymmetric total stress: laminar cylindrical tensor (mi_l) MINUS
     ! rho*R_ij; tau_33^lam = 2*mi_l*vr/r + lam*Divervel (theta-theta). V_dot_G
-    ! accettato per uniformità di interfaccia, NON usato in Axi.
+    ! accepted for interface uniformity, NOT used in Axi.
     implicit none
     real(R8), intent(in) :: Gradvel(2,2), mi_t, mi_l, var(:), r_ave, vr
     real(R8), intent(in), optional :: V_dot_G
@@ -433,7 +433,7 @@ contains
     real(R8) :: lam, Divervel, lamDivervel
 
     lam = negativetwothird * mi_l
-    Divervel = Gradvel(1,1) + Gradvel(2,2) + vr/r_ave ! divergenza cilindrica
+    Divervel = Gradvel(1,1) + Gradvel(2,2) + vr/r_ave ! cylindrical divergence
     lamDivervel = lam*Divervel
 
     Tau_xx = lamDivervel + 2d0 * mi_l * Gradvel(1,1) - var(1)
@@ -454,7 +454,7 @@ contains
 
 
   pure function Vorticity_Vector ( Gradvel ) result ( omega )
-    ! Riduzione 2D: omega(1)=omega(2)=0; solo omega(3) = G(2,1)-G(1,2).
+    ! 2D reduction: omega(1)=omega(2)=0; only omega(3) = G(2,1)-G(1,2).
     implicit none
     real(R8), intent(in), dimension(2,2) :: Gradvel
     real(R8), dimension(3) :: omega
@@ -466,11 +466,11 @@ contains
 
 
   pure function Vorticity_Tensor ( omega ) result ( W )
-    ! Convenzione: W_ij = (du_i/dx_j - du_j/dx_i)/2 (tensore antisimmetrico costruito
-    ! da omega con segni opposti rispetto al duale di Hodge). Il SEGNO CONTA: SSGLRR
-    ! consuma W linearmente nel termine rapido di pressione-strain C5
-    ! (a_ik W_jk + a_jk W_ik) e QCR2000 in O_ik; solo SA/SST/Wilcox lo riducono a
-    ! |W|^2. Convenzione verificata rispetto allo skew(grad u) esatto.
+    ! Convention: W_ij = (du_i/dx_j - du_j/dx_i)/2 (antisymmetric tensor built
+    ! from omega with signs opposite to the Hodge dual). The SIGN MATTERS: SSGLRR
+    ! consumes W linearly in the rapid pressure-strain term C5
+    ! (a_ik W_jk + a_jk W_ik) and QCR2000 in O_ik; only SA/SST/Wilcox reduce it to
+    ! |W|^2. Convention verified against the exact skew(grad u).
     implicit none
     real(R8), intent(in), dimension(3) :: omega
     real(R8), dimension(3,3) :: W
@@ -489,14 +489,14 @@ contains
 
 
   pure function Strain_Tensor_Std ( Gradvel, vr, r_ave, V_dot_G ) result ( E )
-    ! Q2D Definizione A (modello A, media in profondità consistente con le BC):
-    ! S_33 = -V·G rappresenta <∂w/∂z> dalla media in profondità dell'equazione di
-    ! continuità 3D sotto le ipotesi di impermeabilità + free-slip alle pareti
-    ! virtuali top/bot ((P2)-(P4) in docs/theory/area-variation-derivation.md).
-    ! L'identità formale <∂w/∂z> = -(V·G) segue da Leibniz + BC di impermeabilità,
-    ! senza specificare alcun profilo in z di w. Con V_dot_G assente (default 0)
-    ! si riduce alla Definizione B (profilo plug free-slip, nessuna correzione di
-    ! divergenza in z).
+    ! Q2D Definition A (model A, depth average consistent with the BCs):
+    ! S_33 = -V·G represents <∂w/∂z> from the depth average of the 3D continuity
+    ! equation under the assumptions of impermeability + free-slip at the top/bot
+    ! virtual walls ((P2)-(P4) in docs/theory/area-variation-derivation.md).
+    ! The formal identity <∂w/∂z> = -(V·G) follows from Leibniz + impermeability BC,
+    ! without specifying any z profile of w. With V_dot_G absent (default 0)
+    ! it reduces to Definition B (free-slip plug profile, no z-divergence
+    ! correction).
     implicit none
     real(R8), intent(in) :: Gradvel(2,2), r_ave, vr
     real(R8), intent(in), optional :: V_dot_G
@@ -521,9 +521,9 @@ contains
 
 
   pure function Strain_Tensor_Axi ( Gradvel, vr, r_ave, V_dot_G ) result ( E )
-    ! Variante assialsimmetrica: E(3,3) = vr/r_ave (strain theta-theta, con fallback
-    ! de l'Hopital sull'asse). V_dot_G opzionale accettato per uniformità di
-    ! interfaccia ma NON usato in Axi.
+    ! Axisymmetric variant: E(3,3) = vr/r_ave (theta-theta strain, with de l'Hopital
+    ! fallback on the axis). Optional V_dot_G accepted for interface uniformity
+    ! but NOT used in Axi.
     implicit none
     real(R8), intent(in) :: Gradvel(2,2), r_ave, vr
     real(R8), intent(in), optional :: V_dot_G
@@ -548,11 +548,11 @@ contains
 
 
   pure function V_dot_G_face_avg ( V_loc, V_neigh, G_loc, G_neigh ) result ( VG )
-    ! Convenzione canonica per V·G alla faccia (Q2D Def A).
-    ! Approssimazione a due medie: ⟨V⟩_faccia · ⟨G⟩_faccia, con ⟨V⟩=½(V_loc+V_neigh) e idem G.
-    ! Su una BC di slip-simmetria (V_n_faccia=0 esatto), la media dei prodotti valutati al
-    ! centro cella introdurrebbe un termine spurio O(1) V_n_loc·G_n_loc; questa convenzione
-    ! dà esattamente V_tan·G_tan (rigorosa indipendentemente da h al contorno).
+    ! Canonical convention for V·G at the face (Q2D Def A).
+    ! Two-average approximation: ⟨V⟩_face · ⟨G⟩_face, with ⟨V⟩=½(V_loc+V_neigh) and likewise G.
+    ! On a slip-symmetry BC (V_n_face=0 exact), averaging the products evaluated at the
+    ! cell center would introduce a spurious O(1) term V_n_loc·G_n_loc; this convention
+    ! gives exactly V_tan·G_tan (rigorous independently of h at the boundary).
     implicit none
     real(R8), intent(in) :: V_loc(2), V_neigh(2), G_loc(2), G_neigh(2)
     real(R8) :: VG

@@ -1,11 +1,11 @@
-"""flat-plate-turbulent/coarse-kw 2D viscous regression check (Sess 13 reference enforcement).
+"""flat-plate-turbulent/coarse-kw 2D viscous regression check (NASA TMR reference enforcement).
 
 History:
-  Sess 10 (2026-05-21): smoke infrastructure (positivity + NaN check).
-  Sess 13 (2026-05-22): cf-sst.dat NASA TMR reference enforcement (matching
-    turbulence = SST model per input.ini); cf-wilcox.dat preserved as
-    informative cross-check (Wilcox2006 model — different from SST run).
-  2026-07 hardening: removed the two silent "SMOKE PASS only" pass-through
+  - smoke infrastructure (positivity + NaN check).
+  - cf-sst.dat NASA TMR reference enforcement (matching turbulence = SST
+    model per input.ini); cf-wilcox.dat preserved as informative
+    cross-check (Wilcox2006 model — different from SST run).
+  - hardening: removed the two silent "SMOKE PASS only" pass-through
     paths (missing wall.tec / missing cf-sst.dat now FAIL); added a PRIMARY
     de-normalized physical-Cf gate (the old shape gate normalizes both curves
     by their own maxima, which cancels any constant multiplicative error in
@@ -30,7 +30,7 @@ Acceptance criteria:
     engineering headroom, not tuning.
   - SECONDARY Cf shape gate vs cf-sst.dat: both curves normalized by their
     plate-region maxima, max rel shape diff <= 10% over x in [0.05, 1.0]
-    (scale-free curve-shape tripwire, kept from Sess 13).
+    (scale-free curve-shape tripwire).
   - cf-wilcox.dat cross-check INFORMATIVE only (different model — Wilcox2006
     vs SST).
 
@@ -40,9 +40,9 @@ violation. This script never exits 77 (no legitimate skip condition).
 
 References:
   - cf-sst.dat: copied from MOSE/test/2D/viscous/flat-plate-turbulent/reference/
-    Sess 13 F-12-K (NASA TMR for the SST model; the file's own Tecplot zone
-    header reads T="FUN3D, triangles" — FUN3D, not CFL3D); matches Q2D
-    turbulence = SST per input.ini.
+    (NASA TMR for the SST model; the file's own Tecplot zone header reads
+    T="FUN3D, triangles" — FUN3D, not CFL3D); matches Q2D turbulence = SST
+    per input.ini.
   - cf-wilcox.dat: NASA TMR for the Wilcox2006 model (two Tecplot zones:
     T="CFL3D" and T="FUN3D"); informative cross-check only — Q2D ran SST,
     a different model, so a larger relative diff than cf-sst.dat is
@@ -358,7 +358,7 @@ def main():
         label="physical Cf vs cf-sst.dat (NASA TMR SST)")
     print("[FP-turb-kw check] {0}".format(status_phys))
 
-    # SECONDARY: scale-free shape gate (Sess 13), kept as a curve-shape tripwire.
+    # SECONDARY: scale-free shape gate, kept as a curve-shape tripwire.
     pass_sst, status_sst = cf_shape_compare(
         x_nodal, tauX_cc, sst_x, sst_cf, tol=0.10,
         label="Cf shape vs cf-sst.dat (NASA TMR SST)")

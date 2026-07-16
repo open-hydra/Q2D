@@ -1,8 +1,8 @@
-"""ShuOsher-LIMO3 regression check — peculiarità #7 (Q2D-only third-order limiter LIMO3).
+"""ShuOsher-LIMO3 regression check — third-order LIMO3 limiter.
 
-Activates the Q2D-only LIMO3 limiter (Cada & Torrilhon 2009; rlimiter_LIMO3 in
+Activates the LIMO3 limiter (Cada & Torrilhon 2009; rlimiter_LIMO3 in
 numerics/space/Lib_Limiters.f90, dispatched by the uppercase case label 'LIMO3' in
-Mod_Space::Assign_Limiter). MOSE has no LIMO3 — this is a layout-internal Q2D extra.
+Mod_Space::Assign_Limiter). MOSE has no LIMO3.
 
 The test runs the Shu-Osher problem (Mach-3 shock into a sinusoidal density field;
 Shu & Osher, JCP 83 (1989) 32). Downstream of the shock the entropy waves steepen into
@@ -12,9 +12,9 @@ WHAT THIS CHECK VERIFIES (the *interpretation* of LIMO3, not a bare value match)
 
   1. NEG-CONTROL (the regression that matters). LIMO3 is third-order at smooth extrema
      (φ(r<0)>0, no clipping), so it preserves much more total variation in the smooth-wave
-     region than a first-order scheme. The documented failure mode for this peculiarità is a
-     SILENT fallback to first-order IORD (the historical lowercase-'limo3' case-label bug,
-     Mod_Space.f90:69-72). If that regressed, LIMO3 output would collapse to the IORD
+     region than a first-order scheme. The documented failure mode is a
+     SILENT fallback to first-order IORD (the historical lowercase-'limo3' case-label bug).
+     If that regressed, LIMO3 output would collapse to the IORD
      baseline. We assert LIMO3's post-shock TV >= 1.5x the committed first-order/IORD
      baseline. Measured margin is 2.12x, so 1.5x is a comfortable, cross-platform-stable gate
      that fails loudly if LIMO3 is silently degraded.
@@ -117,7 +117,7 @@ tv_mc      = baseline_tv("mc")
 if tv_limo3 < 1.5 * tv_iord:
     fail(f"NEG-CONTROL FAIL: LIMO3 TV={tv_limo3:.3f} not >= 1.5x first-order TV={tv_iord:.3f} "
          f"(ratio {tv_limo3 / tv_iord:.2f}). LIMO3 may have silently fallen back to IORD "
-         f"(case-label regression, cf. Mod_Space.f90:69-72).")
+         f"(case-label regression in Mod_Space::Assign_Limiter).")
 
 # 2. THIRD-ORDER >= LOWER-ORDER TVD ordering (less clipping than the diffusive limiters).
 if tv_limo3 < tv_vanleer:

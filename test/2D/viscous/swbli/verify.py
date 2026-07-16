@@ -223,7 +223,7 @@ if os.path.exists(ref_path):
 # -------------------------------------------------------------
 def _read_wall_cf(path, rho_inf, U_inf):
     """Return (x_cell, Cf) arrays for x > 0 (plate region).
-    Q2D 6-CC: y+,tauX,tauY,pw,Tw,qw (peculiarità #1 No-w → no tauZ)
+    Q2D 6-CC: y+,tauX,tauY,pw,Tw,qw (2D no-w layout → no tauZ)
     the 3D peer's 7-CC: y+,tauX,tauY,tauZ,pw,Tw,qw — name-based handles both."""
     xw_, yw_, zw_, varw_, vnamesw = read_TEC(path)
     ndirw = 2 if xw_[0].shape[2] == 1 else 3

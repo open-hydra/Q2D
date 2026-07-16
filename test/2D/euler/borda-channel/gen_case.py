@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 #
-# borda-channel — regression case for the Q2D-only Borda sudden-expansion injector
-# inflow BC (peculiarità #4, BC_Nozzle_Borda_Flow; Fievisohn 2016 thesis Sec 3.3,
-# eqs 3.26-3.31). MOSE has no nozzle/Borda BC (divergence #4). The BC is a quasi-1D
+# borda-channel — regression case for the Borda sudden-expansion injector
+# inflow BC (BC_Nozzle_Borda_Flow; Fievisohn 2016 thesis Sec 3.3,
+# eqs 3.26-3.31). MOSE has no nozzle/Borda BC. The BC is a quasi-1D
 # analytic jump: plenum (P0,T0) -> isentropic nozzle to throat (station 1, area A1,
 # choked M1=1) -> sudden expansion (A2=A3-A1) -> channel face (station 3, area A3),
 # with r = A1/A3 the area ratio carried by the bc.txt `pamb` field. Activated by the
@@ -19,7 +19,7 @@
 # case (Fig 3.6, P0=10 atm, T0=300 K, A1/A3=0.2) uses H2-air whose gamma,R are never
 # numerically given in the thesis; eqs 3.26-3.31 are gamma-parametric, so evaluating
 # them at a fully-specified gas gives EXACT analytic references while reproducing the
-# paper's regime structure (A1/A3=0.2 kept). See docs/review/borda_fievisohn_study_sess35.md.
+# paper's regime structure (A1/A3=0.2 kept). See docs/vv/2D-borda-channel.md.
 #
 # Analytic choked anchors (M1=1, used by check.py — derived, not invented):
 #   T1/T0 = 2/(g+1);  P1/P0 = (2/(g+1))^(g/(g-1));  v1 = a1 = sqrt(g*R*T1)
@@ -73,7 +73,7 @@ with open(os.path.join(TGT, "INPUT", "ic.tec"), "w") as f:
             for i in range(NI): f.write(fm(val) + "\n")
 
 # bc.txt  (b i j k f code) : face1 Borda(420) ; face2 extrap(400) ; face3,4 sym(300)
-# BC 420 property line (post-Sess-35 reader): mach, T0, p0, alpha, beta, pamb(=A1/A3), rel_fac, ci
+# BC 420 property line (reader order): mach, T0, p0, alpha, beta, pamb(=A1/A3), rel_fac, ci
 with open(os.path.join(TGT, "INPUT", "bc.txt"), "w") as f:
     def rec(b, i, j, k, fc, code, prop=None):
         f.write(f"{b:8d}{i:8d}{j:8d}{k:8d}{fc:8d}{code:8d}\n")

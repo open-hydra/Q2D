@@ -19,7 +19,7 @@ dissertation, University of Maryland, College Park, 2016 — Sec. 3.3,
 eqs. 3.26–3.31.
 
 **Feature exercised:** Borda injector inflow **BC `420`**
-(`BC_Nozzle_Borda_Flow`, peculiarity #4, sentinel `BC_Mach == -20`,
+(`BC_Nozzle_Borda_Flow`, sentinel `BC_Mach == -20`,
 $A_1/A_3$ in the `pamb` field of `bc.txt`) in the 2D-plane regime;
 BC `400` extrapolation exit; MUSCL/vanleer + HLLC with IRS; the
 `-negctl` sibling exercises the **negative-control** path

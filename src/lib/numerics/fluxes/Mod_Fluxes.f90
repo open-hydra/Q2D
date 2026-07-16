@@ -17,9 +17,9 @@ module Q2D_Mod_Fluxes
 
 contains
 
-  ! Dispatcher della strategia di parallelismo OMP
-  ! ('do' = classico !$omp do, 'task' = !$omp taskloop+taskgroup intra-blocco).
-  ! Il workaround per Intel ifx (taskwait espliciti) è documentato in Fluxes_blk_omp_task.
+  ! Dispatcher for the OMP parallelism strategy
+  ! ('do' = classic !$omp do, 'task' = !$omp taskloop+taskgroup intra-block).
+  ! The Intel ifx workaround (explicit taskwait) is documented in Fluxes_blk_omp_task.
   subroutine Assign_Fluxes(Fluxes_word)
     implicit none
     character(len=*), intent(inout) :: Fluxes_word
@@ -42,8 +42,8 @@ contains
 
 
   subroutine Fluxes_omp_do ( domain )
-    ! Legge i singleton obj_rans/obj_soot/obj_space_scheme, definisce le copie locali
-    ! Sc/Sct/Prt/soot_enabled/SD_limiter e le propaga alle routine di blocco.
+    ! Reads the obj_rans/obj_soot/obj_space_scheme singletons, defines the local copies
+    ! Sc/Sct/Prt/soot_enabled/SD_limiter and propagates them to the block routines.
     use Q2D_Advanced_Types_m, only: Q2D_domain_type
     use Q2D_Config_Types_m,   only: obj_shock_detector, obj_space_scheme, obj_rans, obj_soot
     use Q2D_Mod_MPI,          only: is_local_block
@@ -59,8 +59,8 @@ contains
     Prt = obj_rans%Prt
     SD_limiter = obj_space_scheme%SD
 
-    do b = 1, domain % nb ! ciclo sui blocchi
-      if (.not. is_local_block(b)) cycle  ! MPI: salta i blocchi non locali
+    do b = 1, domain % nb ! loop over blocks
+      if (.not. is_local_block(b)) cycle  ! MPI: skip non-local blocks
       if (obj_shock_detector%SD) then
         call Fluxes_blk_omp_do ( domain % blk(b) % P,                  &
                                  domain % blk(b) % r,                  &
@@ -96,9 +96,9 @@ contains
 
   subroutine Fluxes_blk_omp_do ( Prim, Res, Dir, dl, yn, M, node, n, geom_x, geom_y, &
                                  Sc, Sct, Prt, soot_enabled, SD_limiter, beta )
-    ! Sc/Sct/Prt/soot_enabled/SD_limiter sono passati come parametri espliciti.
-    ! geom_x/geom_y alimentano il termine geometrico V_dot_G; beta (opzionale)
-    ! il blending pilotato dal rilevatore d'urto.
+    ! Sc/Sct/Prt/soot_enabled/SD_limiter are passed as explicit parameters.
+    ! geom_x/geom_y feed the V_dot_G geometric term; beta (optional) feeds the
+    ! blending driven by the shock detector.
     use Q2D_Global_m,            only: nprim, np, gc, model
     use Q2D_Base_Types_m,        only: Q2D_d_metrics_type, Q2D_vector_2D_type, Q2D_tensor_2D_type
     use Q2D_Lib_Convective,      only: Convective_Flux
@@ -125,10 +125,10 @@ contains
       Res(:,i,j) = 0d0
     end do; end do
 
-    ! Rilevatore d'urto (2D, stencil 3x3 su Prim(np, i-1:i+1, j-1:j+1)).
-    ! beta(i,j) è calcolato solo se obj_shock_detector%SD (gate nel dispatcher
-    ! Fluxes_omp_do) ed è passato come scalare a Convective_Flux per il blending
-    ! dei solutori di Riemann sensibili al rilevatore (HLLE++/HLLEMSD/HLLCSD).
+    ! Shock detector (2D, 3x3 stencil on Prim(np, i-1:i+1, j-1:j+1)).
+    ! beta(i,j) is computed only if obj_shock_detector%SD (gate in the dispatcher
+    ! Fluxes_omp_do) and is passed as a scalar to Convective_Flux for the blending
+    ! of the detector-sensitive Riemann solvers (HLLE++/HLLEMSD/HLLCSD).
     if (present(beta)) then
       !$omp do collapse(2)
       do j = 1, n(2)
@@ -235,9 +235,9 @@ contains
 
 
   subroutine Fluxes_omp_task ( domain )
-    ! Analoga a Fluxes_omp_do: legge obj_rans/obj_soot/obj_space_scheme e propaga
-    ! Sc/Sct/Prt/soot_enabled/SD_limiter alle routine di blocco.
-    ! Variante HPC basata su task OMP.
+    ! Analogous to Fluxes_omp_do: reads obj_rans/obj_soot/obj_space_scheme and propagates
+    ! Sc/Sct/Prt/soot_enabled/SD_limiter to the block routines.
+    ! HPC variant based on OMP tasks.
     use Q2D_Advanced_Types_m, only: Q2D_domain_type
     use Q2D_Config_Types_m,   only: obj_shock_detector, obj_space_scheme, obj_rans, obj_soot
     use Q2D_Mod_MPI,          only: is_local_block
@@ -255,8 +255,8 @@ contains
 
     !$omp single
     !$omp taskgroup
-    do b = 1, domain % nb ! ciclo sui blocchi
-      if (.not. is_local_block(b)) cycle  ! MPI: salta i blocchi non locali
+    do b = 1, domain % nb ! loop over blocks
+      if (.not. is_local_block(b)) cycle  ! MPI: skip non-local blocks
       if (obj_shock_detector%SD) then
         !$omp task firstprivate(b) default(shared)
         call Fluxes_blk_omp_task ( domain % blk(b) % P,                  &
@@ -298,8 +298,8 @@ contains
 
   subroutine Fluxes_blk_omp_task ( Prim, Res, Dir, dl, yn, M, node, n, geom_x, geom_y, &
                                    Sc, Sct, Prt, soot_enabled, SD_limiter, beta )
-    ! Sc/Sct/Prt/soot_enabled/SD_limiter sono passati come parametri espliciti
-    ! (come in Fluxes_blk_omp_do). Variante HPC basata su task OMP.
+    ! Sc/Sct/Prt/soot_enabled/SD_limiter are passed as explicit parameters
+    ! (as in Fluxes_blk_omp_do). HPC variant based on OMP tasks.
     use Q2D_Global_m,            only: nprim, np, gc, model
     use Q2D_Base_Types_m,        only: Q2D_d_metrics_type, Q2D_vector_2D_type, Q2D_tensor_2D_type
     use Q2D_Lib_Convective,      only: Convective_Flux
@@ -320,23 +320,23 @@ contains
     real(R8), dimension(1:n(1), 1:n(2)), intent(inout), optional :: beta
     integer :: i, j
 
-    ! NOTA: le direttive taskwait seguenti sono in teoria ridondanti (OMP 5.0
-    ! §2.10.2: taskloop senza nogroup include un taskgroup implicito). Tuttavia
-    ! il runtime Intel Fortran non sincronizza correttamente il taskgroup
-    ! implicito del taskloop quando è annidato in una regione task esplicita:
-    ! senza questi taskwait si verifica SIGSEGV. Verificato con ifx/ifort.
-    ! Mantenerle finché il bug del compilatore non è corretto.
+    ! NOTE: the following taskwait directives are in theory redundant (OMP 5.0
+    ! §2.10.2: taskloop without nogroup includes an implicit taskgroup). However
+    ! the Intel Fortran runtime does not correctly synchronize the taskloop's
+    ! implicit taskgroup when it is nested inside an explicit task region:
+    ! without these taskwait a SIGSEGV occurs. Verified with ifx/ifort.
+    ! Keep them until the compiler bug is fixed.
     !
-    ! NOTA: clausole `private(i,j)` esplicite secondo OMP 5.0 §2.19.1, regola 2
+    ! NOTE: explicit `private(i,j)` clauses per OMP 5.0 §2.19.1, rule 2
     ! ("A loop iteration variable for a sequential loop in a parallel or task
     ! generating construct is private in the innermost such construct that
-    ! encloses the loop"). Riscontro empirico: gfortran 7.5.0 con
-    ! `!$omp taskloop default(shared)` NON privatizza automaticamente le
-    ! variabili di iterazione dei cicli sequenziali interni (7750 errori di
-    ! race su 50000 elementi senza private(i); 0 errori con la clausola),
-    ! mentre `!$omp do` privatizza correttamente; ifx/ifort rispettano la
-    ! regola 2 in entrambi i casi. private(i,j) esplicito rende la semantica
-    ! prescritta dallo standard effettiva su tutti i compilatori.
+    ! encloses the loop"). Empirical finding: gfortran 7.5.0 with
+    ! `!$omp taskloop default(shared)` does NOT automatically privatize the
+    ! iteration variables of the inner sequential loops (7750 race errors
+    ! over 50000 elements without private(i); 0 errors with the clause),
+    ! whereas `!$omp do` privatizes correctly; ifx/ifort honor
+    ! rule 2 in both cases. Explicit private(i,j) makes the semantics
+    ! prescribed by the standard effective on all compilers.
     !$omp taskgroup
     !$omp taskloop collapse(2) default(shared) private(i,j)
     do j = 1, n(2)
@@ -346,7 +346,7 @@ contains
     !$omp end taskloop
     !$omp taskwait
 
-    ! Rilevatore d'urto (strategia task; identico a Fluxes_blk_omp_do).
+    ! Shock detector (task strategy; identical to Fluxes_blk_omp_do).
     if (present(beta)) then
       !$omp taskloop collapse(2) default(shared) private(i,j)
       do j = 1, n(2)

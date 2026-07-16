@@ -7,24 +7,24 @@ This page collects performance-tuning notes for the Q2D solver.  The
 priorities mirror the MOSE list, adapted for the 2D Q2D loops and the
 OMP `do`/`task` runtime dispatcher.
 
-!!! warning "M1.E-review (Sess 41, 2026-06-16) — several notes below were written early and not
-    verified against current source. Corrected / flagged where found wrong:"
+!!! warning "Some notes below were written early and not
+    verified against the current source; corrected / flagged where found wrong:"
 
     - **Priority 6** (AoS→SoA): the example `dl(d,i,j)` was WRONG for Fortran column-major — the
       component index must be LAST (`dl(i,j,d)`); and the layout is byte-shared with MOSE, so SoA is
-      a parity-coupled joint change (G-10.ak), not Q2D-unilateral. (Both fixed in §Priority 6.)
+      a parity-coupled joint change, not Q2D-unilateral. (Both fixed in §Priority 6.)
     - **Priority 3** (precompute): correct as written (`co_rotot_Rtot` per-cell precompute). NOTE the
       thermo property `f_cp` is **already a 1-K lookup table** (`FLINT_Lib_Thermodynamic`), not a
-      polynomial — so G-10.n was rewritten to this per-cell framing, NOT a new LUT.
+      polynomial — so this note was rewritten to this per-cell framing, NOT a new LUT.
     - **Priorities 1/5** (rlimiter/Riemann static dispatch): the dispatch id is a **runtime** config
       value → a module `integer limiter_id`/`riemann_id` (saved variable), **NOT** `integer,
-      parameter` (impossible) and **not** constant-folded; the win is inlining/SIMD (G-10.l/p).
+      parameter` (impossible) and **not** constant-folded; the win is inlining/SIMD.
     - **Priority 4** (fuse loops): the code already runs under ONE `!$omp parallel` region with
       orphaned `!$omp do` — there are no separate `!$omp parallel do` regions to fuse; the only
-      lever is `nowait`, unsafe for the `Res`/`beta`-accumulating loops (G-10.o).
+      lever is `nowait`, unsafe for the `Res`/`beta`-accumulating loops.
     - **Priority 8** (compiler flags): `-march=native` is listed as "currently used" but is NOT in
       `cmake/SetFortranFlags.cmake` (stale); `-flto` is deliberately excluded for MPI +
-      mixed-language static-lib fragility (G-10.al), and adding it is a parity-coupled cmake change.
+      mixed-language static-lib fragility, and adding it is a parity-coupled cmake change.
 
 ---
 
@@ -49,7 +49,7 @@ inside `Reconstruction`:
 select case (limiter_id)
   case (LIM_MINMOD)  ; slopel = rlimiter_MINMOD(slope1, slope0)
   case (LIM_VANLEER) ; slopel = rlimiter_VANLEER(slope1, slope0)
-  case (LIM_LIMO3)   ; slopel = rlimiter_LIMO3(slope1, slope0)   ! LIMO3 (Q2D-extra)
+  case (LIM_LIMO3)   ; slopel = rlimiter_LIMO3(slope1, slope0)   ! LIMO3
   ...
 end select
 ```
@@ -206,7 +206,7 @@ single component.  The optimal layout for SIMD is Structure of Arrays.
 
     Putting `d` first (`dl(d,i,j)`) reproduces the AoS byte-pattern in
     column-major memory and yields **no** locality benefit — a loop over
-    cells with `d` fixed would still stride by 2. (M1.E pre-flight, Sess 41.)
+    cells with `d` fixed would still stride by 2.
 
 Same applies to `Q2D_tensor_2D_type` and `Q2D_tensor_3D_type` (the
 latter is preserved for the Definition A stress storage,
@@ -214,12 +214,12 @@ latter is preserved for the Definition A stress storage,
 
 **Expected gain:** 5–10 % (better vectorisation).
 
-!!! danger "Parity-coupled — NOT a Q2D-unilateral change (M1.E pre-flight, Sess 41)"
+!!! danger "Parity-coupled — NOT a Q2D-unilateral change"
 
     The metric derived types (`Q2D_vector_2D_type %c(2)`,
     `Q2D_tensor_2D_type %c(2,2)`, `Q2D_f_metrics_type %N(2)+int_l`,
     `Q2D_d_metrics_type`) are **byte-identical to MOSE** (`MOSE_*_type`)
-    modulo the sanctioned 2D↔3D dimensional reduction (peculiarity #1).
+    modulo the sanctioned 2D↔3D dimensional reduction.
     The AoS layout is a **shared open-hydra architectural choice**, not a
     Q2D inefficiency. An SoA migration would create a Q2D-only divergence
     from byte-shared MOSE → it is **parity-coupled**, applicable only
@@ -263,7 +263,7 @@ Profile on representative cases before changing the default.
 
 `-O3`, `-funroll-loops`, `-ffast-math`, `-finline-functions`,
 `-fomit-frame-pointer` (per `cmake/SetFortranFlags.cmake` RELEASE block).
-(M1.E-review: `-march=native` is NOT actually set — it was listed here in error.)
+(Note: `-march=native` is NOT actually set — it was listed here in error.)
 
 ### Additions to consider
 

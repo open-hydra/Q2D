@@ -15,8 +15,7 @@ References below).
 **Feature exercised:** viscous RANS closures in the **2D-plane**
 regime — Menter SST in the ctest (`coarse-kw`), SA / Wilcox 2006 /
 SSG/LRR-ω variants maintained as sub-directories; RANS 12-arg
-diffusive-flux dispatch (peculiarity #2) and `Stress_Vector_Std`
-(peculiarity #3); no-slip adiabatic wall + symmetry leading edge;
+diffusive-flux dispatch and `Stress_Vector_Std`; no-slip adiabatic wall + symmetry leading edge;
 heavy-tier ctest (`./Q2D.sh -p 20 solve`, 20 OpenMP threads, label
 `heavy`).
 
@@ -39,8 +38,8 @@ where $\tau_w = \mu \frac{\partial u}{\partial y}\big|_{\text{wall}}$
 is the wall shear stress.
 
 This test runs in the **2D planar** Q2D regime, exercising the
-RANS-12-arg dispatch (peculiarity #2 — `RANS_Diffusive_Flux` 12-arg
-signature) and `Stress_Vector_Std` (peculiarity #3, no Definition A
+RANS-12-arg dispatch (`RANS_Diffusive_Flux` 12-arg
+signature) and `Stress_Vector_Std` (no Definition A
 coupling for the planar regime).
 
 **Freestream conditions**

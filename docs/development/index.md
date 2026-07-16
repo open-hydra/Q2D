@@ -19,11 +19,11 @@ src/
 │   │   │   └── riemann/  # 11 selectable Riemann solvers
 │   │   ├── time/     # Mod_dt, time/explicit/{Mod_Explicit, Lib_Newstate, Lib_RK, Lib_IRS, Lib_Strang}
 │   │   ├── multigrid/# Mod_Multigrid, Lib_Multigrid
-│   │   └── sources/  # Q2D-extra: Source_Axisymmetry + Source_Areavariation
+│   │   └── sources/  # Source_Axisymmetry + Source_Areavariation
 │   ├── physics/      # Lib_Chemistry, Lib_GSI, Lib_Soot, Lib_RotatingFrame
 │   │   └── turbulence/  # Lib_Fluid, Mod_RANS, Lib_RANS, Lib_Spalart, Lib_SST, Lib_Wilcox2006, Lib_SSGLRR, Lib_QCR2000, Lib_SpalartShur
 │   ├── parallel/     # Mod_MPI, Mod_GhostExchange
-│   ├── io/           # IO_Setup, IO_BC, IO_Solution, IO_Wall, IO_Probes, IO_LineProbes (Q2D-extra), Load_Chemistry, Load_ThermoTransport
+│   ├── io/           # IO_Setup, IO_BC, IO_Solution, IO_Wall, IO_Probes, IO_LineProbes, Load_Chemistry, Load_ThermoTransport
 │   └── diagnostic/   # Mod_Diagnostic
 └── app/
     └── main.f90      # Q2D entry-point

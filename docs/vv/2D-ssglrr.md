@@ -16,8 +16,7 @@ only input difference is the turbulence keyword: `kw` = Menter SST,
     independent axisymmetric / area-variation RSM reference exists.
     The model/term/discretisation correctness was established
     separately during development with symbolic (SymPy) regime-reduction
-    and MMS term-level audits (internal artefacts, not shipped in this
-    repository); the running cases verify
+    and MMS term-level audits; the running cases verify
     that the regime-specific RSM machinery is actually **exercised**
     by a converged flow and behaves physically.  The validated RSM
     reference case remains the [2D planar turbulent flat

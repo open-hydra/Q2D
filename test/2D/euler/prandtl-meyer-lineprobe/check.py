@@ -1,9 +1,9 @@
-"""prandtl-meyer-lineprobe regression check (Q2D-extra peculiarità #5).
+"""prandtl-meyer-lineprobe regression check.
 
-Exercises the Q2D-only line-probe feature (``Q2D_IO_LineProbes``; MOSE has no
-line-probes) end-to-end through the registry-driven path migrated in commit
-7d47234 (Scan_Ini count -> Register_LineProbes bind -> Setup_LineProbes read ->
-Write_LineProbe_Tecplot output). The case is the prandtl-meyer planar expansion
+Exercises the line-probe feature (``Q2D_IO_LineProbes``; MOSE has no
+line-probes) end-to-end through the registry-driven path (Scan_Ini count ->
+Register_LineProbes bind -> Setup_LineProbes read -> Write_LineProbe_Tecplot
+output). The case is the prandtl-meyer planar expansion
 fan with a single j-fixed line-probe ``[midrow]`` (``index-position = 1 2``,
 ``fixed-index = 25``) sampling the cell row j=25 along i.
 

@@ -45,7 +45,7 @@
 
 | Parameter | Default | Allowed | Required | Description |
 |-----------|---------|---------|----------|-------------|
-| lineprobe1 | lineprobe-placeholder |  |  no | Line-probe section name (Q2D-extra, peculiarità #5) |
+| lineprobe1 | lineprobe-placeholder |  |  no | Line-probe section name |
 
 ## lineprobe-placeholder
 

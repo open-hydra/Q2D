@@ -1,8 +1,8 @@
-! Wrapper Q2D per il caricamento dei dati di chimica via FLINT.
-! Strato sottile attorno a FLINT_Load_Chemistry::read_chemistry che riporta
-! l'esito tramite obj_chemistry%description / %error_message.
-! La logica del solutore ODE / splitting di Strang NON è qui: risiede in
-! Q2D_Assign_Setup (caricamento dati e setup ode/strang sono separati).
+! Q2D wrapper for loading chemistry data via FLINT.
+! Thin layer around FLINT_Load_Chemistry::read_chemistry that reports the
+! outcome through obj_chemistry%description / %error_message.
+! The ODE solver / Strang splitting logic is NOT here: it lives in
+! Q2D_Assign_Setup (data loading and ode/strang setup are separate).
 module Q2D_Load_Chemistry
   use iso_fortran_env, only: I4 => int32, R8 => real64
 

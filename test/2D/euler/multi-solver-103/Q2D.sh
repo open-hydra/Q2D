@@ -5,10 +5,10 @@
 #
 #         USAGE: run "./Q2D.sh [options] {solve|kill}" in the current shell
 #
-#   DESCRIPTION: Compile/run script for multi-solver-103 2D plane Euler test
-#                (Q2D_new Sess 15.B C3). Piano section-5 Fase 8c line 602 criterion:
-#                BC 103 multi-solver coupling wall dispatcher smoke test.
-#                ext_flux=0 -> BC 103 behaves like BC 300 reference.
+#   DESCRIPTION: Compile/run script for multi-solver-103 2D plane Euler test.
+#                Smoke test for the BC 103 multi-solver coupling wall
+#                dispatcher. With ext_flux=0, BC 103 behaves like the BC 300
+#                reference.
 #===============================================================================
 
 function print_usage {

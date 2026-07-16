@@ -1,6 +1,6 @@
 # Rotating-channel 2D plane Coriolis equilibrium analytical reference
 # Mirror MOSE topology pattern: periodic in x (BC 201) + walls in y (BC 300)
-# Sess 15.B port BC 201 to Q2D Lib_Ghost.f90:63 + Mod_BC_Fluxes.f90:103
+# BC 201 periodic port to Q2D Lib_Ghost.f90:63 + Mod_BC_Fluxes.f90:103
 # Coriolis analytical balance dp/dy = -2*omega*rho_0*U_inf
 #   omega = 10.0 rad/s about z-axis [0,0,1] origin=(0,0,0)
 #   U_inf = 100.0 m/s (Mach = 0.2880)

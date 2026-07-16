@@ -4,7 +4,7 @@
 #          FILE: Q2D.sh
 #         USAGE: run "./Q2D.sh [options] {solve|kill}" in the current shell
 #   DESCRIPTION: Compile/run script for oblique-shock 2D steady-state test
-#                (Q2D_new).
+#                (Q2D).
 #                "solve" mode. 2D plane Euler M=4 over a wedge (2-block grid:
 #                Block1=flat pre-ramp 21x219, Block2=ramp 39x219, K=1 strip;
 #                NO axisymmetric source).

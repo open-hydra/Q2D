@@ -1,8 +1,8 @@
 """chang-nozzle-mg2 2D steady-state regression check (Multigrid, 2 levels).
 
 Same Chang 1996 axisymmetric nozzle as ``test/2D/euler/chang-nozzle`` (cf.
-Chang 1996 J. Spacecraft Rockets; Q2D peculiarita' #1 j-radial + #2
-axisymmetric source), but run with 2-level Multigrid
+Chang 1996 J. Spacecraft Rockets; 2D no-w layout with j as the radial
+direction plus the axisymmetric 1/r source), but run with 2-level Multigrid
 (``[Q2D-Multigrid] levels=2``). Mirror of the planar-nozzle-mg2 3-layer
 acceptance: the physics gates are the SAME as the MGL=1 baseline, plus a
 multigrid-consistency layer.
@@ -80,7 +80,7 @@ M_ref_axis = np.interp(x_axis, ref1[:, 0], ref1[:, 1])
 # Max eps_rel checked vs separate threshold 1e-1, because Q2D 2D axisym source
 # (1/r with eps=1e-12 floor) and MOSE 3D wedge slab (dz→0 at axis) are two
 # distinct approximations of axisymmetric physics that differ ~4% at axis-row
-# cells (cf. chang-nozzle check.py, note T-1.2D.axis-discrepancy).
+# cells (cf. chang-nozzle check.py).
 def report_eps(label, sim, ref):
     denom = np.maximum(np.abs(ref), 1e-3)
     eps_rel = np.abs(sim - ref) / denom
@@ -129,8 +129,8 @@ M_c = np.sqrt(u_c**2 + v_c**2) / np.sqrt(gam_c * p_c / rho_c)
 assert_finite("coarse Mach", M_c)
 
 # 2x2 pairwise restriction of the fine Mach onto the coarse cells. A correct
-# coarse level tracks this closely; a scrambled restriction (B-10-type bug)
-# is off by O(1). Measured on the committed run: max 8.1e-2 (axis/throat
+# coarse level tracks this closely; a scrambled restriction is off by
+# O(1). Measured on the committed run: max 8.1e-2 (axis/throat
 # row, the axisymmetric-singularity cells), mean 5.2e-3. Tolerances:
 # max 2.0e-1 (~2.5x measured -- the axis row caps how tight this can be),
 # mean 5.0e-2 (~10x measured, same headroom policy as planar-nozzle-mg2).

@@ -5,7 +5,7 @@ NASA Turbulence Modeling Resource (TMR) CFL3D solution for the SAME model
 (SSG/LRR-RSM-w2012 baseline), file reference/turb_contours_cfl3d_ssglrrrsm.dat
 (downloaded from the NASA TMR; variables x, z, R11, R22, R33, R13, omega).
 
-  Model identity verified (Sess 26) against the authoritative Eisfeld & Rumsey,
+  Model identity verified against the authoritative Eisfeld & Rumsey,
   "Length-Scale Correction for Reynolds-Stress Modeling", AIAA J. 2020, Appendix A
   Eqs 17-37 + Table 2: the Q2D implementation is the SSG/LRR-omega *baseline*
   (w2012); the w2019 length-scale correction is inactive on attached flows, so the
@@ -146,8 +146,8 @@ print("\nfigure -> OUTPUT/verify_RSM.png")
 if args.plot:
     plt.show()
 
-# ---------------- Plane V&V criterion 2: Cf vs Re_x + u+ vs y+ -----------------
-# (plan §6.3 / Fase 8b: flat-plate y+, Cf vs reference). NASA SSG/LRR-RSM-w2012
+# ---------------- Plane V&V: Cf vs Re_x + u+ vs y+ -----------------
+# (flat-plate y+, Cf vs reference). NASA SSG/LRR-RSM-w2012
 # grid-converged Cf at x=0.970084 = 2.68987e-3 (reference/cf_convergence dat, finest
 # grid N=208896); u+/y+ vs the canonical log-law (kappa=0.41, B=5.0). Freestream from
 # input.ini (case constants, not hard-coded), u_tau = sqrt(|tau_w|/rho_inf).
@@ -177,7 +177,7 @@ nu_w = float(yq[0] * u_tau / ypw[iW])                        # y+_1 = y_1 u_tau 
 Re_x = U_inf * xwc / nu_w
 yplus, uplus = yq * u_tau / nu_w, C('u')[icol, :, 0] / u_tau
 cf_status = "PASS" if cf_err < 0.10 else "FAIL"             # coarse grid vs grid-converged NASA
-print(f"\nplane criterion 2 — Cf@x=0.97: Q2D={Cf_x[iN]:.4e}  NASA={cf_nasa:.4e}  "
+print(f"\nplane Cf@x=0.97: Q2D={Cf_x[iN]:.4e}  NASA={cf_nasa:.4e}  "
       f"err={cf_err*100:.1f}%  [{cf_status}] (tol 10% coarse-grid)")
 print(f"  u+/y+ @x={xc[icol]:.2f}: u_tau={u_tau:.2f} m/s, first y+={yplus[0]:.2f} (log-law match)")
 

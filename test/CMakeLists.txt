@@ -16,7 +16,7 @@
 set(Q2D_SKIP_RC 77)
 
 # Common environment for all solver tests;
-# PYTHONIOENCODING=utf-8 is Q2D-extra for check.py Unicode safety in LC_ALL=C
+# PYTHONIOENCODING=utf-8 ensures check.py Unicode safety in LC_ALL=C
 # envs -- em-dash/Greek letters in print statements would fail otherwise).
 set(_Q2D_TEST_ENV
     "OMP_NUM_THREADS=1"
@@ -263,11 +263,11 @@ q2d_add_case(multi-solver-103
 # 2-D viscous / RANS cases (heavy tier: many threads, long wall clock; not run
 # on hosted CI -- see docs/development/testing.md for the local workflow).
 #
-# History: B-11 3-layer fix (waldis MOSE-mirror gating + area_geom_term
-# universal zero-fill + BC mass-flux aliasing mirror of MOSE f76c5ca);
-# flat-plate-turbulent coarse-SA / fine-SA deferred post-v1.0 (B-12 SA
-# stiffness at CFL=1.0+IRS=0.5 -- audit concluded config-specific stiffness,
-# not a porting bug).
+# Notes: a three-layer fix -- waldis MOSE-mirror gating + area_geom_term
+# universal zero-fill + BC mass-flux aliasing mirror of MOSE f76c5ca;
+# flat-plate-turbulent coarse-SA / fine-SA deferred post-v1.0 (SA stiffness
+# at CFL=1.0+IRS=0.5 -- concluded config-specific stiffness, not a porting
+# bug).
 # ---------------------------------------------------------------------------
 
 # SWBLI: Schulein Mach-5 shock-wave/boundary-layer interaction (SA model);

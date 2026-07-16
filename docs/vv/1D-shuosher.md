@@ -23,9 +23,8 @@ no-clip-at-smooth-extrema property — not a bare value match — is what
 32–78; M. Čada & M. Torrilhon, _J. Comput. Phys._ **228** (2009)
 4118–4145.
 
-**Feature exercised:** 1D problem on the 2D-plane strip layout
-(peculiarity #1); **LIMO3 third-order limiter** (Q2D-only,
-peculiarity #7) with MUSCL reconstruction; HLLC Riemann solver;
+**Feature exercised:** 1D problem on the 2D-plane strip layout;
+**LIMO3 third-order limiter** (Q2D-only) with MUSCL reconstruction; HLLC Riemann solver;
 time-accurate RK3; BC `400` (extrapolation) on the streamwise ends,
 BC `300` (symmetry) spanwise; committed-baseline TV gates including a
 built-in first-order negative control.

@@ -136,7 +136,7 @@ gate("|rho2/rho1 - theory| / theory", abs(rho2 / rho1 - r2r1_ref) / r2r1_ref, 0.
 gate("|M2 - theory| / theory", abs(m2 - mach2_ref) / mach2_ref, 0.02)
 
 # ---------------------------------------------------------------------------
-# (2) Shock-detector beta gates -- piano §5 Fase 8a criterion C1.
+# (2) Shock-detector beta gates.
 # Convention: SD_Tramel returns beta=0 in shock cells, beta=1 in smooth flow
 # (per src/lib/numerics/fluxes/Lib_Shock_Detector.f90).
 # ---------------------------------------------------------------------------

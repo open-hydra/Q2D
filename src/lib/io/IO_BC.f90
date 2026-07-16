@@ -382,10 +382,10 @@ contains
           error stop '[FATAL] BC type 410 is not supported (see error_message)'
 
         ! ─────────────────────────────────────────────────────────────────────
-        ! Ugello choked (flusso di Borda codificato con BC_Mach==-20 nel campo
-        ! mach). pamb trasporta il rapporto d'area di Borda A1/A3, consumato
-        ! come A1_A3 da BC_Nozzle_Borda_Flow.
-        ! Seconda riga: mach, T0, p0, alpha, beta, pamb, rel_fac, massf, turb
+        ! Choked nozzle (Borda flow encoded with BC_Mach==-20 in the mach
+        ! field). pamb carries the Borda area ratio A1/A3, consumed as A1_A3
+        ! by BC_Nozzle_Borda_Flow.
+        ! Second line: mach, T0, p0, alpha, beta, pamb, rel_fac, massf, turb
         case (420)
           if (level == 1) nio = nio + 1
           allocate( bc(i)%ci(1 : nsc+nrans) )
@@ -396,24 +396,24 @@ contains
           bc(i)%beta  = parse_dir_tok(beta_tok)
 
         ! ─────────────────────────────────────────────────────────────────────
-        ! Connessione manifold a flusso medio
+        ! Mean-flow manifold connection
         case (501)
           if (level == 1) nmanifold = nmanifold + 1
           read(unitfile, *, iostat=ios) bc(i)%bs, bc(i)%fs
 
         ! ─────────────────────────────────────────────────────────────────────
-        ! Combustione del grano SRM (BC 502).
-        ! Legge Taf, aCoeff, n, pRef, rhoGrain, SF_geo, massf(1:nsc);
-        ! haf imposto a 0 — non presente nel formato di output ATLAS.
+        ! SRM grain combustion (BC 502).
+        ! Reads Taf, aCoeff, n, pRef, rhoGrain, SF_geo, massf(1:nsc);
+        ! haf forced to 0 — not present in the ATLAS output format.
         case (502)
           if (level == 1) nSRM = nSRM + 1
           allocate( bc(i)%ci(1 : nsc) )
-          bc(i)%haf = 0.0_R8   ! haf assente nell'output ATLAS; posto a zero
+          bc(i)%haf = 0.0_R8   ! haf absent in ATLAS output; set to zero
           read(unitfile, *, iostat=ios) bc(i)%Taf, bc(i)%aCoeff, bc(i)%n, bc(i)%pRef, &
             bc(i)%rhoGrain, bc(i)%SF_geo, (bc(i)%ci(s), s = 1, nsc)
 
         ! ─────────────────────────────────────────────────────────────────────
-        ! Parete accoppiata multi-solutore
+        ! Multi-solver coupled wall
         case (103)
           if (level == 1) ncoupled = ncoupled + 1
           obj_io_bc%coupling_flag( bc(i)%b, bc(i)%f ) = .true.
@@ -423,11 +423,11 @@ contains
           bc(i)%ext_flux = 0.0_R8
           allocate( bc(i)%Pg(1, 4) )
 
-        ! I codici non gestiti (es. 0 = estrapolazione a gradiente nullo nella
-        ! direzione collassata, usata per la direzione j banale nei test 1D di
-        ! tubo d'urto, e l'intervallo 305:309, privo di corpo) proseguono senza
-        ! effetti — nessuna riga di proprietà, nessuna allocazione. L'assenza
-        ! di `case default` è intenzionale.
+        ! Unhandled codes (e.g. 0 = zero-gradient extrapolation along the
+        ! collapsed direction, used for the trivial j direction in the 1D
+        ! shock-tube tests, and the range 305:309, which has no body) fall
+        ! through with no effect — no property line, no allocation. The
+        ! absence of a `case default` is intentional.
 
       end select
 
@@ -463,12 +463,12 @@ contains
 
 
   ! ---------------------------------------------------------------------------
-  ! parse_dir_tok: converte un token di direzione (letto come character) in real.
-  !   Se il token contiene 'normal', restituisce huge(R8) (flag di direzione
-  !   normale alla faccia). Altrimenti lo interpreta come numero reale.
-  ! ATLAS scrive il token letterale 'normal' per alpha/beta nei tipi
-  ! 401/402/403/404/405/407/420 quando la direzione di ingresso è normale
-  ! alla faccia.
+  ! parse_dir_tok: converts a direction token (read as character) into a real.
+  !   If the token contains 'normal', returns huge(R8) (flag for a direction
+  !   normal to the face). Otherwise it is interpreted as a real number.
+  ! ATLAS writes the literal token 'normal' for alpha/beta in types
+  ! 401/402/403/404/405/407/420 when the inflow direction is normal to the
+  ! face.
   ! ---------------------------------------------------------------------------
   pure function parse_dir_tok(tok) result(val)
     implicit none

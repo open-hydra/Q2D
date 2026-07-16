@@ -5,9 +5,9 @@
 #
 #         USAGE: run "./Q2D.sh [options] {solve|kill}" in the current shell
 #
-#   DESCRIPTION: Compile/run script for the chang-nozzle 2D steady-state test
-#                (Q2D_new). Q2D-specific: peculiarita' #2
-#                area-variation source active=axisymmetric for nozzle physics.
+#   DESCRIPTION: Compile/run script for the chang-nozzle 2D steady-state test.
+#                The area-variation source is active in axisymmetric mode to
+#                provide the nozzle physics.
 #===============================================================================
 
 function print_usage {

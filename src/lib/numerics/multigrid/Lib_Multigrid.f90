@@ -1,10 +1,10 @@
-!>@brief Kernel multigrid 2D:
-!>       restrizione 4->1 con media di cella pesata sulla superficie;
-!>       prolungamento bilineare a 4 pesi;
-!>       campi rank-3 (nprim, i, j);
-!>       Coarse_Grid_Blk su Q2D_vector_2D_type rank-2;
-!>       Coarse_IOfield mantiene la mesh ORION rank-4 con placeholder Nk=0
-!>       (terza coordinata mesh(3,...) = 0).
+!>@brief 2D multigrid kernel:
+!>       4->1 restriction with surface-weighted cell average;
+!>       4-weight bilinear prolongation;
+!>       rank-3 fields (nprim, i, j);
+!>       Coarse_Grid_Blk on rank-2 Q2D_vector_2D_type;
+!>       Coarse_IOfield keeps the rank-4 ORION mesh with placeholder Nk=0
+!>       (third coordinate mesh(3,...) = 0).
 module Q2D_Lib_Multigrid
   use iso_fortran_env, only: I4 => int32, R8 => real64
 
@@ -23,7 +23,7 @@ contains
     use ir_precision,         only: str
     implicit none
     type(Q2D_domain_type), intent(inout) :: domain
-    ! Variabili locali
+    ! Local variables
     integer :: b, d, rap, check
 
     rap = 2**(obj_multigrid%MGL - 1)
@@ -50,13 +50,13 @@ contains
     real(R8), intent(out), dimension(nprim, 1-gc:cDim(1)+gc, 1-gc:cDim(2)+gc) :: cPrim
     real(R8), intent(in),  dimension(1-gc:fDim(1)+gc, 1-gc:fDim(2)+gc)        :: fSur
     real(R8), intent(in),  dimension(1-gc:cDim(1)+gc, 1-gc:cDim(2)+gc)        :: cSur
-    ! Variabili locali
+    ! Local variables
     integer  :: i, j, i2, j2, i2d, j2d
     real(R8) :: guess(nprim), rho, Rgas, T0
     real(R8), dimension(nprim, fDim(1), fDim(2)) :: fCons
     real(R8), dimension(nprim, cDim(1), cDim(2)) :: cCons
 
-    ! prim -> cons sulla griglia fine.
+    ! prim -> cons on the fine grid.
     !$omp do collapse(2)
     do j = 1, fDim(2)
     do i = 1, fDim(1)
@@ -64,8 +64,8 @@ contains
       fCons(1:np, i, j)       = prim2cons(fPrim(1:np, i, j))
     end do; end do
 
-    ! Restrizione 4->1: 4 celle fini mediate in 1 cella coarse con pesi di
-    ! superficie (in 2D la superficie di cella 'sur' svolge il ruolo del volume).
+    ! 4->1 restriction: 4 fine cells averaged into 1 coarse cell with surface
+    ! weights (in 2D the cell surface 'sur' plays the role of the volume).
     !$omp do collapse(2)
     do j = 1, cDim(2)
     do i = 1, cDim(1)
@@ -82,7 +82,7 @@ contains
 
     end do; end do
 
-    ! cons -> prim sulla griglia coarse (guess di Newton-Raphson da una cella fine).
+    ! cons -> prim on the coarse grid (Newton-Raphson guess from a fine cell).
     !$omp do collapse(2)
     do j = 1, cDim(2)
     do i = 1, cDim(1)
@@ -92,7 +92,7 @@ contains
       guess = fPrim(:, i2, j2)
       call co_rotot_Rtot(guess(:), rho, Rgas)
       T0 = guess(np) / (rho * Rgas)
-      cPrim(np+1:nprim, i, j) = cCons(np+1:nprim, i, j) ! variabili di turbolenza
+      cPrim(np+1:nprim, i, j) = cCons(np+1:nprim, i, j) ! turbulence variables
       cPrim(1:np, i, j)       = cons2prim(cCons(1:np, i, j), T0) ! ( rho U p )
     end do; end do
 
@@ -105,12 +105,12 @@ contains
     integer,  intent(in),  dimension(2) :: fDim, cDim
     real(R8), intent(out), dimension(nprim, 1-gc:fDim(1)+gc, 1-gc:fDim(2)+gc) :: fPrim
     real(R8), intent(in),  dimension(nprim, 1-gc:cDim(1)+gc, 1-gc:cDim(2)+gc) :: cPrim
-    ! Variabili locali
+    ! Local variables
     integer  :: i, j, rap, i2, j2, i2d, j2d, im, jm, ip, jp
     integer  :: ii, jj, counter, mask(2), id(4)
     real(R8) :: a1, a2, a3, coeffs(4), interp(nprim)
 
-    ! Pesi bilineari 2D: 9/16, 3/16, 3/16, 1/16.
+    ! 2D bilinear weights: 9/16, 3/16, 3/16, 1/16.
     a1 = 9.d0/16.d0
     a2 = 3.d0/16.d0
     a3 = 1.d0/16.d0
@@ -139,7 +139,7 @@ contains
       do jj = j2d, j2
       do ii = i2d, i2
 
-        ! Maschera 2D: 4 sotto-celle fini per cella coarse.
+        ! 2D mask: 4 fine sub-cells per coarse cell.
         if (counter == 1) mask(1:2) = [1, 2]
         if (counter == 2) mask(1:2) = [3, 2]
         if (counter == 3) mask(1:2) = [1, 4]
@@ -165,10 +165,10 @@ contains
     use Q2D_Advanced_Types_m, only: Q2D_domain_type
     implicit none
     type(Q2D_domain_type), intent(inout) :: Fine, Coarse
-    ! Variabili locali
+    ! Local variables
     integer :: b
 
-    do b = 1, Coarse%nb ! Ciclo sui blocchi
+    do b = 1, Coarse%nb ! Loop over the blocks
       call Coarse_Grid_Blk(Fine%blk(b)%node, Coarse%blk(b)%node, &
                            Fine%blk(b)%dim,  Coarse%blk(b)%dim)
     end do
@@ -181,7 +181,7 @@ contains
       integer,                  intent(in)                                     :: fDim(2), cDim(2)
       type(Q2D_vector_2D_type), intent(in),  dimension(0:fDim(1), 0:fDim(2))   :: fNode
       type(Q2D_vector_2D_type), intent(out), dimension(0:cDim(1), 0:cDim(2))   :: cNode
-      ! Variabili locali
+      ! Local variables
       integer :: i, j, i2, j2
 
       !$omp do collapse(2)
@@ -201,13 +201,13 @@ contains
 
 
   subroutine Coarse_Cross_Section(Fine, Coarse)
-    ! Restrizione per sotto-campionamento nodale di blk%Cross_Section:
-    ! A_c(I,J) = A_f(2I, 2J) — speculare a Coarse_Grid_Blk per node%c.
+    ! Restriction by nodal sub-sampling of blk%Cross_Section:
+    ! A_c(I,J) = A_f(2I, 2J) — mirrors Coarse_Grid_Blk for node%c.
     use Q2D_Advanced_Types_m, only: Q2D_domain_type
     implicit none
     type(Q2D_domain_type), intent(in)    :: Fine
     type(Q2D_domain_type), intent(inout) :: Coarse
-    ! Variabili locali
+    ! Local variables
     integer :: b, i, j
 
     do b = 1, Coarse%nb
@@ -229,7 +229,7 @@ contains
     implicit none
     type(ORION_data), intent(in)    :: fIOfield
     type(ORION_data), intent(inout) :: cIOfield
-    ! Variabili locali
+    ! Local variables
     integer :: b, nb, Ni, Nj, Onvar
 
     Onvar = nprim + 3 ! T, gamma, R
@@ -242,9 +242,9 @@ contains
       Nj = fIOfield%block(b)%Nj / 2
       cIOfield%block(b)%Ni = Ni
       cIOfield%block(b)%Nj = Nj
-      cIOfield%block(b)%Nk = 0  ! mesh ORION rank-4 con placeholder Nk=0.
-      ! La mesh ORION mesh(coord, i, j, k) è strutturalmente rank-4; in Q2D la terza
-      ! coordinata mesh(3, ...) resta 0 e la dimensione k è degenere a 0:0.
+      cIOfield%block(b)%Nk = 0  ! rank-4 ORION mesh with placeholder Nk=0.
+      ! The ORION mesh mesh(coord, i, j, k) is structurally rank-4; in Q2D the third
+      ! coordinate mesh(3, ...) stays 0 and the k dimension is degenerate to 0:0.
       allocate(cIOfield%block(b)%mesh(1:3, 0:Ni, 0:Nj, 0:0))
       allocate(cIOfield%block(b)%vars(1:Onvar, 1:Ni, 1:Nj, 1:1))
     end do

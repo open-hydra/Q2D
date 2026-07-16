@@ -5,12 +5,12 @@
 #
 #         USAGE: run "./Q2D.sh [options] {solve|kill}" in the current shell
 #
-#   DESCRIPTION: Compile/run script for the planar-nozzle 2D steady-state test
-#                (Q2D_new). Q2D-specific: peculiarita' #2 area-variation source
-#                active=area_variation — Q2D thickness h(x)=Cross_Section plays the
-#                role of the quasi-1D area A(x); the converged inviscid solution
-#                validates against the analytic isentropic area-law (Shapiro).
-#                Constant-gamma air (oblique-shock thermo table, gamma=1.4).
+#   DESCRIPTION: Compile/run script for the planar-nozzle 2D steady-state test.
+#                Uses the area-variation source (active=area_variation): the Q2D
+#                thickness h(x)=Cross_Section plays the role of the quasi-1D area
+#                A(x); the converged inviscid solution validates against the
+#                analytic isentropic area-law (Shapiro). Constant-gamma air
+#                (oblique-shock thermo table, gamma=1.4).
 #===============================================================================
 
 function print_usage {

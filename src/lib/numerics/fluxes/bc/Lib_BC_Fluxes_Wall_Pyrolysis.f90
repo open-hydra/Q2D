@@ -1,29 +1,29 @@
 module Q2D_Lib_BC_Fluxes_Wall_Pyrolysis
-  ! BC 304 wall_pyrolysis: risoluzione di T_wall con Newton-Raphson
-  ! (20 iterazioni) sul bilancio energetico q_conv = q_pyro + q_rad + dispatch
-  ! GSI specifico del materiale sul codice `fuel`.
+  ! BC 304 wall_pyrolysis: resolution of T_wall with Newton-Raphson
+  ! (20 iterations) on the energy balance q_conv = q_pyro + q_rad + material-
+  ! specific GSI dispatch on the `fuel` code.
   !
-  ! Codici fuel:
-  !   * 9, 304: HDPE / ablazione generica (304 = tipo parete con qrad
-  !             nell'accoppiamento ATLAS)
+  ! Fuel codes:
+  !   * 9, 304: HDPE / generic ablation (304 = wall type with qrad
+  !             in the ATLAS coupling)
   !   * 10:     PP
-  !   * 12:     carbonio
+  !   * 12:     carbon
   !   * 13:     HTPB
   !
-  ! Formulazione 2D:
-  !   * indici di cella ghost Ig/Jg; Normal(2), M(2,2), Gradient(nprim,2),
+  ! 2D formulation:
+  !   * ghost-cell indices Ig/Jg; Normal(2), M(2,2), Gradient(nprim,2),
   !     Stress(2), Blowing(2);
-  !   * int_l: lunghezza integrata della faccia;
-  !   * residuo di rango 3.
+  !   * int_l: integrated face length;
+  !   * rank-3 residual.
   !
-  ! V_dot_G: Stress_Vector è invocata senza l'argomento opzionale V_dot_G
-  ! (default 0), coerente con una cella di bordo senza variazione d'area locale.
+  ! V_dot_G: Stress_Vector is invoked without the optional argument V_dot_G
+  ! (default 0), consistent with a boundary cell without local area variation.
   !
-  ! GSI_Paraffin NON è collegata in Wall_Pyrolysis (pattern fisicamente
-  ! incompatibile: Wall_Pyrolysis itera su T_wall, mentre GSI_Paraffin/_Melting
-  ! calcolano mdot da qw a T_wall fissata). GSI_Paraffin resta esposta in
-  ! Q2D_Lib_GSI ma attualmente non è collegata in alcun punto; la BC 303
-  ! Wall_Melting invoca GSI_Melting. Vedi l'intestazione di
+  ! GSI_Paraffin is NOT linked in Wall_Pyrolysis (physically incompatible
+  ! pattern: Wall_Pyrolysis iterates on T_wall, whereas GSI_Paraffin/_Melting
+  ! compute mdot from qw at fixed T_wall). GSI_Paraffin remains exposed in
+  ! Q2D_Lib_GSI but is currently not linked anywhere; BC 303
+  ! Wall_Melting invokes GSI_Melting. See the header of
   ! Lib_BC_Fluxes_Wall_Melting.f90.
   use iso_fortran_env,            only: I4 => int32, R8 => real64
   use Q2D_Advanced_Types_m,       only: Q2D_block_type
@@ -52,7 +52,7 @@ contains
     real(R8), intent(in) :: qrad
     type(Q2D_block_type), intent(inout) :: Blk
     real(R8), optional, dimension(7), intent(inout) :: Ovar
-    ! Locali
+    ! Locals
     integer  :: s, modfm, modfm1, modfm2, modfm3, Dir, Face_i, Face_j, Ig, Jg, iter
     real(R8) :: Normal(2), int_l, Dist, dl, M(2,2), Prim(nprim), rho, Rgas, T, Gradient(nprim,2)
     real(R8) :: rho_wall, Prim_Wall(nprim), mil, kl, omega(nsc), mdot
@@ -64,17 +64,17 @@ contains
     call Compute_Modfm ( fm, modfm, modfm1, modfm2, modfm3 )
     call Face_Index ( Fm, dir, Im, Jm, Face_i, Face_j )
 
-    ! Metriche di faccia
+    ! Face metrics
     Normal = Blk % dir(Dir) % f(Face_i,Face_j) % n
     int_l  = Blk % dir(Dir) % f(Face_i,Face_j) % int_l
     M      = Blk % M (Im,Jm) % c
 
-    ! Variabili della cella di bordo
+    ! Boundary-cell variables
     Prim = Blk % P(:,Im,Jm)
     call co_rotot_Rtot ( Prim(1:nsc), rho, Rgas )
     T = Prim(np) / ( rho * Rgas )
 
-    ! r_ave per Stress_Vector (termini 2D-assialsimmetrici / variazione d'area)
+    ! r_ave for Stress_Vector (2D-axisymmetric terms / area variation)
     select case(Fm)
       case(1)
         r_ave = 0.5d0 * ( blk % node(im-1,jm)%c(2) + blk % node(im-1,jm-1)%c(2) )
@@ -86,16 +86,16 @@ contains
         r_ave = 0.5d0 * ( blk % node(im,jm)%c(2)   + blk % node(im-1,jm)%c(2)   )
     end select
 
-    ! Inizializzazione
+    ! Initialization
     Gradient = 0d0
 
-    ! Inizializzazione del ciclo di Newton-Raphson
-    T_wall = T                                                   ! Stima iniziale: T_wall = T_cell
-    rho_wall = Prim(np) / ( Rgas * T_wall )                      ! Strato limite: p(wall)=p(cell), R(w)=R(c), ci(w)=ci(c)
-    Prim_wall(1:nsc) = Prim(1:nsc) * rho_wall / rho              ! Densità parziali a parete
+    ! Initialization of the Newton-Raphson loop
+    T_wall = T                                                   ! Initial guess: T_wall = T_cell
+    rho_wall = Prim(np) / ( Rgas * T_wall )                      ! Boundary layer: p(wall)=p(cell), R(w)=R(c), ci(w)=ci(c)
+    Prim_wall(1:nsc) = Prim(1:nsc) * rho_wall / rho              ! Partial densities at the wall
 
     select case ( fuel )
-      case ( 9, 304 ) ! HDPE / ablazione generica (304 = tipo parete con qrad nell'accoppiamento ATLAS)
+      case ( 9, 304 ) ! HDPE / generic ablation (304 = wall type with qrad in the ATLAS coupling)
         call GSI_HDPE(T_wall, omega, mdot)
       case ( 10 ) ! PP
         call GSI_PP(T_wall, omega, mdot)
@@ -104,13 +104,13 @@ contains
       case ( 13 ) ! HTPB
         call GSI_HTPB(T_wall, omega, mdot)
     end select
-    mdot  = mdot  * (-modfm2) ! correzione di segno
-    omega = omega * (-modfm2) ! correzione di segno
+    mdot  = mdot  * (-modfm2) ! sign correction
+    omega = omega * (-modfm2) ! sign correction
 
-    call co_k_mi_lam_Wilke ( Prim_wall(1:nsc), rho_wall, T_wall, mil, kl ) ! proprietà di trasporto
+    call co_k_mi_lam_Wilke ( Prim_wall(1:nsc), rho_wall, T_wall, mil, kl ) ! transport properties
 
-    q_conv = 0d0 ! flusso termico convettivo (stima iniziale)
-    select case ( fuel ) ! flusso termico di pirolisi
+    q_conv = 0d0 ! convective heat flux (initial guess)
+    select case ( fuel ) ! pyrolysis heat flux
     case ( 9, 304 )
       q_pyro = mdot * ( Dh_HDPE + cp_HDPE * (T_wall - Ti_HDPE) )
     case ( 10 )
@@ -123,14 +123,14 @@ contains
     case ( 13 )
       q_pyro = mdot * ( Dh_HTPB + cp_HTPB * (T_wall - Ti_HTPB) )
     end select
-    q_rad = qrad * modfm2 ! correzione di segno per la radiazione
+    q_rad = qrad * modfm2 ! sign correction for the radiation
     balance = q_conv - q_pyro - q_rad
 
-    do iter = 1, 20 ! ciclo di Newton-Raphson
-      ! prima parte dell'iterazione
+    do iter = 1, 20 ! Newton-Raphson loop
+      ! first part of the iteration
       balanceold = balance
       T_wall_old = T_wall
-      T_wall = T_wall * (1d0 + 1d-4) ! incremento
+      T_wall = T_wall * (1d0 + 1d-4) ! increment
       Gradient = 0d0
       Gradient(np,Dir) = ( T - T_wall ) * modfm3
       Gradient(np,:)   = matmul ( Gradient(np,:), M )
@@ -165,10 +165,10 @@ contains
       end select
       balance = q_conv - q_pyro - q_rad
 
-      ! nuova temperatura di parete (passo di Newton)
+      ! new wall temperature (Newton step)
       T_wall = T_wall_old - balanceold * (1d-4 * T_wall_old) / (balance - balanceold)
 
-      ! seconda parte dell'iterazione
+      ! second part of the iteration
       Gradient = 0d0
       Gradient(np,Dir) = ( T - T_wall ) * modfm3
       Gradient(np,:)   = matmul ( Gradient(np,:), M )
@@ -204,7 +204,7 @@ contains
       balance = q_conv - q_pyro - q_rad
     end do
 
-    ! Da qui in poi T_wall è nota
+    ! From here on T_wall is known
     Gradient = 0d0
     Gradient(np,Dir) = ( T - T_wall ) * modfm3
     Gradient(np,:)   = matmul ( Gradient(np,:), M )
@@ -212,9 +212,9 @@ contains
     rho_wall         = Prim(np) / ( Rgas * T_wall )
     Prim_wall(1:nsc) = Prim(1:nsc) * rho_wall / rho
 
-    Blowing             = mdot / rho_wall * Normal               ! Velocità di blowing
-    Gradient(nu:nv,Dir) = ( Prim(nu:nv) - Blowing ) * modfm3     ! Gradiente di velocità dovuto al blowing
-    Gradient(nu:nv,:)   = matmul ( Gradient(nu:nv,:), M )        ! Trasformazione del gradiente di velocità
+    Blowing             = mdot / rho_wall * Normal               ! Blowing velocity
+    Gradient(nu:nv,Dir) = ( Prim(nu:nv) - Blowing ) * modfm3     ! Velocity gradient due to blowing
+    Gradient(nu:nv,:)   = matmul ( Gradient(nu:nv,:), M )        ! Velocity-gradient transformation
     Stress = Stress_Vector ( Gradient(nu:nv,:), Normal, mil, 0d0, Prim(nt:), r_ave, 0.d0 )
 
     Sum_Omegai_Hwi = 0d0
@@ -222,7 +222,7 @@ contains
       Sum_Omegai_Hwi = Sum_Omegai_Hwi + omega(s) * f_tabT( T_wall, s, h_tab )
     end do
 
-    ! Flussi
+    ! Fluxes
     Flux = 0.0d0
     Flux(1:nsc) = - omega * int_l
     Flux(nu:nv) = ( Stress - mdot * Blowing ) * int_l
@@ -243,14 +243,14 @@ contains
                                  mul=mil, rho=rho_wall,                &
                                  int_l=int_l, normal=Normal,           &
                                  vr=0.d0, r_ave=r_ave, dist=1d-20 )
-      ! Estrapolazione in cella ghost delle variabili RANS
+      ! Ghost-cell extrapolation of the RANS variables
       Ig = Im - guide(Fm,1)
       Jg = Jm - guide(Fm,2)
       call RANS_Extrapolate_Wall ( Prim(nt:nprim), Prim_Wall(nt:nprim), &
                                    rho, rho_wall, Blk % P(nt:nprim,Ig,Jg) )
     endif
 
-    ! Aggiornamento del residuo
+    ! Residual update
     Blk % r (:,Im,Jm) = Blk % r (:,Im,Jm) - modfm2 * Flux
 
     if (present(Ovar)) call Compute_Wall_Properties ( stress=Stress, pw=prim(np), qw=q_conv,  &

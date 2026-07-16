@@ -5,10 +5,10 @@
 #
 #         USAGE: run "./Q2D.sh [options] {solve|kill}" in the current shell
 #
-#   DESCRIPTION: Compile/run script for hypersonic-cylinder 2D steady-state test
-#                (Q2D_new). 2D plane Euler M=8.1 bow-shock over a
-#                cylinder cross-section (peculiarita' #1: K=1 collapsed strip;
-#                NO axisymmetric source — verified via z-coord analysis).
+#   DESCRIPTION: Compile/run script for hypersonic-cylinder 2D steady-state test.
+#                2D plane Euler M=8.1 bow-shock over a cylinder cross-section
+#                (2D no-w layout, single collapsed K strip; no axisymmetric
+#                source — the flow is planar).
 #===============================================================================
 
 function print_usage {

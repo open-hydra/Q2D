@@ -1,8 +1,8 @@
-! Wrapper Q2D per il caricamento delle tabelle termodinamiche e di trasporto via FLINT.
-! Strato sottile attorno a
+! Q2D wrapper for loading thermodynamic and transport tables via FLINT.
+! Thin layer around
 ! FLINT_Load_ThermoTransport::{read_idealgas_thermo, read_idealgas_transport}
-! che riporta gli esiti nei descrittori obj_thermo / obj_transport e imposta
-! Q2D_Global_m::nsc dal numero di specie di FLINT.
+! that reports the outcomes into the obj_thermo / obj_transport descriptors and
+! sets Q2D_Global_m::nsc from the FLINT species count.
 module Q2D_Load_ThermoTransport
   use iso_fortran_env, only: I4 => int32, R8 => real64
 
@@ -20,7 +20,7 @@ contains
     implicit none
     integer :: error
 
-    !! Termodinamica
+    !! Thermodynamics
     obj_thermo%warning_message = 'none'
     obj_thermo%error_message   = 'none'
     obj_thermo%description     = 'none'
@@ -47,7 +47,7 @@ contains
         obj_thermo%error_message = '[ERROR] Unknown error loading thermodynamic data'
     end select
 
-    !! Trasporto
+    !! Transport
     obj_transport%warning_message = 'none'
     obj_transport%error_message   = 'none'
     obj_transport%description     = 'none'
@@ -66,7 +66,7 @@ contains
         obj_transport%error_message = '[ERROR] Unknown error loading transport data'
     end select
 
-    nsc = ns   ! numero di specie di Q2D_Global_m impostato dal conteggio di FLINT
+    nsc = ns   ! Q2D_Global_m species count set from the FLINT count
 
   end subroutine Load_ThermoTransport
 

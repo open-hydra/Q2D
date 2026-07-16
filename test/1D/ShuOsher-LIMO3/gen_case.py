@@ -1,12 +1,10 @@
 # -*- coding: utf-8 -*-
 #
-# ShuOsher-LIMO3 — regression case for the Q2D-only third-order limiter LIMO3
-# (peculiarità #7, rlimiter_LIMO3, Cada & Torrilhon 2009). MOSE has no LIMO3
-# (the limiter set there stops at the 6 TVD limiters); LIMO3 lives only in
+# ShuOsher-LIMO3 — regression case for the third-order LIMO3 limiter
+# (rlimiter_LIMO3, Cada & Torrilhon 2009). MOSE has no LIMO3
+# (the limiter set there stops at the 6 TVD limiters); LIMO3 lives in
 # numerics/space/Lib_Limiters.f90 and is dispatched by the uppercase case label
-# 'LIMO3' in Mod_Space::Assign_Limiter. The wiring/registration was verified
-# correct end-to-end (Sess 37 verification workflow: formula ≡ legacy line 155,
-# case-preserved INI value, banner round-trip).
+# 'LIMO3' in Mod_Space::Assign_Limiter.
 #
 # WHY Shu-Osher: it is THE textbook "shock + regular waves" problem and the
 # canonical demonstrator of a high-order limiter. A Mach-3 shock runs into a
@@ -15,8 +13,8 @@
 # (MC/van Leer/minmod) CLIPS those smooth extrema back to first order
 # (φ(r<0)=0); LIMO3 does NOT clip them (φ(r<0)>0, third order at extrema), so
 # it preserves a larger oscillation amplitude while keeping the main shock
-# monotone. THIS no-clip-at-smooth-extrema property IS the interpretation of the
-# peculiarità that check.py verifies — not a bare value match.
+# monotone. THIS no-clip-at-smooth-extrema property IS the behaviour that
+# check.py verifies — not a bare value match.
 #
 # Shu & Osher, J. Comput. Phys. 83 (1989) 32, problem of §6 (Example 8):
 #   domain x in [-5, 5], gamma = 1.4
@@ -34,9 +32,9 @@
 # 1.4 — the limiter discriminator is insensitive to that 4th-digit difference).
 #
 # Usage:  python3 gen_case.py [NI] [target_dir]
-#         defaults: NI=400 (coarse, the ctest mesh), target_dir = INPUT here.
-#   The fine reference mesh is generated separately by check.py's harness /
-#   make_reference helper at NI=1600.
+#         defaults: NI=400 (the ctest mesh), target_dir = INPUT here.
+#   The committed limiter baselines (reference/baseline_*.dat) were generated
+#   once with the same binary at NI=400 using the mc/vanleer/minmod/iord limiters.
 
 import os, sys, math
 

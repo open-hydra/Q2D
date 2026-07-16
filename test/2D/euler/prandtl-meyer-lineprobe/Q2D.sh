@@ -6,10 +6,10 @@
 #         USAGE: run "./Q2D.sh [options] {solve|kill}" in the current shell
 #
 #   DESCRIPTION: Compile/run script for the prandtl-meyer-lineprobe 2D
-#                steady-state test (Q2D_new). Same planar supersonic expansion
-#                fan as prandtl-meyer, with a Q2D-extra line-probe (peculiarità
-#                #5) sampling a j-fixed grid line; exercises the registry-driven
-#                line-probe path end-to-end (no MOSE counterpart).
+#                steady-state test. Same planar supersonic expansion fan as
+#                prandtl-meyer, with a line-probe sampling a j-fixed grid line;
+#                exercises the registry-driven line-probe path end-to-end
+#                (no MOSE counterpart).
 #===============================================================================
 
 function print_usage {

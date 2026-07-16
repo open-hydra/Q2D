@@ -31,24 +31,24 @@ contains
     use Q2D_Mod_Diagnostic,       only: Print_Header, Check_Tables, Check_Input, &
                                         Check_IC, Check_BC, Print_Warnings, &
                                         Stop_Simulation, Print_Shell_Info
-    use Q2D_Mod_Sources,          only: Initialize_Sources  ! sorgenti geometriche (inizializzazione a setup)
+    use Q2D_Mod_Sources,          only: Initialize_Sources  ! geometric sources (setup-time initialization)
     use Q2D_Lib_Source_Areavariation, only: Read_Block_Q2D_Area
     implicit none
     type(Q2D_simulation_type), intent(inout) :: simulation
-    ! Locali
+    ! Locals
     integer :: m, ios
 
-    ! ---- Struttura del setup -------------------------------------------------------
+    ! ---- Setup structure -----------------------------------------------------------
     !
-    ! Il guard sul file di bootstrap risiede in Q2D_Read_Inifile.
-    ! Collocazione delle inizializzazioni delle sorgenti geometriche e delle probe:
-    !   - Read_Block_Q2D_Area (area-variation) → lettura UNICA su domain(1) più
-    !     sotto (dopo Setup_Data_Structure, prima di Setup_Multigrid); la
-    !     restrizione fine→coarse avviene via Coarse_Cross_Section in Setup_Multigrid.
+    ! The bootstrap-file guard resides in Q2D_Read_Inifile.
+    ! Placement of the geometric-source and probe initializations:
+    !   - Read_Block_Q2D_Area (area-variation) → SINGLE read on domain(1) below
+    !     (after Setup_Data_Structure, before Setup_Multigrid); the
+    !     fine→coarse restriction happens via Coarse_Cross_Section in Setup_Multigrid.
     !   - Precompute_Area_Geometry (area-variation) → Q2D_Lib_Source_Areavariation,
-    !     invocata dall'hook in Setup_Metrics.
-    !   - Precompute_Axisymmetric_Geometry (assialsimmetria) →
-    !     Q2D_Lib_Source_Axisymmetry, invocata dall'hook in Setup_Metrics.
+    !     invoked by the hook in Setup_Metrics.
+    !   - Precompute_Axisymmetric_Geometry (axisymmetry) →
+    !     Q2D_Lib_Source_Axisymmetry, invoked by the hook in Setup_Metrics.
     !   - Setup_LineProbes (line-probes) → Q2D_IO_LineProbes::Setup_LineProbes.
 
     if (mpi_is_root) call Print_Header()
@@ -58,11 +58,11 @@ contains
     if (mpi_is_root) call Check_Tables()
 
     call Read_Inifile()
-    if (obj_sim_param%TODO == 3) return   ! guard di bootstrap scattato in Read_Inifile (input.ini assente)
+    if (obj_sim_param%TODO == 3) return   ! bootstrap guard tripped in Read_Inifile (input.ini absent)
     if (mpi_is_root) call Check_Input()
 
-    ! Aggancia il dispatcher delle sorgenti geometriche (assialsimmetria /
-    ! area-variation) dopo il parse dell'INI e prima delle allocazioni.
+    ! Hook the geometric-source dispatcher (axisymmetry /
+    ! area-variation) after the INI parse and before the allocations.
     call Initialize_Sources()
 
     allocate(simulation%domain (obj_multigrid%MGL))
@@ -77,9 +77,9 @@ contains
     call Setup_Data_Structure(simulation%domain(1), simulation%IOfield(1))
     allocate(obj_sim_param%residuotot(nres))
 
-    ! area_variation: Cross_Section letta UNA sola volta sulla mesh fine
-    ! (domain(1)); la restrizione fine→coarse avviene in Setup_Multigrid via
-    ! Coarse_Cross_Section (sotto-campionamento R1).
+    ! area_variation: Cross_Section read ONLY once on the fine mesh
+    ! (domain(1)); the fine→coarse restriction happens in Setup_Multigrid via
+    ! Coarse_Cross_Section (R1 sub-sampling).
     if (obj_source%area_variation) call Read_Block_Q2D_Area(simulation%domain(1))
 
     if (obj_multigrid%MGL > 1) call Setup_Multigrid(simulation)

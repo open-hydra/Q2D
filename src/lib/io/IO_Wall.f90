@@ -20,7 +20,7 @@ contains
     implicit none
     type(Q2D_domain_type), intent(in) :: domain
     character(len=*),      intent(in) :: extension
-    ! Variabili locali
+    ! Local variables
     integer :: b, f, bb, i, j
 
     IOwall%tec%extension = extension
@@ -29,7 +29,7 @@ contains
     obj_io%write_wall_thermal    = .false.
     obj_io%write_wall_mass       = .false.
 
-    ! Intestazione: nessuna "tauZ" (nessuna componente di sforzo fuori dal piano).
+    ! Header: no "tauZ" (no out-of-plane stress component).
     obj_io%Onwall = 1
     obj_io%Owallnames = '"y+"'
     if (index(obj_io%wall_variables, 'mech') > 0) then
@@ -48,7 +48,7 @@ contains
       obj_io%write_wall_mass = .true.
     end if
 
-    ! Alloca un blocco IOwall per ogni faccia viscosa (4 facce per blocco nel 2D).
+    ! Allocate one IOwall block for each viscous face (4 faces per block in 2D).
     allocate( IOwall%block(1:count(obj_io_bc%viscous_flag)) )
 
     bb = 0
@@ -103,13 +103,13 @@ contains
     implicit none
     type(Q2D_domain_type), intent(inout) :: domain
     character(len=llen),   intent(in)    :: file
-    ! Variabili locali
+    ! Local variables
     character(len=llen) :: path, localpath_vtk
     integer             :: E_IO
     character(len=clen) :: format(2)
 
-    ! Ogni rank calcola le proprietà a parete per i propri blocchi locali e le
-    ! riduce sul root. Chiamata collettiva — tutti i rank la eseguono.
+    ! Each rank computes the wall properties for its own local blocks and
+    ! reduces them onto the root. Collective call — all ranks execute it.
     call Extract_Properties_From_BC(domain)
 
     if (mpi_is_root) then
@@ -137,17 +137,17 @@ contains
       end select
     end if
 
-    ! Sincronizzazione di tutti i rank dopo l'I/O.
+    ! Synchronize all ranks after the I/O.
     call mpi_io_barrier()
 
   end subroutine Write_Wall_Solution
 
 
   subroutine Extract_Properties_From_BC ( domain )
-    !> Calcola le proprietà delle BC di parete su tutti i rank (solo blocchi
-    !> locali), riduce sul root e riempie IOwall sul root. Chiamata collettiva —
-    !> tutti i rank devono eseguirla. Schema in 5 fasi (7 variabili per cella,
-    !> 4 facce per blocco nel 2D).
+    !> Computes the wall BC properties on all ranks (local blocks only),
+    !> reduces onto the root and fills IOwall on the root. Collective call —
+    !> all ranks must execute it. 5-phase scheme (7 variables per cell,
+    !> 4 faces per block in 2D).
     use Q2D_Advanced_Types_m,               only: Q2D_domain_type
     use Q2D_Config_Types_m,                 only: obj_io, obj_io_bc
     use Q2D_Mod_MPI,                        only: mpi_is_root, is_local_block, mpi_reduce_sum_r8_array
@@ -157,13 +157,13 @@ contains
     use Q2D_Lib_BC_Fluxes_Wall_Pyrolysis,   only: BC_Wall_Pyrolysis
     implicit none
     type(Q2D_domain_type), intent(inout) :: domain
-    ! Variabili locali
+    ! Local variables
     real(R8), dimension(7)  :: Ovar
     integer :: f, lower, upper, i, b, bb, pv, Bm, Im, Jm, Fm, Is, Js
     integer :: n_wall_total, wall_i
     real(R8), allocatable :: wall_buf(:)
 
-    ! FASE 1 — Conteggio delle celle BC totali su tutte le facce viscose
+    ! PHASE 1 — Count the total BC cells over all viscous faces
     n_wall_total = 0
     do b = 1, domain%nb
       do f = 1, 4
@@ -171,13 +171,13 @@ contains
       end do
     end do
 
-    ! FASE 2 — Allocazione del buffer piatto 7*n_wall_total (7 variabili per cella)
+    ! PHASE 2 — Allocate the flat buffer 7*n_wall_total (7 variables per cell)
     allocate(wall_buf(7 * n_wall_total))
     wall_buf = 0d0
 
-    ! FASE 3 — Ogni rank calcola Ovar per i propri blocchi locali; il salto dei
-    ! blocchi remoti lascia zero in wall_buf, così la riduzione SUM dà valori
-    ! corretti (ogni cella appartiene esattamente a un rank).
+    ! PHASE 3 — Each rank computes Ovar for its own local blocks; skipping the
+    ! remote blocks leaves zero in wall_buf, so the SUM reduction gives correct
+    ! values (each cell belongs to exactly one rank).
     upper = 0; wall_i = 0
     do b = 1, domain%nb
       do f = 1, 4
@@ -188,22 +188,22 @@ contains
         do i = lower, upper
           wall_i = wall_i + 1
           Bm = domain%bc(i)%b
-          if (.not. is_local_block(Bm)) cycle  ! blocco remoto: lascia zero nel buffer
+          if (.not. is_local_block(Bm)) cycle  ! remote block: leave zero in the buffer
 
           Im = domain%bc(i)%i
           Jm = domain%bc(i)%j
           Fm = domain%bc(i)%f
           Ovar = 0.0_R8
           select case (domain%bc(i)%type)
-            case (301) ! parete, qw assegnato
+            case (301) ! wall, qw prescribed
               call BC_Wall_Heat ( Im, Jm, Fm, domain%blk(Bm), domain%bc(i)%qw, Ovar )
-            case (302) ! parete, T assegnata
+            case (302) ! wall, T prescribed
               call BC_Wall_Temperature ( Im, Jm, Fm, domain%blk(Bm), domain%bc(i)%Tw, Ovar )
-            case (303) ! parete, T_wall + qrad (fusione)
+            case (303) ! wall, T_wall + qrad (melting)
               call BC_Wall_Melting ( Im, Jm, Fm, domain%blk(Bm),         &
                                       domain%bc(i)%Tw, domain%bc(i)%qrad, &
                                       Ovar )
-            case (304) ! parete, qrad (pirolisi/ablazione); fuel = bc%type → ramo HDPE
+            case (304) ! wall, qrad (pyrolysis/ablation); fuel = bc%type → HDPE branch
               call BC_Wall_Pyrolysis ( Im, Jm, Fm, domain%blk(Bm), &
                                         domain%bc(i)%qrad,         &
                                         domain%bc(i)%type, Ovar )
@@ -213,14 +213,13 @@ contains
       end do
     end do
 
-    ! FASE 4 — Riduzione di wall_buf sul root. Ogni cella appartiene esattamente
-    ! a un rank, quindi SUM dà valori corretti. Sul root, wall_buf è aggiornato
-    ! in place da mpi_reduce_sum_r8_array.
+    ! PHASE 4 — Reduce wall_buf onto the root. Each cell belongs to exactly one
+    ! rank, so SUM gives correct values. On the root, wall_buf is updated in
+    ! place by mpi_reduce_sum_r8_array.
     call mpi_reduce_sum_r8_array(wall_buf, 7 * n_wall_total)
 
-    ! FASE 5 — Il root spacchetta wall_buf in IOwall. L'ordine dei cicli DEVE
-    ! coincidere col riempimento della Fase 3 (stessa sequenza b/f/i) per una
-    ! mappatura corretta.
+    ! PHASE 5 — The root unpacks wall_buf into IOwall. The loop order MUST
+    ! match the Phase 3 filling (same b/f/i sequence) for a correct mapping.
     if (mpi_is_root) then
       upper = 0; wall_i = 0; bb = 0
       do b = 1, domain%nb
@@ -250,8 +249,8 @@ contains
             end if
             if (obj_io%write_wall_mass) then
               IOwall%block(bb)%vars(pv+1, Is, Js, 1) = Ovar(7)
-              pv = pv + 1  ! incremento di 1: una sola variabile assegnata
-              ! (pv non è più usato dopo questo ramo).
+              pv = pv + 1  ! increment by 1: a single variable assigned
+              ! (pv is no longer used after this branch).
             end if
           end do
         end do

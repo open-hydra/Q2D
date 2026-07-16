@@ -116,7 +116,7 @@ fpp0 = brentq(lambda g: _fp_at_inf(g) - 1.0, 0.4, 0.5, xtol=1e-12)
 print(f"\nBlasius f''(0) = {fpp0:.6f}  →  Cf = {np.sqrt(2)*fpp0:.4f} / √Re_x")
 
 # -------------------------------------------------------------
-# Read wall.tec (Q2D 6-CC: y+,tauX,tauY,pw,Tw,qw — peculiarità #1 No-w → no tauZ
+# Read wall.tec (Q2D 6-CC: y+,tauX,tauY,pw,Tw,qw — 2D no-w layout, so no tauZ
 #                the 3D peer's 7-CC: y+,tauX,tauY,tauZ,pw,Tw,qw)
 # Name-based dispatch handles both transparently.
 # tauX is negative (wall drags fluid in -x), so take abs()

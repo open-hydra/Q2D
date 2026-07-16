@@ -5,7 +5,7 @@ injects combustion products through the **BC 502 SRM boundary
 condition** with the Vieille (Saint-Robert) burn-rate law
 $r_b = a\,(P/P_\text{ref})^n$.  The converged chamber pressure is
 validated against the analytic Vieille steady-state balance with a
-choked throat.  Q2D-extra test: MOSE has `Lib_BC_Fluxes_SRM` but no
+choked throat.  MOSE has `Lib_BC_Fluxes_SRM` but no
 SRM test-case mirror.
 
 **Reference:** analytic Vieille (Saint-Robert) steady-state

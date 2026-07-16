@@ -5,11 +5,11 @@
 #
 #         USAGE: run "./Q2D.sh [options] {solve|kill}" in the current shell
 #
-#   DESCRIPTION: Compile/run script for the borda-channel 2D steady-state test
-#                (Q2D_new). Q2D-specific: peculiarità #4 Borda sudden-expansion
-#                injector inflow BC (BC_Nozzle_Borda_Flow; Fievisohn 2016 Sec 3.3,
+#   DESCRIPTION: Compile/run script for the borda-channel 2D steady-state test.
+#                Exercises the Borda sudden-expansion injector inflow BC
+#                (BC_Nozzle_Borda_Flow; Fievisohn 2016 Sec 3.3,
 #                eqs 3.26-3.31; sentinel BC_Mach == -20 on BC code 420, A1/A3 in the
-#                bc.txt pamb field). MOSE has no nozzle/Borda BC (divergence #4).
+#                bc.txt pamb field). MOSE has no nozzle/Borda BC.
 #                Straight plane channel, choked subsonic-station-3 regime; constant-
 #                gamma air (common/Air table, gamma=1.4).
 #===============================================================================

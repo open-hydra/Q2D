@@ -84,11 +84,11 @@ receives `Cross_Section` restricted fine→coarse via R1 nodal
 sub-sampling (`Coarse_Cross_Section`,
 $A_c(I,J) = A_f(2I,2J)$).  `check.py` is a three-layer acceptance
 that verifies the *interpretation* of the feature (integration test
-for the B-10 coarse-restriction fix):
+for the coarse-restriction fix):
 
 1. **Convergence sentinel** — final density residual < **1.0e-6**
    (measured 9.9e-11 on the committed run, the solver's own 1e-10
-   stopping floor).  With the original B-10 bug (`Cross_Section`
+   stopping floor).  With the original bug (`Cross_Section`
    re-read with coarse dims → scrambled re-indexing) the coarse level
    carries a meaningless geometric vector $G = -\nabla A / A$ and the
    solver stalls or diverges.

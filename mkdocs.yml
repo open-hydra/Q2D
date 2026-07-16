@@ -83,7 +83,7 @@ extra_css:
 extra_javascript:
   - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
 
-# Q2D nav: mirrors the MOSE section structure, with Q2D-specific theory
+# Q2D nav: mirrors the MOSE section structure, with the additional Q2D theory
 # pages (geometric sources, axisymmetric / area-variation derivations,
 # Q2D RANS closures) and per-case V&V pages.
 nav:

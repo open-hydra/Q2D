@@ -1,4 +1,4 @@
-"""flat-plate-laminar 2D viscous regression check (Sess 9 Step C.2).
+"""flat-plate-laminar 2D viscous regression check.
 
 Blasius self-similar boundary layer acceptance: max pointwise |u/U_inf - Blasius| <= 0.15 over eta in [0.5, 4.5] (NASA TMR coarse-grid acceptance; see check_blasius tol=0.15 rationale below).
 
@@ -17,9 +17,9 @@ table; max relative error |u/U_inf - blasius(eta)| ≤ 0.05 over eta in [0.5,
 4.5] (skip near-wall y<delta/10 where Q2D mesh resolution and Blasius asymp.
 may diverge). FAIL if non-converged (max u/U_inf < 0.5 at eta>3) or non-monotonic.
 
-Sess 9: NO external-code (MOSE) cross-comparison (MOSE FP-laminar bc.txt
-legacy format incompatible with current MOSE IO_BC; MOSE does NOT run this
-test in ctest, verified Sess 8). Acceptance: analytical-only (Blasius).
+NO external-code (MOSE) cross-comparison: the MOSE FP-laminar bc.txt
+legacy format is incompatible with current MOSE IO_BC, and MOSE does NOT run
+this test in ctest. Acceptance: analytical-only (Blasius).
 
 Exit semantics (2026-07 hardening): exit 0 only when the smoke gate (field
 output exists, no NaN/Inf) AND the Blasius +/-15% gate both ran and passed;
@@ -197,7 +197,7 @@ def check_blasius(field_path, tol=0.15):
     NIc, NJc = d["NIc"], d["NJc"]
     NI = d["NI"]
 
-    # Mesh layout (verified Sess 9): i ↔ y (wall-normal, i=1 top y=0.03,
+    # Mesh layout: i ↔ y (wall-normal, i=1 top y=0.03,
     # i=NIc bottom y=0 wall); j ↔ x (streamwise, j=1 left inflow x=-0.06096,
     # j=NJc right ambient x=0.3048).
     # Probe column: pick j_probe at x_probe ~ 0.15 m mid-plate (well past
@@ -240,8 +240,8 @@ def check_blasius(field_path, tol=0.15):
     profile_p = list(reversed(profile_p))
 
     # Freestream U_inf, nu_inf from far-cell (i=1 top, freestream).
-    # Sess 14 Step 0.0-tris fix: mu from INPUT/transport.dat table-lookup at
-    # T_inf. Previous Sess 13 hardcoded mu_inf=1.0e-3 (input.ini `mil`) was
+    # mu from INPUT/transport.dat table-lookup at
+    # T_inf. A hardcoded mu_inf=1.0e-3 (input.ini `mil`) would be
     # incorrect: `mil` is NEVER parsed by Q2D or MOSE (shared behavior); only
     # transport.dat is read via FLINT mi_tab. Air at T~300K: mu ≈ 1.186e-5
     # (84× smaller than 1e-3) → Re_x_real ~1e6 (vs 1.24e4 with wrong mu) →
@@ -324,13 +324,12 @@ def main():
     if not values:
         fail(f"no numeric data parsed from {field_path} (truncated output?)")
     assert_finite(f"{field_path} values", values)
-    # Blasius theory +/-15% ENFORCED Sess 14 F-12-L (Sess 13 +/-5% loosened
-    # after root-cause Sess 14: tolerance +/-5% required mu BUG fix +
-    # acknowledged 65×65 coarse-mesh CFD V&V realism). Analytical reference
-    # Schlichting 1979 Tab. 7.1. +/-15% is NASA TMR standard coarse-grid V&V
-    # acceptance (compare +/-5% which requires fine grid ~250×250 or higher-
+    # Blasius theory +/-15% acceptance. A tighter +/-5% band would require the
+    # mu correction plus finer resolution than the 65×65 coarse mesh provides.
+    # Analytical reference Schlichting 1979 Tab. 7.1. +/-15% is NASA TMR standard
+    # coarse-grid V&V acceptance (+/-5% requires a fine grid ~250×250 or a higher-
     # order scheme). Mesh refinement + tighter tol deferred post-v1.0.
-    print("[FP-lam check] -- Blasius theory +/-15% acceptance check (Sess 14 coarse-grid) --")
+    print("[FP-lam check] -- Blasius theory +/-15% acceptance check (coarse-grid) --")
     rc = check_blasius(field_path, tol=0.15)
     if rc != 0:
         print("[FP-lam check] FAIL: Blasius +/-15% acceptance NOT met (rc={0})".format(rc))

@@ -9,8 +9,8 @@ module Q2D_Lib_Shock_Detector
 
 contains
 
-  ! Rilevatore d'urto di tipo Jameson basato sulla pressione (Tramel):
-  ! formulazione 2D con stencil pmatrix(0:2,0:2) nelle due direzioni di griglia.
+  ! Jameson-type pressure-based shock detector (Tramel):
+  ! 2D formulation with stencil pmatrix(0:2,0:2) along the two grid directions.
   pure function SD_Tramel(pmatrix) result(beta)
     implicit none
     real(R8), intent(in) :: pmatrix(0:2,0:2)

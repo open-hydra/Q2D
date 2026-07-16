@@ -1,19 +1,19 @@
 module Q2D_Lib_BC_Fluxes_Rotational
-  ! BC di simmetria/periodicità rotazionale.
+  ! Rotational symmetry/periodicity BC.
   !
-  !   * BC_Rotational_Symmetry_Eul: mirror simmetrico inviscido per il piano
-  !     y=0 in 2D assialsimmetrico: `Flux(nv) = Prim(np) * int_l * Normal(2)`.
-  !     Compatibile con il 2D piano (asse perpendicolare al piano). Attualmente
-  !     senza call-site nel dispatcher: la simmetria (BC 300) usa
-  !     BC_Symmetry_Eul di Lib_BC_Fluxes_Symmetry.
+  !   * BC_Rotational_Symmetry_Eul: inviscid symmetric mirror for the y=0 plane
+  !     in 2D axisymmetric: `Flux(nv) = Prim(np) * int_l * Normal(2)`.
+  !     Compatible with 2D planar (axis perpendicular to the plane). Currently
+  !     without a call-site in the dispatcher: symmetry (BC 300) uses
+  !     BC_Symmetry_Eul from Lib_BC_Fluxes_Symmetry.
   !
-  !   * BC_Rotational_Periodic_Eul (BC 200): NON supportata. La periodicità
-  !     rotazionale tra 2 facce di una mesh 3D a settore richiede l'angolo
-  !     delta-theta e la componente di swirl della velocità (3 componenti),
-  !     fuori dallo scope di un solutore 2D: la routine produce un `error stop`
-  !     esplicito (nessun fallback silenzioso). In 2D piano la periodicità
-  !     collassa in quella traslazionale, gestita dalla BC 101 (Connection)
-  !     con offset cartesiano.
+  !   * BC_Rotational_Periodic_Eul (BC 200): NOT supported. Rotational
+  !     periodicity between 2 faces of a 3D sector mesh requires the
+  !     delta-theta angle and the swirl velocity component (3 components),
+  !     outside the scope of a 2D solver: the routine produces an explicit
+  !     `error stop` (no silent fallback). In 2D planar the periodicity
+  !     collapses into the translational one, handled by BC 101 (Connection)
+  !     with a Cartesian offset.
   use iso_fortran_env,            only: I4 => int32, R8 => real64
   use Q2D_Advanced_Types_m,       only: Q2D_block_type
   use Q2D_Global_m,               only: nv, np, nprim
@@ -29,11 +29,11 @@ contains
 
 
   subroutine BC_Rotational_Symmetry_Eul ( Im, Jm, Fm, Blk )
-    ! Mirror inviscido: contributo di sola pressione sulla componente nv.
+    ! Inviscid mirror: pressure-only contribution on the nv component.
     implicit none
     integer,             intent(in)    :: Im, Jm, Fm
     type(Q2D_block_type),intent(inout) :: Blk
-    ! Locali
+    ! Locals
     integer  :: modfm, modfm1, modfm2, modfm3, dir, Face_i, Face_j
     real(R8) :: Normal(2), int_l
     real(R8) :: Prim(nprim), Flux(nprim)
@@ -47,17 +47,17 @@ contains
 
     Flux = 0d0
     Flux(nv) = Prim(np) * int_l * Normal(2)
-    ! Aggiornamento del residuo (sola componente di quantità di moto nv)
+    ! Residual update (momentum component nv only)
     Blk % r(nv,Im,Jm) = Blk % r(nv,Im,Jm) + modfm2 * Flux(nv)
 
   end subroutine BC_Rotational_Symmetry_Eul
 
 
   subroutine BC_Rotational_Periodic_Eul ( Im, Jm, Fm, Blk )
-    ! Non supportata in questo solutore 2D: la periodicità rotazionale a
-    ! settore (delta-theta + swirl) richiede una mesh 3D e la componente di
-    ! velocità fuori piano. Per la periodicità 2D piana usare la BC 101
-    ! (Connection) con offset traslazionale.
+    ! Not supported in this 2D solver: sector rotational periodicity
+    ! (delta-theta + swirl) requires a 3D mesh and the out-of-plane velocity
+    ! component. For 2D planar periodicity use BC 101 (Connection) with a
+    ! translational offset.
     implicit none
     integer,             intent(in)    :: Im, Jm, Fm
     type(Q2D_block_type),intent(inout) :: Blk

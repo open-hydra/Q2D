@@ -1,15 +1,12 @@
 """Multi-solver-103 BC 103 dispatcher smoke test regression check.
 
-Q2D_new test/2D/euler/multi-solver-103 -- Sess 15.B C3 piano section-5 Fase 8c
-line 602 criterion partial fulfillment:
+Smoke test for the BC 103 multi-solver coupling wall dispatcher: the 1D-2D
+multi-solver coupling (BC 103) must produce consistent residual fluxes.
 
-    "test multi-solver coupling 1D-2D (BC 103 = ex Q2D 999) produce flussi
-     residui consistenti".
-
-BC 103 = multi-solver coupling wall (Mod_BC_Fluxes.f90:99-101):
+BC 103 = multi-solver coupling wall (Mod_BC_Fluxes.f90):
     BC_Symmetry_Eul + R += ext_flux
 
-With ext_flux=0 (IO_BC.f90:256 default initialization), BC 103 behaves
+With ext_flux=0 (IO_BC.f90 default initialization), BC 103 behaves
 bit-identically to BC 300 (symmetry/wall). Test verifies BC 103 dispatcher
 path executes without crash + maintains quiescent IC equilibrium.
 

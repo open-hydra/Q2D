@@ -1,5 +1,5 @@
 module Q2D_Lib_BC_Fluxes_Wall_Temperature
-  ! BC 302: parete a temperatura imposta Twall; mil(parete) valutata a Twall.
+  ! BC 302: wall at imposed temperature Twall; mil(wall) evaluated at Twall.
   use iso_fortran_env,            only: I4 => int32, R8 => real64
   use Q2D_Advanced_Types_m,       only: Q2D_block_type
   use Q2D_Global_m,               only: nsc, nu, nv, np, nt, nprim, model
@@ -18,17 +18,17 @@ contains
 
 
   subroutine BC_Wall_Temperature ( Im, Jm, Fm, Blk, T_wall, Ovar, w_wall )
-    ! w_wall: argomento opzionale dimension(2) — velocità di parete nel sistema
-    ! di riferimento rotante. Se presente:
-    ! Gradient(nu:nv,Dir) = (Prim(nu:nv) - w_wall) * modfm3 (velocità relativa
-    ! alla parete rotante); se assente: default no-slip statico.
+    ! w_wall: optional dimension(2) argument — wall velocity in the rotating
+    ! reference frame. If present:
+    ! Gradient(nu:nv,Dir) = (Prim(nu:nv) - w_wall) * modfm3 (velocity relative
+    ! to the rotating wall); if absent: default static no-slip.
     implicit none
     integer,             intent(in)    :: Im, Jm, Fm
     real(R8),            intent(in)    :: T_wall
     type(Q2D_block_type),intent(inout) :: Blk
     real(R8), optional, dimension(7), intent(out) :: Ovar
     real(R8), optional, dimension(2), intent(in)  :: w_wall
-    ! Locali
+    ! Locals
     integer :: modfm, modfm1, modfm2, modfm3, Dir, Face_i, Face_j, ig, jg
     real(R8) :: Normal(2), int_l, Dist, M(2,2), Prim(nprim), rho, Rgas, T, rho_wall, dl
     real(R8) :: Prim_wall(nprim), mil, kl, Gradient(nprim,2), Stress(2), Flux(nprim)
@@ -81,7 +81,7 @@ contains
     end select
     Stress = Stress_Vector ( Gradient(nu:nv,:), Normal, mil, 0d0, Prim(nt:), r_ave, 0.d0 )
 
-    Flux = 0d0   ! pre-azzeramento completo del flusso: copre anche la banda soot/passivi np+1:nt-1, non solo 1:nsc
+    Flux = 0d0   ! full flux pre-zeroing: also covers the soot/passives band np+1:nt-1, not only 1:nsc
     Flux(nu:nv) = Stress * int_l
     Flux(np)    = int_l * kl * dot_product ( Gradient(np,:), Normal )
 

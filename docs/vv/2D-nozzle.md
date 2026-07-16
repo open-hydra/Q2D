@@ -18,7 +18,7 @@ the References below.  The committed `reference/CEA.out` files carry
 the program's own citation banner (CEA2, May 21, 2004).
 
 **Feature exercised:** **2D axisymmetric** regime
-(`Lib_Source_Axisymmetry`, peculiarity #2) with multi-species
+(`Lib_Source_Axisymmetry`) with multi-species
 thermochemistry in its three modes — frozen (13 species), CEA
 per-cell equilibrium (13 species), finite-rate CORIA mechanism with
 the sdirk4b ODE solver (19 species); BC `200` axisymmetry axis;
@@ -69,11 +69,9 @@ MUSCL/vanleer + SLAU with IRS.
 
     This test runs in the **2D axisymmetric** Q2D regime, exercising
     the cylindric-residual source `Lib_Source_Axisymmetry`
-    (peculiarity #2) and the `Stress_Vector_Axi` viscous closure
-    (peculiarity #3).  The axis of symmetry coincides with the lower
+    and the `Stress_Vector_Axi` viscous closure.  The axis of symmetry coincides with the lower
     block boundary (face 3) where the BC `200` (axisymmetry) is
-    applied.  The Borda-flow choked-nozzle BC (peculiarity #4,
-    sentinel `BC_Mach == -20`) is also available for inflow boundary
+    applied.  The Borda-flow choked-nozzle BC (sentinel `BC_Mach == -20`) is also available for inflow boundary
     treatment in this geometry.
 
 <figure>
@@ -154,8 +152,7 @@ rocket nozzle geometry.
       Mach, p/p_in, T/T_in for all three sub-cases (frozen,
       equilibrium, finite-rate). Area weighting is the axi-cylindric
       `r dr dx` integral over the radial column at each axial station,
-      enforced by the 2D-axisymmetric geometry of the test case
-      (peculiarity #2). Throat Mach numbers extracted:
+      enforced by the 2D-axisymmetric geometry of the test case. Throat Mach numbers extracted:
       frozen ~3.70, equilibrium ~3.49, finite-rate ~3.51.
 
     The figures are illustrative; the strict V&V record is the

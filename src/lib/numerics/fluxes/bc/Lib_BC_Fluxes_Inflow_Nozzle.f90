@@ -1,23 +1,23 @@
 module Q2D_Lib_BC_Fluxes_Inflow_Nozzle
-  ! Ingresso da ugello: router + 4 BC interne
-  ! (Supersonic, Subsonic, Subsonic_QS, Borda_Flow). L'iniezione Borda con
-  ! espansione improvvisa (Fievisohn 2016 Sec 3.3 / Fievisohn & Yu 2017
-  ! Sec II.B Eqs 9-14) si attiva con il sentinel `BC_Mach == -20`, con `BC_pAmb`
-  ! reinterpretato come rapporto d'area A1/A3.
+  ! Nozzle inflow: router + 4 internal BCs
+  ! (Supersonic, Subsonic, Subsonic_QS, Borda_Flow). The Borda injection with
+  ! sudden expansion (Fievisohn 2016 Sec 3.3 / Fievisohn & Yu 2017
+  ! Sec II.B Eqs 9-14) is activated by the sentinel `BC_Mach == -20`, with `BC_pAmb`
+  ! reinterpreted as the area ratio A1/A3.
   !
-  ! BC_Nozzle_Subsonic usa l'invariante di Riemann generalizzato Glaister 1988
-  ! con la quadratura fusa Trapezoidal_Riem_PU: chiusura a gas reale, valida
-  ! anche per gamma variabile (per gamma costante si riduce alla chiusura
-  ! classica `u = (Riem-a)/(BC_Sign·(γ-1)·0.5)`).
+  ! BC_Nozzle_Subsonic uses the generalized Riemann invariant Glaister 1988
+  ! with the fused quadrature Trapezoidal_Riem_PU: real-gas closure, valid
+  ! also for variable gamma (for constant gamma it reduces to the classic
+  ! closure `u = (Riem-a)/(BC_Sign·(γ-1)·0.5)`).
   !
-  ! Router di dispatch:
-  !   Inflow_Outflow >= 0 OPPURE p_b >= p0      -> error 1
+  ! Dispatch router:
+  !   Inflow_Outflow >= 0 OR p_b >= p0          -> error 1
   !   BC_Mach == -20                            -> Borda_Flow (g = A1/A3)
   !                                              error==2 (regime c3) -> Supersonic
   !   p_b in [pSub, p0)                         -> Subsonic(BC_Mach=0)
   !   p_b in [pSup, pSub)                       -> Subsonic(BC_Mach=-10)
-  !   p_b < pSup E BC_Mach == 0                 -> Supersonic, mdot/A
-  !   p_b < pSup E BC_Mach != 0                 -> Supersonic, M_face = BC_Mach
+  !   p_b < pSup AND BC_Mach == 0               -> Supersonic, mdot/A
+  !   p_b < pSup AND BC_Mach != 0               -> Supersonic, M_face = BC_Mach
   use iso_fortran_env,            only: I4 => int32, R8 => real64
   use Q2D_Advanced_Types_m,       only: Q2D_block_type
   use Q2D_Global_m,               only: nsc, nu, nv, np, nt, nprim, model
@@ -48,7 +48,7 @@ contains
     real(R8),            intent(in)    :: BC_pAmb, BC_ci(nsc), BC_RANS(1:)
     type(Q2D_block_type),intent(inout) :: Blk
     integer,             intent(inout) :: error
-    ! Variabili locali
+    ! Local variables
     integer  :: modfm, modfm1, modfm2, modfm3, Int_i, Int_j, Dir, Face_i, Face_j
     real(R8) :: Bound_Prim(nprim), Int_Prim(nprim), Normal(2), int_l, t_Vec(2), t_Mod, BC_Sign, Un
     real(R8) :: Bound_rho, Bound_Rgas, Bound_Sound, Bound_Gamma, Riem, Inflow_Outflow, Flux(nprim)
@@ -101,7 +101,7 @@ contains
       error = 1
       return
     elseif ( BC_Mach == -20d0 ) then
-      ! Espansione improvvisa di Borda (Fievisohn 2016 Sec 3.3); g = A1/A3.
+      ! Borda sudden expansion (Fievisohn 2016 Sec 3.3); g = A1/A3.
       call BC_Nozzle_Borda_Flow ( Bound_Prim, Un, Bound_Sound, Bound_Gamma, Riem, alpha_app, &
                                   BC_ci, BC_RANS, BC_T0, BC_p0, g, BC_rel_fac,                &
                                   BC_Sign, t_Vec, Normal, int_l, Flux, error, Bord_mdot )
@@ -144,7 +144,7 @@ contains
     real(R8), intent(in)  :: Prim2(nprim), Int_Prim(nprim), g, BC_p0, BC_T0, BC_supersonic
     real(R8), intent(in)  :: BC_ci(nsc), BC_RANS(1:), alpha_app, Normal(2), int_l
     real(R8), intent(out) :: Flux(nprim)
-    ! Variabili locali
+    ! Local variables
     integer  :: s
     real(R8) :: Sup_Prim(nprim), Sup_T, Sup_Rgas, Sup_rho, Sup_Sound, Prim1(nprim), Prim3(nprim)
     real(R8), dimension(nprim) :: Diff32, Diff21, Slope, Face_Prim, Prim_L, Prim_R
@@ -235,8 +235,8 @@ contains
     call co_rotot_Rtot ( Prim_R(1:nsc), rho_R, Rgas_R )
     Sound_R = f_ss ( Prim_R(1:nsc), Prim_R(np), rho_R, Rgas_R )
 
-    ! beta = 1d0: peso HLLC pieno nel blending dei solutori SD-aware;
-    ! i solutori di Riemann classici ignorano l'argomento.
+    ! beta = 1d0: full HLLC weight in the blending of the SD-aware solvers;
+    ! the classic Riemann solvers ignore the argument.
     call Riemann ( Prim_L(1:nsc), Prim_L(nu), Prim_L(nv), Prim_L(np), Sound_L, rho_L, &
                    Prim_R(1:nsc), Prim_R(nu), Prim_R(nv), Prim_R(np), Sound_R, rho_R, &
                    1d0, Normal(1), Normal(2), F_r, F_u, F_v, F_E )
@@ -245,7 +245,7 @@ contains
     Sel_L = ( 1d0 + su ) / 2d0
     Sel_R = ( su  - 1d0 ) / 2d0
 
-    Flux = 0d0   ! pre-azzeramento completo del flusso: copre anche la banda soot/passivi np+1:nt-1
+    Flux = 0d0   ! full flux pre-zeroing: also covers the soot/passives band np+1:nt-1
     Fmass = F_r * int_l
     Flux(1:nsc) = Fmass * ( Sel_L*Prim_L(1:nsc)/rho_L - Sel_R*Prim_R(1:nsc)/rho_R )
     Flux(nu) = F_u * int_l
@@ -260,14 +260,14 @@ contains
   subroutine BC_Nozzle_Subsonic ( Prim, Un, Sound, Gamma, Riem, alpha_app, BC_Mach, &
                                   BC_ci, BC_RANS, BC_T0, BC_p0, BC_rel_fac, BC_Sign, &
                                   t_Vec, Normal, int_l, Flux )
-    ! Invariante di Riemann generalizzato a gas reale (Glaister 1988).
-    ! Quadratura fusa Trapezoidal_Riem_PU.
+    ! Generalized real-gas Riemann invariant (Glaister 1988).
+    ! Fused quadrature Trapezoidal_Riem_PU.
     implicit none
     real(R8), intent(in)  :: Prim(nprim), Un, Sound, Gamma, Riem, alpha_app, BC_Mach
     real(R8), intent(in)  :: BC_ci(nsc), BC_RANS(1:), BC_T0, BC_p0, BC_rel_fac, BC_Sign
     real(R8), intent(in)  :: t_Vec(2), Normal(2), int_l
     real(R8), intent(out) :: Flux(nprim)
-    ! Variabili locali
+    ! Local variables
     integer  :: s
     real(R8) :: b_Vec(3), b_Mod, alpha, XA, XB, XC, XD, XE, XF, check, E1, E2
     real(R8) :: Face_Rgas, Un3, p3, Ut3, Ub3, mdot, Rgas3, cp3, T3, rho3, h3, h0_3
@@ -327,8 +327,8 @@ contains
       enddo
       gamma_acu = cp_acu / ( cp_acu - Rgas_acu )
       a_acu     = sqrt( gamma_acu * Rgas_acu * T_acu )
-      ! Quadratura fusa Glaister 1988: J = int cp/(R*T) dT (isentropica),
-      ! K = int a/((gamma-1)*T) dT (caratteristiche C+/- generalizzate).
+      ! Fused Glaister 1988 quadrature: J = int cp/(R*T) dT (isentropic),
+      ! K = int a/((gamma-1)*T) dT (generalized C+/- characteristics).
       call Trapezoidal_Riem_PU ( T_Bound, T_acu, Bound_ci, Rgas_acu, fun_T, riem_K )
       p_acu = Prim(np) * exp ( fun_T )
       u_acu = Un - BC_Sign * riem_K
@@ -425,7 +425,7 @@ contains
     Face_Un = Un3
     if (model==2) Face_Prim(nt:nprim) = BC_RANS * Face_rho
 
-    Flux = 0d0   ! pre-azzeramento completo del flusso: copre anche la banda soot/passivi np+1:nt-1
+    Flux = 0d0   ! full flux pre-zeroing: also covers the soot/passives band np+1:nt-1
     Face_Enthalpy = 0d0
     Face_T = Face_Prim(np) / ( Face_Rgas * Face_rho )
     do s = 1, nsc
@@ -443,15 +443,15 @@ contains
   subroutine BC_Nozzle_Subsonic_QS ( Prim, Un, Sound, Gamma, Riem, alpha_app, BC_Mach, &
                                      BC_ci, BC_RANS, BC_T0, BC_p0, BC_rel_fac, BC_Sign, &
                                      t_Vec, Normal, int_l, Flux )
-    ! Variante quasi-stazionaria: nessuna caratteristica risalente,
-    ! p3 = Prim(np) estrapolata. Dispatch a 3 rami su BC_Mach:
-    ! >= 0 (p0 imposta), -10 (portata + h0), altrimenti portata a T = BC_T0.
+    ! Quasi-steady variant: no upstream-running characteristic,
+    ! p3 = Prim(np) extrapolated. 3-branch dispatch on BC_Mach:
+    ! >= 0 (imposed p0), -10 (mass flux + h0), otherwise mass flux at T = BC_T0.
     implicit none
     real(R8), intent(in)  :: Prim(nprim), Un, Sound, Gamma, Riem, alpha_app, BC_Mach
     real(R8), intent(in)  :: BC_ci(nsc), BC_RANS(1:), BC_T0, BC_p0, BC_rel_fac, BC_Sign
     real(R8), intent(in)  :: t_Vec(2), Normal(2), int_l
     real(R8), intent(out) :: Flux(nprim)
-    ! Variabili locali
+    ! Local variables
     integer  :: s
     real(R8) :: alpha
     real(R8) :: Face_Rgas, p3, mdot, Rgas3, cp3, T3, rho3, h3, h0_3, u3
@@ -524,7 +524,7 @@ contains
     Face_Un          = u3
     if (model==2) Face_Prim(nt:nprim) = BC_RANS * Face_rho
 
-    Flux = 0d0   ! pre-azzeramento completo del flusso: copre anche la banda soot/passivi np+1:nt-1
+    Flux = 0d0   ! full flux pre-zeroing: also covers the soot/passives band np+1:nt-1
     Face_Enthalpy = 0d0
     Face_T = Face_Prim(np) / ( Face_Rgas * Face_rho )
     do s = 1, nsc
@@ -542,19 +542,19 @@ contains
   subroutine BC_Nozzle_Borda_Flow ( Prim, Un, Sound, Gamma, Riem, alpha_app, &
                                     BC_ci, BC_RANS, BC_T0, BC_p0, A1_A3, BC_rel_fac, &
                                     BC_Sign, t_Vec, Normal, int_l, Flux, error, mdot_sup )
-    ! Iniezione Borda con espansione improvvisa (Fievisohn 2016 Sec 3.3;
-    ! Fievisohn & Yu 2017 Sec II.B Eqs 9-14). Plenum (BC_T0,BC_p0) -> gola
-    ! (M1, A1) -> espansione improvvisa -> faccia del canale (A3 > A1).
+    ! Borda injection with sudden expansion (Fievisohn 2016 Sec 3.3;
+    ! Fievisohn & Yu 2017 Sec II.B Eqs 9-14). Plenum (BC_T0,BC_p0) -> throat
+    ! (M1, A1) -> sudden expansion -> channel face (A3 > A1).
     ! r = A1/A3 in (0,1].
     !
-    ! Tre regimi: (a) choked + stazione 3 subsonica (Borda valido), (b) unchoked
-    ! (bisezione su M1 in (M1_MIN,1) per P1=P2), (c) choked + stazione 3
-    ! supersonica (Borda non valido; fallback su ugello convergente-divergente
-    ! isentropico: sub3 -> Subsonic, subsonico post-urto -> Subsonic con portata
-    ! choked, sup3 -> error=2 + Supersonic nel chiamante).
+    ! Three regimes: (a) choked + subsonic station 3 (Borda valid), (b) unchoked
+    ! (bisection on M1 in (M1_MIN,1) for P1=P2), (c) choked + supersonic
+    ! station 3 (Borda invalid; fallback to isentropic converging-diverging
+    ! nozzle: sub3 -> Subsonic, post-shock subsonic -> Subsonic with choked
+    ! mass flux, sup3 -> error=2 + Supersonic in the caller).
     !
-    ! Codici di errore: 0 = successo, 1 = Newton interno non convergente,
-    ! 2 = fallback del regime c3.
+    ! Error codes: 0 = success, 1 = inner Newton not converged,
+    ! 2 = regime c3 fallback.
     implicit none
     real(R8), intent(in)  :: Prim(nprim), Un, Sound, Gamma, Riem, alpha_app
     real(R8), intent(in)  :: BC_ci(nsc), BC_RANS(1:), BC_T0, BC_p0, A1_A3, BC_rel_fac
@@ -694,7 +694,7 @@ contains
     Face_Un = Un3
     if (model==2) Face_Prim(nt:nprim) = BC_RANS * Face_rho
 
-    Flux = 0.d0   ! pre-azzeramento completo del flusso: copre anche la banda soot/passivi np+1:nt-1
+    Flux = 0.d0   ! full flux pre-zeroing: also covers the soot/passives band np+1:nt-1
     Face_Enthalpy = 0.d0
     Face_T = Face_Prim(np) / ( Face_Rgas * Face_rho )
     do s = 1, nsc

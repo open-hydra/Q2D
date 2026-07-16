@@ -1,16 +1,16 @@
-!>@brief Modulo per le subroutine di interazione gas-superficie (GSI).
+!>@brief Module for the gas-surface interaction (GSI) subroutines.
 !>
-!> Fornisce GSI_Melting (collegata alla BC 303 Wall_Melting) e le routine di
-!> pirolisi GSI_HDPE/PP/HTPB/Carbon (collegate alla BC 304).
-!> GSI_Paraffin è un superset di GSI_Melting (paraffina per motori a razzo
-!> ibridi con proprietà miscelate SEBS + ramo opzionale di cracking); è esposta
-!> qui ma NON è attualmente collegata ad alcun gestore BC, e i rami
-!> SEBS/cracking sono disattivi a runtime per default (y_SEBS=0,
-!> cracking=.false.), per cui in ogni configurazione eseguibile si riduce
-!> bit per bit a GSI_Melting.
+!> Provides GSI_Melting (linked to BC 303 Wall_Melting) and the
+!> pyrolysis routines GSI_HDPE/PP/HTPB/Carbon (linked to BC 304).
+!> GSI_Paraffin is a superset of GSI_Melting (paraffin for hybrid rocket
+!> engines with blended SEBS properties + optional cracking branch); it is exposed
+!> here but is NOT currently linked to any BC handler, and the
+!> SEBS/cracking branches are disabled at runtime by default (y_SEBS=0,
+!> cracking=.false.), so in every executable configuration it reduces
+!> bit-for-bit to GSI_Melting.
 !>
-!> I parametri dei materiali sottostanti sono default a livello di modulo:
-!> non esiste una routine di setup che li renda configurabili da file INI.
+!> The underlying material parameters are module-level defaults:
+!> there is no setup routine that makes them configurable from an INI file.
 module Q2D_Lib_GSI
   use iso_fortran_env, only: I4 => int32, R8 => real64
   use Q2D_Global_m,    only: nsc
@@ -18,35 +18,35 @@ module Q2D_Lib_GSI
   implicit none
   private
 
-  public :: GSI_Melting   ! variante semplificata (senza SEBS, senza cracking).
-  public :: GSI_Paraffin  ! proprietà miscelate SEBS + ramo opzionale di cracking.
+  public :: GSI_Melting   ! simplified variant (no SEBS, no cracking).
+  public :: GSI_Paraffin  ! blended SEBS properties + optional cracking branch.
   public :: GSI_Carbon
   public :: GSI_HDPE
   public :: GSI_HTPB
   public :: GSI_PP
 
-  ! Costanti dei materiali esposte:
-  ! usate da Q2D_Lib_BC_Fluxes_Wall_Pyrolysis per calcolare il q_pyro specifico
-  ! del materiale (HDPE/PP/HTPB) nel bilancio energetico Newton-Raphson.
+  ! Exposed material constants:
+  ! used by Q2D_Lib_BC_Fluxes_Wall_Pyrolysis to compute the material-specific
+  ! q_pyro (HDPE/PP/HTPB) in the Newton-Raphson energy balance.
   public :: cp_HDPE, Dh_HDPE, Ti_HDPE
   public :: cp_PP,   Dh_PP,   Ti_PP
   public :: cp_HTPB, Dh_HTPB, Ti_HTPB
 
-  ! Paraffina / Melting
-  real(R8) :: T_i    = 298.15d0             ! temperatura iniziale della paraffina
+  ! Paraffin / Melting
+  real(R8) :: T_i    = 298.15d0             ! initial paraffin temperature
   real(R8) :: cp_wax = 1946.0310193884d0    ! NIST: https://webbook.nist.gov/cgi/cbook.cgi?ID=C544854&Units=SI&Mask=6EF
-  real(R8) :: Dh_wax = 1.698285789316d+5    ! NIST: stessa fonte della riga precedente
-  real(R8) :: y_SEBS = 0d0                  ! frazione di massa di SEBS nel combustibile (default 0 → recupera GSI_Melting)
-  integer  :: iFUEL  = 10                   ! indice del C32H66 nel meccanismo Singh-WC32
-  integer  :: iSEBS  = 2                    ! indice della specie C2H4
+  real(R8) :: Dh_wax = 1.698285789316d+5    ! NIST: same source as the previous line
+  real(R8) :: y_SEBS = 0d0                  ! SEBS mass fraction in the fuel (default 0 → recovers GSI_Melting)
+  integer  :: iFUEL  = 10                   ! index of C32H66 in the Singh-WC32 mechanism
+  integer  :: iSEBS  = 2                    ! index of the C2H4 species
 
-  ! Parametri delle estensioni SEBS/cracking di GSI_Paraffin:
-  real(R8) :: f_SEBS  = 1.7d0               ! cp/Dh del SEBS = cp/Dh dell'HDPE * f_SEBS
-  logical  :: cracking = .false.            ! cracking della paraffina in etilene+H2 alla superficie
+  ! Parameters of the SEBS/cracking extensions of GSI_Paraffin:
+  real(R8) :: f_SEBS  = 1.7d0               ! cp/Dh of SEBS = cp/Dh of HDPE * f_SEBS
+  logical  :: cracking = .false.            ! cracking of paraffin into ethylene+H2 at the surface
 
-  ! Carbonio
-  real(R8), parameter :: wmc  = 12.0107d0   ! peso molecolare del carbonio
-  real(R8), parameter :: pref = 1.01325d5   ! pressione atmosferica di riferimento
+  ! Carbon
+  real(R8), parameter :: wmc  = 12.0107d0   ! molecular weight of carbon
+  real(R8), parameter :: pref = 1.01325d5   ! reference atmospheric pressure
 
   ! HDPE
   real(R8) :: cp_HDPE = 1255.2d0
@@ -75,10 +75,10 @@ module Q2D_Lib_GSI
 
 contains
 
-  !>@brief GSI di fusione a bilancio energetico.
+  !>@brief Energy-balance melting GSI.
   !>
-  !> Variante semplificata: senza SEBS, senza cracking.
-  !> Per il caso superset paraffina (SEBS + cracking) usare GSI_Paraffin.
+  !> Simplified variant: no SEBS, no cracking.
+  !> For the paraffin superset case (SEBS + cracking) use GSI_Paraffin.
   subroutine GSI_Melting ( qw, Tw, omega, mdot )
     implicit none
     real(R8), intent(in)  :: qw, Tw
@@ -88,38 +88,38 @@ contains
     cp_solid   = cp_wax
     Dh_melting = Dh_wax
 
-    ! bilancio energetico
-    Dh_conduction = cp_solid*(Tw - T_i)        ! calore di conduzione nel solido (J/kg)
+    ! energy balance
+    Dh_conduction = cp_solid*(Tw - T_i)        ! conduction heat in the solid (J/kg)
     heat_absorbed = Dh_melting + Dh_conduction
 
-    ! flusso di massa risultante dal bilancio energetico alla superficie del grano
+    ! mass flux resulting from the energy balance at the grain surface
     mdot = qw / heat_absorbed                  ! (kg/(s m^2))
 
     mdot_wax = (1.0d0 - y_SEBS)*mdot
 
-    !% Termine sorgente delle specie
+    !% Species source term
     omega = 0.0d0
-    ! iniezione di paraffina come C32H66 e di etilene per il SEBS
+    ! paraffin injection as C32H66 and ethylene for SEBS
     if (y_SEBS > 0.0d0) omega(iSEBS) = y_SEBS*mdot   ! C2H4
     omega(iFUEL) = mdot_wax                          ! C32H66
 
   end subroutine GSI_Melting
 
 
-  !>@brief GSI di fusione a bilancio energetico per propellente paraffinico.
+  !>@brief Energy-balance melting GSI for paraffin propellant.
   !>
-  !> Superset di GSI_Melting con due estensioni:
-  !>  (i)  proprietà del solido miscelate con SEBS: cp_solid = (1-y_SEBS)*cp_wax + y_SEBS*cp_SEBS,
-  !>       Dh_melting = (1-y_SEBS)*Dh_wax + y_SEBS*Dh_SEBS, con cp_SEBS = f_SEBS*cp_HDPE
-  !>       e Dh_SEBS = f_SEBS*Dh_HDPE.
-  !>  (ii) ramo opzionale `cracking`: paraffina → etilene + H2 a parete
-  !>       (C32H66 → 16 C2H4 + H2) per shear/riscaldamento estremi al grano.
+  !> Superset of GSI_Melting with two extensions:
+  !>  (i)  solid properties blended with SEBS: cp_solid = (1-y_SEBS)*cp_wax + y_SEBS*cp_SEBS,
+  !>       Dh_melting = (1-y_SEBS)*Dh_wax + y_SEBS*Dh_SEBS, with cp_SEBS = f_SEBS*cp_HDPE
+  !>       and Dh_SEBS = f_SEBS*Dh_HDPE.
+  !>  (ii) optional `cracking` branch: paraffin → ethylene + H2 at the wall
+  !>       (C32H66 → 16 C2H4 + H2) for extreme shear/heating at the grain.
   !>
-  !> Il default y_SEBS=0 + cracking=.false. recupera esattamente GSI_Melting.
+  !> The default y_SEBS=0 + cracking=.false. recovers exactly GSI_Melting.
   !>
-  !> Le proprietà del SEBS sono calcolate localmente (cp_SEBS_loc = f_SEBS*cp_HDPE,
-  !> Dh_SEBS_loc = f_SEBS*Dh_HDPE): nessuna dipendenza da variabili di modulo
-  !> non inizializzate né da un ordine di setup.
+  !> The SEBS properties are computed locally (cp_SEBS_loc = f_SEBS*cp_HDPE,
+  !> Dh_SEBS_loc = f_SEBS*Dh_HDPE): no dependence on uninitialized module
+  !> variables nor on a setup order.
   subroutine GSI_Paraffin ( qw, Tw, omega, mdot )
     implicit none
     real(R8), intent(in)  :: qw, Tw
@@ -127,30 +127,30 @@ contains
     real(R8) :: cp_solid, Dh_melting, Dh_conduction, heat_absorbed, mdot_wax
     real(R8) :: cp_SEBS_loc, Dh_SEBS_loc
 
-    ! Proprietà SEBS locali, derivate dai parametri HDPE.
+    ! Local SEBS properties, derived from the HDPE parameters.
     cp_SEBS_loc = f_SEBS * cp_HDPE
     Dh_SEBS_loc = f_SEBS * Dh_HDPE
 
     cp_solid   = (1.d0 - y_SEBS)*cp_wax + y_SEBS*cp_SEBS_loc
     Dh_melting = (1.d0 - y_SEBS)*Dh_wax + y_SEBS*Dh_SEBS_loc
 
-    ! bilancio energetico
-    Dh_conduction = cp_solid*(Tw - T_i)        ! calore di conduzione nel solido (J/kg)
+    ! energy balance
+    Dh_conduction = cp_solid*(Tw - T_i)        ! conduction heat in the solid (J/kg)
     heat_absorbed = Dh_melting + Dh_conduction
 
-    ! flusso di massa risultante dal bilancio energetico alla superficie del grano
+    ! mass flux resulting from the energy balance at the grain surface
     mdot = qw / heat_absorbed                  ! (kg/(s m^2))
 
     mdot_wax = (1.d0 - y_SEBS)*mdot
 
-    !% Termine sorgente delle specie
+    !% Species source term
     omega = 0.d0
     if (cracking) then
-      ! Cracking della paraffina in etilene e idrogeno a parete: C32H66 → 16 C2H4 + H2
+      ! Cracking of paraffin into ethylene and hydrogen at the wall: C32H66 → 16 C2H4 + H2
       omega(6)  = 0.0044d0*mdot_wax                  ! H2
       omega(2)  = 0.9956d0*mdot_wax + y_SEBS*mdot    ! C2H4
     else
-      ! iniezione di paraffina come C32H66 e di etilene per il SEBS
+      ! paraffin injection as C32H66 and ethylene for SEBS
       omega(2)  = y_SEBS*mdot                        ! C2H4
       omega(10) = mdot_wax                           ! C32H66
     endif
@@ -169,16 +169,16 @@ contains
     integer, parameter :: iH=1, iC2H4=2, iOH=3, iCO=4, iCO2=5
     integer, parameter :: iH2=6, iH2O=7, iO2=8, iO=9
 
-    omegadot = 0d0  ! inizializzazione
+    omegadot = 0d0  ! initialization
 
-    ! Costanti
+    ! Constants
     RuTw = Runiv*Tw
     inv_sqrtTw = 1.0d0/sqrt(Tw)
 
-    ! Pressioni parziali in atmosfere
+    ! Partial pressures in atmospheres
     pi = roi*Tw*Ri_tab/pref
 
-    ! Costanti cinetiche
+    ! Kinetic constants
     kH2O = 4.80d5  *exp(-288.00d6/RuTw)  ! H2O
     kCO2 = 9.00d3  *exp(-285.00d6/RuTw)  ! CO2
     kOH  = 3.61d2  *inv_sqrtTw
@@ -189,18 +189,18 @@ contains
     k7   = 5.35d-1 *exp( -63.64d6/RuTw)  ! O2c
     k8   = 1.81d7  *exp(-406.10d6/RuTw)  ! O2d
 
-    ! Calcolo del termine Y_term
+    ! Compute the Y_term term
     Y_term = 1d0 / ( 1d0 + k8/(k7*pi(iO2)) )
 
-    ! Tasso di steam-gasification (C + H2O -> CO + H2): usa deliberatamente la
-    ! pressione parziale dell'H2O, indice iH2O, coerente con la tabella locale
-    ! delle specie (iH2O=7, iO2=8). Non sostituire l'indice.
+    ! Steam-gasification rate (C + H2O -> CO + H2): deliberately uses the
+    ! H2O partial pressure, index iH2O, consistent with the local species
+    ! table (iH2O=7, iO2=8). Do not replace the index.
     dotm_H2O = kH2O * sqrt(pi(iH2O))
     dotm_CO2 = kCO2 * sqrt(pi(iCO2))
     dotm_O2  = Y_term * (k5*pi(iO2))/(1.0d0 + k6*pi(iO2)) + k7*pi(iO2)*(1d0-Y_term)
     dotm_OH  = kOH*pi(iOH)
     dotm_O   = kO*pi(iO)
-    ! Calcolo dei termini sorgente
+    ! Compute the source terms
     omegadot(iO2)  = -(Wm_tab(iO2)/wmc)*(0.5d0*dotm_O2)                                         ! O2
     omegadot(iH2O) = -(Wm_tab(iH2O)/wmc)*(dotm_H2O)                                             ! H2O
     omegadot(iCO)  =  (Wm_tab(iCO)/wmc)*(2.d0*dotm_CO2 + dotm_H2O + dotm_O2 + dotm_OH + dotm_O) ! CO
@@ -210,7 +210,7 @@ contains
     omegadot(iH)   =  (Wm_tab(iH)/wmc)*(dotm_OH)                                                ! H
     omegadot(iOH)  = -(Wm_tab(iOH)/wmc)*(dotm_OH)                                               ! OH
 
-    ! flusso di massa totale in uscita
+    ! total outgoing mass flux
     mdot = sum ( omegadot )
 
   end subroutine GSI_Carbon
@@ -224,7 +224,7 @@ contains
 
     omegadot = 0d0
     mdot = A_HDPE * exp(-Ea_HDPE/(2*Runiv*Tw))
-    omegadot(2) = mdot ! etilene, C2H4
+    omegadot(2) = mdot ! ethylene, C2H4
 
   end subroutine GSI_HDPE
 
@@ -257,7 +257,7 @@ contains
     Arrh = Ea_PP/(Runiv*Tw)
     RR = sqrt ( 4.60517d0 * ( 1d0 - Ti_PP/Tw + Dh_PP/(cp_PP*Tw) ) - Dh_PP/(cp_PP*Tw) )
     mdot = 910d0*sqrt( A_PP * exp(-Arrh) * 1d0/Arrh * 0.2d0/(910d0*cp_PP) * 1/RR )
-    omegadot(2) = mdot ! propilene, C3H6
+    omegadot(2) = mdot ! propylene, C3H6
 
   end subroutine GSI_PP
 

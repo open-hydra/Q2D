@@ -1,14 +1,13 @@
-"""flat-plate-turbulent/coarse-SA 2D viscous regression check (Sess 10 smoke).
+"""flat-plate-turbulent/coarse-SA 2D viscous regression check (smoke).
 
 Smoke-acceptance: solution file structure + positivity + no NaN.
-Reference NASA TMR Cf vs x ±10% acceptance deferred Sess 11 V&V suite
-(quantitative reference comparison requires fully-converged solution and
-Cf extraction at wall — out-of-scope for Sess 10 B-11 + viscous infra
-activation deliverable).
+The quantitative NASA TMR Cf vs x +/-10% acceptance is handled by the V&V
+suite (it requires a fully-converged solution and Cf extraction at the
+wall, which is out of scope for this smoke check).
 
-Sess 10 [HONEST]: B-11 third-layer fix (MOSE upstream f76c5ca BC mass-flux
-aliasing) enables this test to RUN without SIGSEGV/NaN/divide-by-zero.
-NASA TMR Cf reference comparison is a Tier 2 V&V acceptance for Sess 11.
+A third-layer BC fix (MOSE upstream f76c5ca BC mass-flux aliasing) lets
+this test RUN without SIGSEGV/NaN/divide-by-zero. The NASA TMR Cf
+reference comparison remains a V&V acceptance.
 """
 
 import os
@@ -55,7 +54,7 @@ def main():
     if n_tot == 0:
         print(f"[FP-turb-SA-coarse check] FAIL: empty output")
         return 1
-    print(f"[FP-turb-SA-coarse check] PASS smoke: NaN + non-empty only. No positivity gate here: the raw token scan covers mixed-sign variables (x, y, u, v). (NASA TMR Cf reference deferred Sess 11 V&V)")
+    print(f"[FP-turb-SA-coarse check] PASS smoke: NaN + non-empty only. No positivity gate here: the raw token scan covers mixed-sign variables (x, y, u, v). (NASA TMR Cf reference handled by the V&V suite)")
     return 0
 
 

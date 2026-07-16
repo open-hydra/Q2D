@@ -4,8 +4,8 @@
 #          FILE: Q2D.sh
 #         USAGE: run "./Q2D.sh [options] {solve|kill}" in the current shell
 #   DESCRIPTION: Compile/run script for swbli (Shock/Boundary Layer Interaction)
-#                2D viscous RANS-SA test (Q2D_new). 3-block grid (850x70 + 850x54 +
-#                850x43 cells, K=1 strip Cartesian, peculiarità #1 2D plane).
+#                2D viscous RANS-SA test. 3-block grid (850x70 + 850x54 +
+#                850x43 cells, single K strip Cartesian, 2D no-w plane).
 #                Acceptance: M=5 supersonic inflow + isothermal wall Tw=300K
 #                + shock-induced boundary-layer separation (RANS-SA model).
 #===============================================================================

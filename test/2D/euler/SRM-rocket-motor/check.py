@@ -1,12 +1,10 @@
 """SRM-rocket-motor 2D-axi steady-state regression check.
 
 Validates the converged chamber pressure of a solid rocket motor with Vieille
-burn-rate law at the closed-end grain face (BC 502 SRM). Q2D-extra test
-(MOSE has Lib_BC_Fluxes_SRM but no SRM test case mirror); piano §5 Fase 8c
-line 602 acceptance criterion C2:
-
-    "test SRM 2D-axi con BC 502 produce evolution di pressione coerente con
-     regressione Vieille".
+burn-rate law at the closed-end grain face (BC 502 SRM). MOSE has
+Lib_BC_Fluxes_SRM but no SRM test case mirror. Acceptance criterion: an SRM
+2D-axi run with BC 502 produces a chamber-pressure evolution consistent with
+the Vieille burn-rate regression.
 
 Geometry: chang-nozzle 2D-axi mesh (190x40, R_chamber=0.0635 m, R_throat=0.0203 m,
 Kn=9.75). The contraction ratio is small for a real SRM, so the burn-rate
@@ -22,7 +20,7 @@ Vieille steady-state balance with choked throat:
 
 Gates (all hard):
   (1) Vieille chamber pressure: |P_chamber_avg - P_eq_analytical| /
-      P_eq_analytical < 0.15. Acceptance tolerance per piano §5 Fase 8c
+      P_eq_analytical < 0.15. Acceptance tolerance
       (analogous chang-nozzle pattern ±5% avg, ±15% max relaxed for
       spatial-vs-lumped discretization residual AND for the residual
       pressurization transient: at the 5000-iteration ctest budget the

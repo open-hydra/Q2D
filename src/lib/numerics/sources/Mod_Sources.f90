@@ -1,5 +1,5 @@
 module Q2D_Mod_Sources
-  ! Punto di ingresso del sistema dei termini sorgente: dispatcher polimorfico su
+  ! Entry point of the source-term system: polymorphic dispatcher over
   ! container_sources(:) % source_realized.
   use iso_fortran_env, only: I4 => int32, R8 => real64
   use Q2D_Advanced_Types_m, only: Q2D_domain_type
@@ -14,15 +14,15 @@ module Q2D_Mod_Sources
 contains
 
   subroutine Initialize_Sources()
-    ! Popola container_sources(:) leggendo obj_source%models(:).
-    ! Mutua esclusione `axisymmetric ⊕ area_variation` imposta con error stop
-    ! (difesa in profondità — verificata anche in Register_Sources).
+    ! Populates container_sources(:) by reading obj_source%models(:).
+    ! Mutual exclusion `axisymmetric ⊕ area_variation` enforced with error stop
+    ! (defense in depth — also verified in Register_Sources).
     !
-    ! Impostare SOURCE_TERM=.true. abilita la chiamata a Compute_Sources nel ciclo
-    ! principale (gate `if (SOURCE_TERM)` in Mod_Explicit::Explicit_Step).
+    ! Setting SOURCE_TERM=.true. enables the call to Compute_Sources in the main
+    ! loop (gate `if (SOURCE_TERM)` in Mod_Explicit::Explicit_Step).
     !
-    ! Parser della stringa attiva: interpreta `obj_source%active_str` come lista
-    ! separata da spazi → `obj_source%models(:)` e imposta i flag booleani derivati
+    ! Active-string parser: interprets `obj_source%active_str` as a space-separated
+    ! list → `obj_source%models(:)` and sets the derived boolean flags
     ! `obj_source%axisymmetric` / `area_variation`.
     use Q2D_Global_m,       only: SOURCE_TERM
     use Q2D_Config_Types_m, only: obj_source
@@ -33,7 +33,7 @@ contains
     character(llen) :: args(10)
     character(len=llen) :: clean_str
 
-    ! Interpreta active_str in models(:) (token separati da spazi).
+    ! Parse active_str into models(:) (space-separated tokens).
     args = ''
     clean_str = adjustl(obj_source%active_str)
     if (len_trim(clean_str) == 0 .or. trim(clean_str) == 'none') then
@@ -48,9 +48,9 @@ contains
       obj_source%models(i) = trim(adjustl(args(i)))
     end do
 
-    ! Imposta i flag booleani derivati consumati a valle (Mod_Allocate_Data,
-    ! Mod_Metrics, Wrap_Setup): ciascun flag è vero se il token corrispondente
-    ! compare in models(:).
+    ! Set the derived boolean flags consumed downstream (Mod_Allocate_Data,
+    ! Mod_Metrics, Wrap_Setup): each flag is true if the corresponding token
+    ! appears in models(:).
     obj_source%axisymmetric   = any(index(adjustl(obj_source%models), 'axisymmetric')   > 0)
     obj_source%area_variation = any(index(adjustl(obj_source%models), 'area_variation') > 0)
 
@@ -77,8 +77,8 @@ contains
 
 
   subroutine Compute_Sources(domain)
-    ! Dispatcher polimorfico: invoca compute() su ogni container_sources(i).
-    ! Chiamato da Q2D_Mod_Explicit::Explicit_Step nel ciclo RK principale
+    ! Polymorphic dispatcher: invokes compute() on each container_sources(i).
+    ! Called by Q2D_Mod_Explicit::Explicit_Step in the main RK loop
     ! (gate `if (SOURCE_TERM)`).
     use Q2D_Config_Types_m, only: obj_source
     implicit none

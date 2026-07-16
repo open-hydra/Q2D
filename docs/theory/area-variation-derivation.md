@@ -4,15 +4,14 @@ This page is the **single authoritative derivation** of the quasi-two-dimensiona
 area-variation model: hypotheses, exact identities, the complete order analysis,
 the field structure in both admissible Reynolds regimes, the depth-averaged
 closure, the truncation-admissibility theorem, the itemised loss budget, the
-validity envelope, and the registry of legitimate objections.  It supersedes,
-as the formulation of record, the historical documents listed in Appendix C
-(which remain unmodified as audit trail) and absorbs all their errata.
+validity envelope, and the registry of legitimate objections.  It is the
+formulation of record.
 
 Every claim in this page is labelled **EXACT** (identity, no asymptotics),
 **LEADING** (leading-order along the declared path, controlled remainder),
 **POSTULATE** (assumed, with declared role), or **CONJECTURE**.  Every step
 cites the hypotheses it uses.  Every algebraic claim has a machine-verifiable
-SymPy twin (Appendix B).
+SymPy twin.
 
 ---
 
@@ -189,7 +188,7 @@ RANS).
 **(P4) Non-catalytic walls** — *(legacy (H7))*. $\mathbf j_k\!\cdot\!
 \hat{\mathbf n}=0$ for every $k$; for the turbulence variables
 $\partial_n k=\partial_n\omega=\partial_n\tilde\nu=0$ (mirror-extension
-consistency; legacy §N12).
+consistency).
 
 *Physical scope note (declared, quantified in §10.6):* (P2)–(P4) are an
 **idealisation** of the real no-slip, conducting walls of an RDE gap.  The
@@ -304,8 +303,7 @@ substitutes for the unavailable global inviscid theory.
 No hypothesis is implied by the others.  In particular CE-1 proves that the
 slope clause of (G1) has **exclusion content** beyond thinness — it is the
 formal answer to the question "is gentle slope implicit in thinness?":
-*no*; it was the intended but never-formalised hypothesis of the historical
-documents (Appendix C, item C-1).
+*no*; it was the intended but never-formalised hypothesis.
 
 ---
 
@@ -417,9 +415,8 @@ substituting the expansion, $\varepsilon^{-2}$ acts on $f_0$ and
 $\varepsilon^{-1}$ on $f_1$ — the structural origin of the hierarchy
 (§5.2).  The enumeration of all 14 sub-terms of
 $\partial_j\tau_{1j}$ with variable $\mu(T)$, confirming that none other
-produces $\varepsilon^{-1}$ or $\varepsilon^{-2}$, is inherited verbatim from
-the audited historical analysis (Appendix C, item C-2) and machine-checked
-(Appendix B).
+produces $\varepsilon^{-1}$ or $\varepsilon^{-2}$, is machine-checked
+symbolically.
 
 **4.4 $z$-momentum.** Dividing by the dominant scale
 $\rho_{\rm ref}U^2/(\varepsilon L)$:
@@ -431,15 +428,14 @@ $\rho_{\rm ref}U^2/(\varepsilon L)$:
 | $\partial_x\tau_{13},\ \partial_y\tau_{23}$ | $\varepsilon^2/\mathrm{Re}$ |
 | $\partial_z\tau_{33}$ | $1/\mathrm{Re}$ |
 
-**Caution (corrects the historical argument).**  In regime (a)
+**Caution.**  In regime (a)
 ($\mathrm{Re}$ fixed) the entry $1/\mathrm{Re}$ is **not** asymptotically
 subleading in $\varepsilon$: at order $\varepsilon^0$ the balance is
 $-\partial_{z^*}p_0+\mathrm{Re}^{-1}\partial_{z^*}(\tau_{33})_0=0$, and the
 conclusion $\partial_{z^*}p_0=0$ requires the additional fact that
 $(\tau_{33})_0$ is $z^*$-independent — which is a consequence of the
 velocity/temperature hierarchy and is therefore proved **after** it
-(Lemma 5.5), not before.  The historical presentation inverted this order
-(Appendix C, item C-3).
+(Lemma 5.5), not before.
 
 **4.5 Energy, species, RANS.** Identical structure with transverse-dominant
 terms $\frac{1}{\mathrm{Re}\mathrm{Pr}\,\varepsilon^2}\partial^2_{z^*}T$,
@@ -557,8 +553,7 @@ $\square$ **LEADING.**
 **(a4) Pressure.** $z$-momentum at $\varepsilon^0$:
 $-\partial_{z^*}p_0+\mathrm{Re}^{-1}\partial_{z^*}(\tau_{33})_0=0$; the
 second term vanishes by Lemma 5.5, so $p_0=p_0(x,y,t)$, and by the EOS
-$\rho_0$ is $z^*$-independent.  (This replaces the historical "viscous terms
-subleading" argument; Appendix C, item C-3.) **LEADING.**
+$\rho_0$ is $z^*$-independent. **LEADING.**
 
 **(a5) Second order and Fredholm.** In the wall-fitted coordinate
 $\zeta=2z/h\in[-1,1]$ the $\varepsilon^0$ $x$-momentum reduces to
@@ -583,11 +578,10 @@ $$
 $$
 
 — *all three groups are the same order $O(\varepsilon\,U/L)$ before the
-$\varepsilon^{-2}$ rescaling; a historical simplification that kept only the
-first group is superseded (Appendix C, item C-4)*.  Equating the ODE and BC
+$\varepsilon^{-2}$ rescaling*.  Equating the ODE and BC
 determinations (in fully non-dimensional variables the $\varepsilon^{-2}$
 factor cancels identically against the $h=\varepsilon L\hat h$ scaling —
-no residual $\varepsilon$; legacy gap "C.4" resolution, machine-checked):
+no residual $\varepsilon$; machine-checked):
 
 $$
 \mathrm{Re}\,G_0=\partial_x(\mathbf V_0\!\cdot\!\mathbf G)
@@ -597,8 +591,8 @@ $$
 
 **Theorem 5.6 (Fredholm $\equiv$ model).**  This solvability condition is
 **identically** the Q2D $x$-momentum equation of §8 ($\Delta\equiv0$ by
-direct expansion; SymPy twin F-1).  The same scheme closes $v_2$, $T_2$
-(Neumann from (P3)), $Y_{k,2}$ (P4), $k_2,\omega_2$ (P4/N12), each
+direct expansion; SymPy twin).  The same scheme closes $v_2$, $T_2$
+(Neumann from (P3)), $Y_{k,2}$ (P4), $k_2,\omega_2$ (P4), each
 solvability condition reproducing the corresponding model equation. $\square$
 **LEADING.**  Interpretation: the discarded order **exists and is bounded**
 along solutions of the model — the admissibility input (L1) of Theorem 8.2.
@@ -671,8 +665,8 @@ $$
 
 **independent of $\mathrm{Re}_{\rm eff}$** — the uniformity statement that
 regime (a) could not provide (there, $u_2\propto\mathrm{Re}$; here, no
-Reynolds enters).  This closes, at the level of a complete derivation, the
-historical sketch for regime (b). $\square$ **LEADING.**
+Reynolds enters).  This completes the full
+derivation for regime (b). $\square$ **LEADING.**
 
 **(b4) Status of the viscous geometric sources in (b).**  They are *not*
 produced by the (b)-hierarchy (size $1/\mathrm{Re}_{\rm eff}\prec
@@ -752,7 +746,7 @@ $$
 $$
 
 so the turbulence production carries the **same-order** (not subleading)
-component $2\mu_t(\mathbf V\!\cdot\!\mathbf G)^2$.  (SymPy twin F-3.)
+component $2\mu_t(\mathbf V\!\cdot\!\mathbf G)^2$.  (SymPy twin.)
 
 ### 6.2 Definition A versus Definition B
 
@@ -798,8 +792,8 @@ $\mu\to\mu_{\rm eff}$ and $-\tfrac23\rho k$ added to each diagonal; the $k$
 contribution cancels in every difference $T_{ii}-T_{jj}$ and contributes
 $+\tfrac23\rho k(\mathbf V\!\cdot\!\mathbf G)$ to the energy source through
 $-\mathbf V\!\cdot\!(\boldsymbol\tau_{\rm tot}\!\cdot\!\mathbf G)$ —
-counted **once** (no $P^*$ double count; SymPy twin F-4). $\square$
-**LEADING** ($O(\varepsilon^4)$ closure error). (SymPy twin F-2.)
+counted **once** (no $P^*$ double count; SymPy twin). $\square$
+**LEADING** ($O(\varepsilon^4)$ closure error). (SymPy twin.)
 
 ---
 
@@ -856,7 +850,7 @@ $$
 Inviscid limit: RHS $\to\rho u(\mathbf V\!\cdot\!\mathbf G)$ (Shapiro).
 Viscous residue: $T_{33}-T_{11}=-2\mu_{\rm eff}\big(\mathbf
 V\!\cdot\!\mathbf G+\partial_xu\big)$; the $-\tfrac23\rho k$ terms cancel in
-the difference. **LEADING.** (SymPy twins F-1, harness §8.3.)
+the difference. **LEADING.** (SymPy twin.)
 
 ### 7.4 $y$-momentum
 
@@ -890,9 +884,7 @@ $$
 
 The $h$-weighted energy identity in averaged fluxes is **EXACT** (wall flux
 identically zero); the per-area closure carries $O(\varepsilon^3)$ (viscous
-commutation) and $O(\varepsilon^4)$ (products) — this resolves the
-historical "ESATTA vs leading-order" labelling ambiguity (Appendix C, item
-C-6).
+commutation) and $O(\varepsilon^4)$ (products).
 
 ### 7.6 Species and turbulence scalars
 
@@ -916,7 +908,7 @@ $$
 
 — the diffusive geometric source carries the **negative** sign, identical in
 structure to $+\mathbf G\!\cdot\!\mathbf q$ with $\mathbf q=-\kappa\nabla T$
-(SymPy twin: harness V3-equivalent).  Production:
+(SymPy twin).  Production:
 $P_k^{\rm Q2D}=\mu_t\big[|S|^2_{2\mathrm D}+2(\mathbf V\!\cdot\!\mathbf
 G)^2\big]$ — a leading component, not a correction (§6.1).
 
@@ -947,8 +939,7 @@ $$
 The closure is subleading **iff $\beta^2\varepsilon^4\ll1$** — hypothesis
 (M2-iv).  At $\varepsilon=0.3$: benign for $\beta\lesssim10$ (error
 $\lesssim1\%$), marginal for $\beta\sim30$ (high-activation-energy
-detonability limits).  The historical statement "$O(\varepsilon^4)$"
-concealed the $\beta^2$ amplification (Appendix C, item C-7). $\square$
+detonability limits). $\square$
 **LEADING.**
 
 ---
@@ -959,8 +950,7 @@ concealed the $\beta^2$ amplification (Appendix C, item C-7). $\square$
 
 Equations 7.1, 7.3–7.6 with the tensor of §6.3, $P^{\rm Q2D}_k$, the SST
 cross-diffusion in averaged variables, and $\Phi_k=(-P_k+\beta^*\rho\omega
-k)\,\mathbb 1_{k\text{-coupling}}$ constitute the model — identical to the
-consolidated historical system ("§N16") with all errata absorbed.  Per
+k)\,\mathbb 1_{k\text{-coupling}}$ constitute the model.  Per
 (M3), the system retains all $\varepsilon^0$ terms uniformly over regimes
 (a)/(b).
 
@@ -1043,9 +1033,7 @@ model error); slope $\sigma\le M\varepsilon$ with moderate $M$ —
 **monitorable at runtime**: $\sigma_{\rm loc}=h\,|\mathbf G|$ is exactly
 computable cell-wise from the stored geometry
 (`Cross_Section` $\times$ `area_geom_term`); recommended warning threshold
-$\sigma_{\rm loc}>0.3$.  (This re-instates, on a corrected basis, the
-validity monitor historically removed with flawed reasoning — Appendix C,
-item C-5.)
+$\sigma_{\rm loc}>0.3$.
 
 ### 10.2 Reynolds zoning
 
@@ -1072,15 +1060,13 @@ $\mathrm{Ma}<0.3$ and $\mathrm{Ma}>5$ sustained lie off $\Pi$-(iii):
 order tables must be re-derived (low-Mach pressure scaling; compressibility
 corrections for the closures).
 
-### 10.5 Time horizon (honest restatement — supersedes the historical $T_{\rm loc}$ estimate)
+### 10.5 Time horizon
 
 The local Cauchy theory (Matsumura–Nishida / Kato–Majda–Schochet) guarantees
 the parity and hierarchy constructions on $T_{\rm loc}\sim C_0/K_\infty$.
 With detonation-strength gradients the Sobolev size is $K_\infty\sim10^3$
 (in $T_{\rm ref}=L/U$ units), giving $T_{\rm loc}\sim10^{-3}\,T_{\rm ref}$ —
-**microseconds, far below one RDE rotation**.  (The historical claim
-"$T_{\rm loc}\sim10$ ms $\sim$ 10 rotations" contained a $10^3$ arithmetic
-inconsistency and is withdrawn; Appendix C, item C-8.)  Consequently the
+**microseconds, far below one RDE rotation**.  Consequently the
 multi-rotation applicability of the model does **not** rest on Cauchy
 theory.  It rests, declaredly, on:
 (i) the URANS-mean character of the fields (mean gradients are
@@ -1120,8 +1106,7 @@ impermeable in-plane boundaries:
   $\dfrac{\mathrm d}{\mathrm dt}\displaystyle\int h\rho u
   =\int \big[h_x\,(p-\tau_{\mathrm{tot},33})-h_y\,\tau_{\mathrm{tot},12}\big]$
   — pressure + viscous thrust on the inclined walls (Shapiro extended to
-  2D).  The $-h_y\tau_{12}$ term, omitted in a historical statement, is
-  restored (Appendix C, item C-9); the $y$-analogue is
+  2D).  The $-h_y\tau_{12}$ term is retained; the $y$-analogue is
   $h_y(p-\tau_{\mathrm{tot},33})-h_x\tau_{\mathrm{tot},12}$.
 
 The truncated system preserves the hyperbolic–parabolic principal structure
@@ -1169,15 +1154,14 @@ model is first-order (L0).
 
 **Q4 — "Isn't gentle slope implicit in thinness?"**  No: CE-1 is thin and
 steep, and the model fails on it.  The slope clause of (G1) is independent,
-and is *forced* by the model's own kinematics (Lemma 5.4).  Historically it
-was intended verbally, used everywhere, and never declared (App. C, C-1).
+and is *forced* by the model's own kinematics (Lemma 5.4).
 
 **Q5 — "Under which hypotheses is discarding the second order
 legitimate?"**  Exactly the seven conditions L0–L7 of Theorem 8.2 — no
 fewer.  Each has a failure mode listed in the negative counterpart.
 
 **Q6 — "The rigorous Fredholm closure lives in regime (a), but RDE lives in
-regime (b)."**  Correct historically; resolved here: §5.3 derives regime
+regime (b)."**  Correct, and resolved here: §5.3 derives regime
 (b) per-equation (Euler propagation + linear-transport second order with
 Re-uniform bounds), with the slip BC correctly degenerating at Euler order.
 The two regimes yield the **same** closed system; the transition zone is
@@ -1191,8 +1175,8 @@ The retained terms are inert where small and leading where
 $\mathrm{Re}_{\rm eff}$ drops; discarding them would be a *zonal* error.
 
 **Q8 — "How long in time is the model justified?"**  By Cauchy theory:
-microseconds at detonation gradients (§10.5 — the historical 10 ms claim is
-withdrawn).  Operationally: by the attractor postulate (L4) + a-posteriori
+microseconds at detonation gradients (§10.5).  Operationally: by the
+attractor postulate (L4) + a-posteriori
 validation.  Declared as such.
 
 **Q9 — "What about the real walls?"**  The $O(\varepsilon^2)$ claim is
@@ -1284,7 +1268,7 @@ $O(\varepsilon^2)$ truncation.  Practical corollary — the cleanest
 validation design: (i) one-cell 3D vs Q2D = cross-verification of the two
 discretisations (cheap, mutual); (ii) $z$-refinement in 3D
 (1$\to$4$\to$16 cells across the gap) measures the **model error**
-directly, and its scaling with $\varepsilon$ is the open Phase-C
+directly, and its scaling with $\varepsilon$ is the open
 $\varepsilon^2$ test.  Caveat: the 3D run must use the *viscous* symmetry
 (mirror w.r.t. the true tilted normal); a purely inviscid slip wall drops
 the $\tau_{nn}$ transmission.
@@ -1296,20 +1280,20 @@ the $\tau_{nn}$ transmission.
 | Formal result | Code site | Verification |
 |---|---|---|
 | $S_{33}=-\mathbf V\!\cdot\!\mathbf G$ (Lemma 3.5, §6.1) | `Strain_Tensor_Std` (optional `V_dot_G`) | symbolic + in-solver MMS (GOLD) |
-| $T_{33}$, $\mathrm{Divervel}=\nabla_{2\mathrm D}\!\cdot\!\mathbf V-\mathbf V\!\cdot\!\mathbf G$ (Thm 6.3) | `Stress_Tensor_Std/_2eq` | symbolic (F-2) + MMS |
-| $x/y$-momentum sources (§7.3–7.4) | `Source_Area_Visc_Blk` | GOLD (harness §8.3–8.4 + $\mu=20$ MMS order 2) |
-| Energy source (§7.5) incl. $k$ single-count | `Source_Area_Visc_Blk` + `rhokdelta` | symbolic-exact (F-4, harness) |
+| $T_{33}$, $\mathrm{Divervel}=\nabla_{2\mathrm D}\!\cdot\!\mathbf V-\mathbf V\!\cdot\!\mathbf G$ (Thm 6.3) | `Stress_Tensor_Std/_2eq` | symbolic + MMS |
+| $x/y$-momentum sources (§7.3–7.4) | `Source_Area_Visc_Blk` | GOLD ($\mu=20$ MMS order 2) |
+| Energy source (§7.5) incl. $k$ single-count | `Source_Area_Visc_Blk` + `rhokdelta` | symbolic-exact |
 | Species + Hirschfelder (§7.6) | `Source_Area_Visc_Blk` | symbolic-exact ($\Sigma_k j^{\rm eff}_k=0$, any $D_k$) |
-| RANS $-D_\phi(\mathbf G\!\cdot\!\nabla\phi)$ (§7.6) | `*_Source_Diffusive_Q2D` per model | **panel-only — OPEN (Phase C MMS)** |
+| RANS $-D_\phi(\mathbf G\!\cdot\!\nabla\phi)$ (§7.6) | `*_Source_Diffusive_Q2D` per model | **panel-only — OPEN (MMS pending)** |
 | Eulerian $\rho\phi(\mathbf V\!\cdot\!\mathbf G)$ | `Source_Area_Eul_Blk` | GOLD (nozzle Richardson $p=1.99$) |
 | Face $\mathbf V\!\cdot\!\mathbf G$ | `V_dot_G_face_avg` $\to$ diffusive fluxes/BCs | structural + planar $G=0$ bit-exact |
 | Slope monitor $\sigma_{\rm loc}=h|\mathbf G|$ (§10.1) | **to be implemented** (`Cross_Section`$\times$`area_geom_term`) | — |
 
-Code-verification record (internal V&V campaign): 12/12 symbolic,
+Code-verification record: 12/12 symbolic,
 planar-limit bit-exact, conservation $O(\Delta x^{3.2})$,
 nozzle Richardson, in-solver viscous MMS order 2 at stressed source weight.
 Physical validation against a 3D slip-wall reference ($\varepsilon^2$
-scaling in $\varepsilon$) remains the open Phase-C item.
+scaling in $\varepsilon$) remains open.
 
 ---
 
@@ -1339,7 +1323,7 @@ V_0\!\cdot\!\mathbf G)\big]-\partial_x(\mathbf V_0\!\cdot\!\mathbf G)
 \equiv0 .
 $$
 
-$\square$ (SymPy twin F-1.)
+$\square$ (SymPy twin.)
 
 **A.4 (degree preservation, §5.3-b3).**  With $\hat w_1=a(x,y,t)\,z^*$,
 the only $z^*$-operators in the $\varepsilon^2$ system are $z^*\partial_{z^*}$
@@ -1347,50 +1331,9 @@ the only $z^*$-operators in the $\varepsilon^2$ system are $z^*\partial_{z^*}$
 $\le2$ (forcing, $p_2$); the solution of a linear transport equation with
 polynomial-in-$z^*$ data and forcing of degree $\le2$ remains polynomial of
 degree $\le2$ (project on the monomial basis $1,z^*,z^{*2}$: the system
-block-triangularises). $\square$ (SymPy twin F-6.)
+block-triangularises). $\square$ (SymPy twin.)
 
-## Appendix B — Machine verification inventory
-
-Standalone SymPy scripts developed during the derivation campaign
-(internal verification artefacts, not shipped with the repository),
-runnable without the solver unless noted.
-
-| ID | Script | Verifies |
-|---|---|---|
-| H-1 | `mms_area_variation.py` (LAYER 1, 12 checks) | master identity vs coded sources, all equations; Stokes; Boussinesq trace; $k$ single-count; Hirschfelder $\Sigma=0$ |
-| H-2 | `mms_area_variation.py` (LAYER 2–3) | discrete order 2.00; soot block |
-| F-1 | `foundation_checks.py` | Fredholm $\Delta\equiv0$ (Thm 5.6 / A.3) |
-| F-2 | `foundation_checks.py` | code stress mapping $\equiv$ Thm 6.3; $\mathrm{tr}\,T=0$ |
-| F-3 | `foundation_checks.py` | $\langle|S|^2\rangle=|S|^2_{2\mathrm D}+2(\mathbf V\!\cdot\!\mathbf G)^2$ |
-| F-4 | `foundation_checks.py` | $k$ single-count (E4-bis): $\partial(\text{energy src})/\partial(\rho k)=\tfrac23\mathbf V\!\cdot\!\mathbf G$; momentum $k$-free |
-| F-5 | `foundation_checks.py` | energy species term $\equiv\sum h_k(\mathbf G\!\cdot\!\mathbf j^{\rm eff}_k)$; $u_2$ zero-mean/BC |
-| F-6 | `foundation_checks.py` | regime-(b) degree preservation (A.4) |
-| F-7 | `foundation_checks.py` | slip truncation: discarded terms $O(\sigma^2)$ relative (§4.6) |
-| F-8 | `foundation_checks.py` | chemistry constant $\propto\beta^2$ (Lemma 7.7, symbolic + Arrhenius numeric) |
-
-## Appendix C — Concordance with the historical documents (errata absorbed)
-
-The historical corpus (`teoria_finale_Q2D.md` v6.x, `teoria_Q2D_integrazione_v7.md`,
-`guida_formulazione_rigorosa.md`, the seven JFM-style review/rebuttal rounds)
-remains unmodified as audit trail.  This page absorbs:
-
-| # | Historical defect | Resolution here |
-|---|---|---|
-| C-1 | Slope hypothesis $\sigma=O(\varepsilon)$ used everywhere, never declared; "da (H4): $h_x=O(\varepsilon)$" non sequitur; rebuttal/prompt statement "$|\mathbf G|L=O(\varepsilon)$" dimensionally inconsistent (true value $O(1)$) | (G1) slope clause + Lemma 2.1 + Lemma 5.4 + CE-1 |
-| C-2 | 14-term enumeration of $\partial_j\tau_{1j}$ (sound) | inherited, §4.3 |
-| C-3 | $z$-momentum: "$O(1/\mathrm{Re})$ subleading in $\varepsilon$" false at fixed $\mathrm{Re}$; forward-referenced ordering | Lemma 5.5 + reordered §5.2(a1–a4) |
-| C-4 | English doc §6.1 Step 4: incomplete slip-BC constant for $u_2$ (slip-stress groups dropped); Step 2 parity$\Rightarrow$even-exponent non sequitur | full Neumann datum in §5.2(a5); Theorem 5.1(ii–iii) |
-| C-5 | Runtime validity monitor removed partly on the C-1 erroneous bookkeeping | corrected monitor spec §10.1 |
-| C-6 | "ESATTA" vs "(leading order)" labelling ambiguity for global conservation | exactness assigned to objects: averaged-flux identities EXACT; model-variable closures LEADING (§7.1, §7.5, §11) |
-| C-7 | Chemistry closure "$O(\varepsilon^4)$" concealing the Zel'dovich amplification | Lemma 7.7, hypothesis (M2-iv) |
-| C-8 | $T_{\rm loc}$ arithmetic ($K_\infty$ $10^3\to10^2$; $10^{-2}T_{\rm ref}\to$ "10 ms") and the consequent RDE-horizon claim | withdrawn and restated honestly, §10.5 |
-| C-9 | Global $x$-momentum residual missing $-h_y\tau_{12}$ (errata E3, never applied inline) | §11 |
-| C-10 | Energy-source sign errata (E1) and RANS diffusive sign errata (E2/E2-bis), $P^*$ double-count (E4-bis) | converged convention of §7 (machine-checked) |
-| C-11 | Citation "Smith–Majda 1984" (unverifiable) supporting leading-order regularity | replaced by Kato (1975), Majda (1984, monograph), Schochet (1986) |
-| C-12 | Regime (b) closure only sketched while RDE lives in (b) | full derivation §5.3 |
-| C-13 | (H_b)/(G_b) labels used but never defined | (T5), §2.5 |
-
-## Appendix D — Notation
+## Appendix B — Notation
 
 $\varepsilon=h_{\max}/L$ (thinness); $\sigma=\lVert\nabla h\rVert_\infty$
 (slope); $\hat h=h/(\varepsilon L)$; $\mathbf G=-\nabla h/h$;

@@ -188,7 +188,7 @@ any_fail = False
 for solver, fpath in zip(solvers, files):
     [x_, y_, z_, var_, vnames] = read_TEC(fpath)
 
-    # Name-based dispatch (peculiarità #1): Q2D 2D no-w has 7 cc-vars
+    # Name-based dispatch: Q2D 2D no-w has 7 cc-vars
     # (rho(1),u,v,p,T,g,R) so the 3D peer's hardcoded indices (p=4,T=5,R=7)
     # are wrong / out-of-range here. Resolve by name like the plot section.
     _nd = 2 if x_[0].shape[2] == 1 else 3

@@ -5,9 +5,8 @@
 #
 #         USAGE: run "./Q2D.sh [options] {solve|kill}" in the current shell
 #
-#   DESCRIPTION: Compile/run script for the prandtl-meyer 2D steady-state test
-#                (Q2D_new). Planar supersonic expansion fan; no
-#                axisymmetric source needed.
+#   DESCRIPTION: Compile/run script for the prandtl-meyer 2D steady-state test.
+#                Planar supersonic expansion fan; no axisymmetric source needed.
 #===============================================================================
 
 function print_usage {

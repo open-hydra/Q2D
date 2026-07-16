@@ -23,10 +23,10 @@ Q2D/
 │   └── lib/                 # Q2D library
 │       ├── base/            # Q2D_*_m types, parameters, advanced types, series data
 │       ├── config/          # Q2D_Config_Types_m, Registry, IO_Setup, Assign_Setup
-│       ├── diagnostic/      # Mod_Diagnostic — public surface (Q2D-extra)
+│       ├── diagnostic/      # Mod_Diagnostic — public surface
 │       ├── driver/          # Wrap_Setup, Wrap_Solve, Wrap_Postprocess, Procedures_m
 │       ├── io/              # IO_Setup, IO_BC, IO_Solution, IO_Wall, IO_Probes,
-│       │                    #   IO_LineProbes (Q2D-extra),
+│       │                    #   IO_LineProbes,
 │       │                    #   Load_Chemistry, Load_ThermoTransport
 │       ├── numerics/        # Numerical methods
 │       │   ├── fluxes/      #   Mod_Fluxes (do/task dispatcher), Lib_Convective,

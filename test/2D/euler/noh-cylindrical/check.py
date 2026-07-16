@@ -83,7 +83,7 @@ if not (T_FINAL <= t_out < 1.01 * T_FINAL):
 
 [x_, y_, var_, vnames] = read_q2d_field('OUTPUT/field.tec')
 yn = y_[0][:, :, 0]                     # nodes, [i, j]
-# Q2D_new cell-centered order: rho(1), u, v, p, T, g, R  (v = radial velocity)
+# Q2D cell-centered order: rho(1), u, v, p, T, g, R  (v = radial velocity)
 rho = var_[0][0][:, :, 0]
 u   = var_[0][1][:, :, 0]
 v   = var_[0][2][:, :, 0]

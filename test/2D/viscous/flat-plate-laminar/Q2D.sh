@@ -4,11 +4,11 @@
 #          FILE: Q2D.sh
 #         USAGE: run "./Q2D.sh [options] {solve|kill}" in the current shell
 #   DESCRIPTION: Compile/run script for flat-plate-laminar (Blasius boundary-layer)
-#                2D viscous test (Q2D_new).
+#                2D viscous test.
 #                Mach 0.2 subsonic laminar Navier-Stokes, single block 65x65 mesh
-#                (peculiarità #1 K=1 strip Cartesian). Acceptance:
+#                (single K strip, Cartesian). Acceptance:
 #                Blasius self-similar profile u/U_inf vs eta = y*sqrt(U/(nu*x))
-#                within ±5% along x>0 wall (Sess 9 Step C.2 decision).
+#                along the x>0 wall.
 #
 #===============================================================================
 
@@ -43,8 +43,7 @@ if [[ $1 == solve ]]; then
   # case-local transport.dat (mu=1e-3 -> Re/L~80,600) so the laminar BL is
   # resolvable on the coarse 65x65 mesh. The shared common/Air-viscous
   # transport.dat (real-air mu=1.186e-5) would push Re/L to 6.8e6 and leave
-  # the BL unresolved. piano §1 divergence; the MOSE peer shares this latent bug
-  # (G-10.u). Cf. docs/review/test_image_instrumentation_inventory.md §3.1.
+  # the BL unresolved. The MOSE peer shares this same latent limitation.
   ln -sf transport-laminar.dat transport.dat
   cd ..
   mkdir -p OUTPUT bin

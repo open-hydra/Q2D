@@ -75,7 +75,7 @@ _ndir = 2 if x_[0].shape[2] == 1 else 3
 _cc_names = vnames[_ndir:]
 _iu = _cc_names.index('u')
 _iv = _cc_names.index('v')
-_iw = _cc_names.index('w') if 'w' in _cc_names else None   # Q2D 2D: no w (peculiarità #1)
+_iw = _cc_names.index('w') if 'w' in _cc_names else None   # Q2D 2D: no w (2D no-w layout)
 _ip = _cc_names.index('p')
 _iT = _cc_names.index('T')
 

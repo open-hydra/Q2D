@@ -63,7 +63,7 @@ In this configuration, the expected SWBLI signature is:
 
 ## Grid structure
 
-The mesh is a 2D structured multi-block grid (Q2D peculiarità #1 K=1 strip preserved). It is built to resolve:
+The mesh is a 2D structured multi-block grid (Q2D K=1 strip preserved). It is built to resolve:
 
 - the incoming turbulent boundary layer,
 - the shock interaction region,

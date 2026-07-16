@@ -21,18 +21,18 @@ Q2D is an open-source compressible flow solver for the Euler and Navier–Stokes
 - **Turbulence modeling** — RANS closures: Spalart–Allmaras (with rotation/curvature corrections via Spalart–Shur), Menter SST, Wilcox k-ω 2006, QCR2000.
 - **Finite-rate chemistry & soot** — multi-species reacting flows with finite-rate kinetics (FLINT) or chemical equilibrium (NASA CEA). Soot transport included.
 - **Borda-flow inflow** — Fievisohn 2016/2017 generalised Riemann invariant for choked sudden-expansion injection (PDE/RDE chamber inflow).
-- **Parallel execution** — shared-memory parallelism via OpenMP with a Q2D-specific dispatcher (`!$omp do` vs `!$omp task/taskloop` runtime-selectable). MPI support for multi-block distributed-memory runs.
+- **Parallel execution** — shared-memory parallelism via OpenMP with a runtime-selectable dispatcher (`!$omp do` vs `!$omp task/taskloop`). MPI support for multi-block distributed-memory runs.
 - **Flexible I/O** — Tecplot (ASCII and binary via TecIO), VTK, Plot3D via ORION. Line probes and point probes for time-history recording. Restart capability.
 
-## Q2D peculiarities
+## Q2D 2D modelling features
 
-Q2D is structurally a mirror of MOSE with some divergences. Highlights:
+Q2D is structurally a mirror of MOSE, specialised for reduced-dimensional flows. Highlights:
 
-1. **No-w principle** — physical removal of all `w` (out-of-plane velocity) residuals; tensors retain the 3×3 layout.
-2. **Area-variation and axisymmetric source closure**.
-3. **Line probes** — sampling along fixed-index i / j lines.
-4. **OMP do/task dispatcher** — runtime-selectable OpenMP parallelisation strategy.
-5. **Bootstrap-guard input.ini** — `[Q2D-*]` section prefix matched at runtime via the `codename` mechanism.
+- **No-w principle** — physical removal of all `w` (out-of-plane velocity) residuals; tensors retain the 3×3 layout.
+- **Area-variation and axisymmetric source closure**.
+- **Line probes** — sampling along fixed-index i / j lines.
+- **OMP do/task dispatcher** — runtime-selectable OpenMP parallelisation strategy.
+- **Bootstrap-guard input.ini** — `[Q2D-*]` section prefix matched at runtime via the `codename` mechanism.
 
 ## Quick Start
 

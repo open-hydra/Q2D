@@ -1,7 +1,7 @@
 """Einfeldt 1991 (Ein91) strong-rarefaction 1D regression check.
 
-Compares ``OUTPUT/field.tec`` (Q2D_new tecplot ASCII BLOCK packing, peculiarita'
-#1: 2D mesh) against the analytical Riemann solution in ``reference/exact.txt``
+Compares ``OUTPUT/field.tec`` (Q2D tecplot ASCII BLOCK packing on a 2D mesh)
+against the analytical Riemann solution in ``reference/exact.txt``
 (5 cols: x, rho, u, p, sie). Mirror of Sod79/check.py with tolerance widened (5%)
 to account for the harder Ein91 problem (low-density rarefaction near contact).
 
@@ -37,7 +37,7 @@ require_file('OUTPUT/field.tec', "run './Q2D.sh solve' first")
 [x_, y_, var_, vnames] = read_q2d_field('OUTPUT/field.tec')
 
 xc  = 0.5 * (x_[0][:-1] + x_[0][1:])[:, 0, 0]
-# Q2D_new cell-centered order: rho(1), u, v, p, T, g, R
+# Q2D cell-centered order: rho(1), u, v, p, T, g, R
 rho = var_[0][0][:, 0, 0]
 u   = var_[0][1][:, 0, 0]
 p   = var_[0][3][:, 0, 0]

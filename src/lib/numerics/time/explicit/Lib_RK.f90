@@ -18,7 +18,7 @@ contains
     integer, intent(in) :: irk
     integer, intent(in) :: n_rk
     real(R8), dimension(nprim), intent(in) :: state, oldstate, residual
-    ! Variabili locali
+    ! Local variables
     real(R8), dimension(nprim) :: newstate, residual_
 
     residual_ = ( state - oldstate + residual ) * RKcoeff(n_rk, irk)

@@ -7,7 +7,7 @@ module Q2D_Lib_Riemann_LF
 
 contains
 
-  ! Lax-Friedrichs locale (alias Rusanov) - 2D
+  ! Local Lax-Friedrichs (alias Rusanov) - 2D
   subroutine riemann_LLF(dl,ul,vl,pl,al,dltot,dr,ur,vr,pr,ar,drtot,beta,nx,ny,F_r,F_u,F_v,F_E)
     use Q2D_Global_m, only: nsc
     use FLINT_Lib_Thermodynamic, only: E0
@@ -40,7 +40,7 @@ contains
   end subroutine riemann_LLF
 
 
-  ! Lax-Friedrichs locale precondizionato - 2D
+  ! Preconditioned local Lax-Friedrichs - 2D
   subroutine Riemann_PLLF(dl,ul,vl,pl,al,dltot,dr,ur,vr,pr,ar,drtot,beta,nx,ny,F_r,F_u,F_v,F_E)
     use Q2D_Global_m, only: nsc
     use FLINT_Lib_Thermodynamic, only: f_Rtot, f_cp, E0

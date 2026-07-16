@@ -1,8 +1,8 @@
 """Tor99 1D Riemann regression check (Toro 1999 modified-Sod, transonic
 rarefaction).
 
-Compares ``OUTPUT/field.tec`` (Q2D_new tecplot ASCII BLOCK packing, peculiarita'
-#1: 2D mesh -- x,y nodal + rho/u/v/p/T/g/R cell-centered) against the analytical
+Compares ``OUTPUT/field.tec`` (Q2D tecplot ASCII BLOCK packing, 2D no-w layout:
+x,y nodal + rho/u/v/p/T/g/R cell-centered) against the analytical
 Riemann solution in ``reference/exact.txt`` (5 cols: x, rho, u, p, sie),
 generated offline via ``tools/gen_riemann_exact.py`` (Toro 2009 algorithm).
 
@@ -44,7 +44,7 @@ require_file('OUTPUT/field.tec', "run './Q2D.sh solve' first")
 [x_, y_, var_, vnames] = read_q2d_field('OUTPUT/field.tec')
 
 xc  = 0.5 * (x_[0][:-1] + x_[0][1:])[:, 0, 0]
-# Q2D_new cell-centered order: rho(1), u, v, p, T, g, R
+# Q2D cell-centered order: rho(1), u, v, p, T, g, R
 rho = var_[0][0][:, 0, 0]
 u   = var_[0][1][:, 0, 0]
 p   = var_[0][3][:, 0, 0]

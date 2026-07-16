@@ -9,7 +9,7 @@ module Q2D_Registry_m
   public :: registry_t, Validate_Registry
 
   !--------------------------------------------------------
-  ! Contenitore del valore (puntatori tipizzati)
+  ! Value container (typed pointers)
   !--------------------------------------------------------
   type :: param_value_t
     integer, pointer :: i => null()
@@ -23,7 +23,7 @@ module Q2D_Registry_m
 
 
   !--------------------------------------------------------
-  ! Descrizione del parametro
+  ! Parameter description
   !--------------------------------------------------------
   type :: param_t
     character(len=:), allocatable :: section
@@ -41,7 +41,7 @@ module Q2D_Registry_m
 
 
   !--------------------------------------------------------
-  ! Contenitore del registry
+  ! Registry container
   !--------------------------------------------------------
   type :: registry_t
 
@@ -76,7 +76,7 @@ contains
 
 
   !========================================================
-  ! Gestione della capacità
+  ! Capacity management
   !========================================================
 
   subroutine reserve(this,newcap)
@@ -104,7 +104,7 @@ contains
 
 
   !========================================================
-  ! Interna: garantisce lo spazio disponibile
+  ! Internal: ensures available space
   !========================================================
 
   subroutine ensure_space(this)
@@ -127,7 +127,7 @@ contains
 
 
   !========================================================
-  ! Aggiunta di un parametro intero
+  ! Add an integer parameter
   !========================================================
 
   subroutine add_int(this,section,name,var,default,desc,allowed,required)
@@ -162,7 +162,7 @@ contains
 
 
   !========================================================
-  ! Aggiunta di un parametro reale
+  ! Add a real parameter
   !========================================================
 
   subroutine add_real(this,section,name,var,default,desc,allowed,required)
@@ -197,7 +197,7 @@ contains
 
 
   !========================================================
-  ! Aggiunta di un parametro logico
+  ! Add a logical parameter
   !========================================================
 
   subroutine add_logical(this,section,name,var,default,desc,allowed,required)
@@ -232,7 +232,7 @@ contains
 
 
   !========================================================
-  ! Aggiunta di un parametro stringa
+  ! Add a string parameter
   !========================================================
 
   subroutine add_string(this,section,name,var,default,desc,allowed,required)
@@ -267,7 +267,7 @@ contains
 
 
   !========================================================
-  ! Array di interi
+  ! Integer array
   !========================================================
 
   subroutine add_int_array(this,section,name,var,default,desc,allowed,required)
@@ -303,7 +303,7 @@ contains
 
 
   !========================================================
-  ! Array di reali
+  ! Real array
   !========================================================
 
   subroutine add_real_array(this,section,name,var,default,desc,allowed,required)
@@ -340,7 +340,7 @@ contains
 
 
   !========================================================
-  ! Validazione
+  ! Validation
   !========================================================
 
   function Validate_Registry() result(out)
@@ -362,7 +362,7 @@ contains
 
       if (reg%params(i)%allowed == "") cycle
 
-      ! Gli array sono letti/validati da FiNeR: qui si saltano i controlli delle regole scalari.
+      ! Arrays are read/validated by FiNeR: the scalar-rule checks are skipped here.
       if (associated(reg%params(i)%value%iarr) .or. associated(reg%params(i)%value%rarr)) cycle
 
       select case(reg%params(i)%type_id)
@@ -478,7 +478,7 @@ contains
 
 
   !========================================================
-  ! Generatore Markdown
+  ! Markdown generator
   !========================================================
 
   subroutine generate_markdown(this,filename)

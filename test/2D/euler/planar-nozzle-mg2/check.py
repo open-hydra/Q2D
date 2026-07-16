@@ -1,17 +1,17 @@
-"""planar-nozzle-mg2 acceptance check (ctest) — peculiarita' #3: area-variation x Multigrid.
+"""planar-nozzle-mg2 acceptance check (ctest) — area-variation x Multigrid.
 
 Same Q2D area-variation C-D nozzle as ``test/2D/euler/planar-nozzle`` (the out-of-plane
 thickness h(x)=Cross_Section plays the role of the quasi-1D area A(x); the converged
 inviscid solution must match the analytic isentropic area-law, Shapiro), but run with
 2-level Multigrid (``[Q2D-Multigrid] levels=2``).
 
-This is the integration test deferred as T-10 from the B-10 fix
-(``docs/review/multigrid_area_variation_restriction.md`` Section 4.2). It verifies the
-*interpretation* of the feature, not just a value-match:
+This is the integration test for the multigrid restriction of the area-variation
+geometry. It verifies the *interpretation* of the feature, not just a value-match:
 
-  1. (convergence)  the MGL=2 area-variation run reaches steady state. With the original
-     B-10 bug (Cross_Section re-read with coarse dims -> scrambled re-indexing, Section 2.2)
-     the coarse level carries a meaningless geometric vector G = -grad(A)/A and the solver
+  1. (convergence)  the MGL=2 area-variation run reaches steady state. With a
+     scrambled-restriction bug (Cross_Section re-read with coarse dims -> scrambled
+     re-indexing) the coarse level carries a meaningless geometric vector
+     G = -grad(A)/A and the solver
      stalls / diverges; convergence to the residual floor is the sentinel that the R1
      restriction (Coarse_Cross_Section) is correct.
   2. (physical)    the converged fine field matches the SAME analytic quasi-1D area law as
@@ -20,7 +20,7 @@ This is the integration test deferred as T-10 from the B-10 fix
   3. (multigrid)   the coarse level (field-level2.tec) is a consistent 2:1 restriction of
      the fine field: the coarse Mach distribution reproduces the fine Mach averaged over
      each coarse cell pair to O(h_c^2). This is the direct evidence that Cross_Section was
-     sub-sampled (A_c(I,J)=A_f(2I,2J), Section 1.2), not scrambled -- a wrong restriction
+     sub-sampled (A_c(I,J)=A_f(2I,2J)), not scrambled -- a wrong restriction
      would break the coarse residual operator and the coarse Mach would not track the fine.
 
 Thresholds are the baseline planar-nozzle area-law tolerances (physical reference, Shapiro)
@@ -90,9 +90,9 @@ def parse_field(path, nnodal):
 require_file(FIELD, "did ./Q2D.sh solve run?")
 require_file(COARSE, "the coarse level was not written; MGL=2 path did not run")
 
-# ---------- layer 1: convergence (B-10 sentinel) ----------
-# The density residual must drop to steady state. With the B-10 bug the coarse-level
-# source is meaningless and the run stalls / diverges instead of converging.
+# ---------- layer 1: convergence (restriction sentinel) ----------
+# The density residual must drop to steady state. With a scrambled-restriction bug the
+# coarse-level source is meaningless and the run stalls / diverges instead of converging.
 # residual-history layout: col 0 = iter, col 1 = time (-1 steady), col 2 = density
 # residual, cols 3.. = remaining equations (cf. q2d_check_lib).
 res = read_residual_history(RESID)
@@ -125,7 +125,7 @@ if NIc != NI // 2:
     fail(f"coarse NI={NIc} is not fine NI/2={NI//2}: 2:1 coarsening broken")
 # R1 restriction of the fine Mach column means onto the coarse cells: average each
 # fine cell pair (2I-1,2I). A correct Cross_Section restriction makes the coarse Mach
-# track this to O(h_c^2); a scrambled one (the B-10 bug) does not.
+# track this to O(h_c^2); a scrambled one does not.
 M_q_restr = M_q.reshape(NIc, 2).mean(axis=1)
 cf_rel = np.abs(M_c - M_q_restr)/np.maximum(np.abs(M_q_restr), 1e-30)
 cf_max = float(np.max(cf_rel))
@@ -137,20 +137,20 @@ print(f"[planar-nozzle-mg2] N={NI} (coarse {NIc}) gamma={g:.5f} R={R:.3f} | "
       f"coarse/fine Mach max_rel={cf_max:.2e}")
 
 ok = True
-# layer 1 -- convergence sentinel (B-10: must converge, not stall/diverge).
+# layer 1 -- convergence sentinel (must converge, not stall/diverge).
 # Measured final density residual 9.9e-11 on the committed run (the solver's
 # own 1e-10 stopping floor); 1e-6 is the regression band a stalled run
-# (the B-10 failure mode) never reaches.
+# (the scrambled-restriction failure mode) never reaches.
 if not np.isfinite(dens_resid) or dens_resid > 1.0e-6:
     ok = False; print(f"  MGL=2 not converged: density residual {dens_resid:.2e} > 1.0e-6 "
-                       f"(B-10 regression? coarse Cross_Section may be scrambled)")
+                       f"(regression? coarse Cross_Section may be scrambled)")
 # layer 2 -- same area-law tolerances as the MGL=1 baseline (planar-nozzle check.py).
 if exit_err   > 2.0e-3: ok = False; print(f"  exit Mach rel err {exit_err:.2e} > 2.0e-3")
 if smooth_max > 5.0e-3: ok = False; print(f"  smooth-region max rel err {smooth_max:.2e} > 5.0e-3")
 if whole_max  > 1.5e-2: ok = False; print(f"  whole-domain max rel err {whole_max:.2e} > 1.5e-2")
 # layer 3 -- coarse level reproduces fine within O(h_c^2). Observed ~4.5e-4 on the
 # committed run; 5e-3 is a regression band (one decade of headroom) that a scrambled
-# coarse Cross_Section (the B-10 failure) blows through immediately.
+# coarse Cross_Section (the scrambled-restriction failure) blows through immediately.
 if not np.isfinite(cf_max) or cf_max > 5.0e-3:
     ok = False; print(f"  coarse/fine Mach max rel {cf_max:.2e} > 5.0e-3 "
                       f"(coarse level does not reproduce the fine restriction)")

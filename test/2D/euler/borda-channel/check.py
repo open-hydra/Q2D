@@ -1,10 +1,9 @@
 """borda-channel 2D steady-state acceptance check (ctest).
 
-Regression test for the Q2D-only Borda sudden-expansion injector inflow BC
-(peculiarità #4, BC_Nozzle_Borda_Flow; Fievisohn 2016 thesis Sec 3.3, eqs 3.26-3.31;
+Regression test for the Borda sudden-expansion injector inflow BC
+(BC_Nozzle_Borda_Flow; Fievisohn 2016 thesis Sec 3.3, eqs 3.26-3.31;
 sentinel BC_Mach == -20 on BC code 420, A1/A3 in the bc.txt pamb field). MOSE has no
-nozzle/Borda BC (divergence #4). Study + map-to-code + V&V criteria:
-docs/review/borda_fievisohn_study_sess35.md.
+nozzle/Borda BC. Background and V&V criteria: docs/vv/2D-borda-channel.md.
 
 The case is a straight plane channel with a Borda choked inflow on face 1, interior
 back-pressure P3 = 0.70*P0 → regime (A): choked throat (M1=1), subsonic station 3 — the
@@ -13,7 +12,7 @@ R=287). The injected face state is checked against the paper's own equations eva
 this fully-specified gas (no invented thresholds; the paper tabulates no numeric case and
 its Fig 3.6/3.7 are read-from-figure only).
 
-Anchors (study §7):
+Anchors:
   - positivity: min(rho,p,T) > 0                                            (hard)
   - convergence sentinel: density residual settled                         (hard)
   - (guard) Borda branch actually entered: injected mass flux >> 0         (false-green
@@ -91,7 +90,7 @@ p_in   = float(p[:, 0].mean())
 T_in   = float(T[:, 0].mean())
 mflux  = rho_in * u_in            # conserved jump quantity across the face
 
-# --- analytic choked anchors at this gas (study §7; eqs 3.29 + isentropic) ---
+# --- analytic choked anchors at this gas (eqs 3.29 + isentropic) ---
 T1   = T0 * 2.0 / (g + 1.0)
 P1   = P0 * (2.0 / (g + 1.0)) ** (g / (g - 1.0))
 rho1 = P1 / (R * T1)

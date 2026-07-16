@@ -6,10 +6,9 @@
 #         USAGE: run "./Q2D.sh [options] {solve|kill}" in the current shell
 #
 #   DESCRIPTION: Compile/run script for the SRM-rocket-motor 2D-axi steady-state
-#                test (Q2D_new piano §5 Fase 8c line 602 criterion C2). No peer
-#                mirror — the MOSE peer has Lib_BC_Fluxes_SRM but no SRM test case.
-#                Q2D-specific: peculiarita' #2 area-variation source
-#                active=axisymmetric for nozzle physics + BC 502 SRM grain
+#                test. No peer mirror — the MOSE peer has Lib_BC_Fluxes_SRM but
+#                no SRM test case. Uses the area-variation source
+#                (active=axisymmetric) for nozzle physics + BC 502 SRM grain
 #                Vieille burn-rate at chamber closed-end.
 #===============================================================================
 

@@ -5,10 +5,9 @@
 #
 #         USAGE: run "./Q2D.sh [options] {solve|kill}" in the current shell
 #
-#   DESCRIPTION: Compile/run script for ramp-channel 2D steady-state test
-#                (Q2D_new).
+#   DESCRIPTION: Compile/run script for ramp-channel 2D steady-state test.
 #                2D plane Euler M=3 over a 30-deg wedge inside a channel
-#                (peculiarita' #1: K=1 strip; NO axisymmetric source).
+#                (2D no-w layout: single K strip; NO axisymmetric source).
 #===============================================================================
 
 function print_usage {

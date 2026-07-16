@@ -123,22 +123,22 @@ contains
       ! in transients and in the iterative process.
       Face_Prim(np) = p_exit * BC_rel_fac + Bound_Prim(np) * (1.d0 - BC_rel_fac)
 
-      ! Espansione isentropica alla pressione ambiente.
+      ! Isentropic expansion to the ambient pressure.
       Face_Sound       = Bound_Sound * ((Face_Prim(np) / Bound_Prim(np))**Isentropic)
-      ! Velocità normale all'interfaccia dall'invariante di Riemann.
+      ! Normal velocity at the interface from the Riemann invariant.
       Face_Un          = (Riem - Face_Sound) / (BC_Sign * 0.5d0 * (Bound_Gamma - 1d0))
       Face_rho         = Bound_Gamma * Face_Prim(np) / Face_Sound**2
-      Face_Prim(1:nsc) = Bound_Prim(1:nsc) / Bound_rho * Face_rho   ! frazioni di massa estrapolate
-      Face_Prim(nu:nv) = Vel_T + Face_Un * Normal                   ! componente tangenziale estrapolata
-      ! Il gate `if (nprim > np)` estrapola TUTTA la banda degli scalari
-      ! trasportati oltre la pressione (turbolenza, soot, passivi: np+1:nprim),
-      ! non solo quella RANS nt:nprim, per non perdere soot/passivi (np+1:nt-1)
-      ! quando il modello RANS è spento.
+      Face_Prim(1:nsc) = Bound_Prim(1:nsc) / Bound_rho * Face_rho   ! extrapolated mass fractions
+      Face_Prim(nu:nv) = Vel_T + Face_Un * Normal                   ! extrapolated tangential component
+      ! The `if (nprim > np)` gate extrapolates the WHOLE band of transported
+      ! scalars beyond the pressure (turbulence, soot, passives: np+1:nprim),
+      ! not only the RANS band nt:nprim, so as not to lose soot/passives
+      ! (np+1:nt-1) when the RANS model is off.
       if (nprim > np) Face_Prim(np+1:nprim) = Bound_Prim(np+1:nprim) / Bound_rho * Face_rho
       Face_Rgas        = Bound_Rgas
 
     else
-      ! Uscita supersonica O BC_pexit ≤ 0: estrapolazione di tutte le variabili.
+      ! Supersonic exit OR BC_pexit ≤ 0: extrapolation of all variables.
       Face_Prim  = Bound_Prim
       Face_Un    = Un
       Face_Sound = Bound_Sound
@@ -156,11 +156,11 @@ contains
     BC_mdot     = Face_rho * int_l * Face_Un
     Flux(nu:nv) = Face_Prim(nu:nv) * BC_mdot + Face_Prim(np) * int_l * Normal
     Flux(np)    = BC_mdot * (0.5d0 * sum(Face_Prim(nu:nv)**2) + Face_Enthalpy)
-    ! Il gate `if (nprim > np)` scarica in flusso tutte le variabili oltre la
-    ! pressione (turbolenza + soot + passivi).
+    ! The `if (nprim > np)` gate discharges into the flux all variables beyond
+    ! the pressure (turbulence + soot + passives).
     if (nprim > np) Flux(np+1:nprim) = Face_Prim(np+1:nprim) / Face_rho * BC_mdot
 
-    ! NB: Mach_abs calcolato ma non usato localmente.
+    ! NB: Mach_abs computed but not used locally.
 
   end subroutine Outflow
 

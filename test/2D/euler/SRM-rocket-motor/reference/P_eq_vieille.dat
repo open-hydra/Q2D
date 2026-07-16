@@ -1,5 +1,5 @@
 # Analytical chamber equilibrium pressure - Vieille burn-rate balance
-# Q2D_new test/2D/euler/SRM-rocket-motor -- piano section-5 Fase 8c criterion C2
+# Q2D test/2D/euler/SRM-rocket-motor analytical reference value
 # Formula: P_eq = [aCoeff * c_star * (A_chamber/A_throat) / pRef^n]^(1/(1-n))
 # Inputs:
 #   aCoeff   = 50.0 kg/(m^2*s) at pRef

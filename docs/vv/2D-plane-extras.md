@@ -1,4 +1,4 @@
-# 2D Euler — Q2D-extra cases
+# 2D Euler — extra cases
 
 This page documents five 2D Euler validation cases that exist in the
 Q2D V&V suite but have no direct counterpart in MOSE `docs/vv/`.
@@ -21,7 +21,7 @@ into CTest at the default mesh.
 
 A 2D axisymmetric Euler simulation of the Chang (1996) supersonic
 nozzle with single-species Air. The test exercises the Q2D
-peculiarity #2 (`Lib_Source_Axisymmetry`) on a pure-air gas
+axisymmetric source term (`Lib_Source_Axisymmetry`) on a pure-air gas
 without chemistry coupling, providing an isolated regression for the
 axisymmetric source-term wiring before the full multi-species
 `rocket-nozzle` cases.
@@ -30,7 +30,7 @@ axisymmetric source-term wiring before the full multi-species
 856–865.
 
 **Feature exercised:** **2D axisymmetric** geometric source
-(`Lib_Source_Axisymmetry`, peculiarity #2) on single-species air;
+(`Lib_Source_Axisymmetry`) on single-species air;
 BC `200` axisymmetry axis + BC `301` inviscid wall; MUSCL/vanleer +
 SLAU.
 

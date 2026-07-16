@@ -8,8 +8,8 @@ module Q2D_Lib_Limiters
   public :: rlimiter_IORD, rlimiter_MINMOD, rlimiter_VANLEER, rlimiter_VANALBADA, &
             rlimiter_MC, rlimiter_SB, rlimiter_LIMO3
 
-  ! Puntatore a procedura "rlimiter" verso una delle realizzazioni concrete.
-  ! Associato a runtime da Q2D_Mod_Space::Assign_Limiter.
+  ! Procedure pointer "rlimiter" bound to one of the concrete implementations.
+  ! Associated at runtime by Q2D_Mod_Space::Assign_Limiter.
   procedure(rlimiter_if), pointer :: rlimiter
 
   abstract interface
@@ -94,7 +94,7 @@ contains
   end function rlimiter_SB
 
 
-  ! Limitatore del terzo ordine (Cada & Torrilhon 2009 / LIMO3).
+  ! Third-order limiter (Cada & Torrilhon 2009 / LIMO3).
   pure function rlimiter_LIMO3(x,y) result(result)
     implicit none
     real(R8), intent(in) :: x, y

@@ -28,7 +28,7 @@ contains
     implicit none
     type(Q2D_domain_type), intent(inout) :: domain(obj_multigrid%MGL)
     external :: External_Function
-    ! Variabili locali
+    ! Local variables
     logical  :: endsim, iosim, endmg
     integer  :: i_rk, i_strang, b, level
     real(R8) :: average(nres)
@@ -39,9 +39,9 @@ contains
     obj_sim_param%iter_from_call = obj_sim_param%iter_from_call + 1
     obj_sim_param%iter_general   = obj_sim_param%iter_general + 1
 
-    ! Calcolo del passo temporale. I flag HYDRA_* sono flag di ACCOPPIAMENTO:
-    ! nelle build standalone di Q2D restano al default `.false.`; l'orchestratore
-    ! di alto livello ATLAS può impostarli a .true. per l'accoppiamento HYDRA.
+    ! Time-step computation. The HYDRA_* flags are COUPLING flags: in standalone
+    ! Q2D builds they stay at the default `.false.`; the high-level ATLAS
+    ! orchestrator can set them to .true. for the HYDRA coupling.
     if (obj_sim_param%HYDRA_time_accurate) then
       call Set_Global_dt ( domain(level) )
       domain(level) % time = domain(level) % time + domain(level) % dtglobal
@@ -55,7 +55,7 @@ contains
     endif
 
     !$omp parallel
-    strang: do i_strang = 1, obj_chemistry%N_strang ! splitting di Strang: L = L_rk(dt/2) * L_chem(dt) * L_rk(dt/2)
+    strang: do i_strang = 1, obj_chemistry%N_strang ! Strang splitting: L = L_rk(dt/2) * L_chem(dt) * L_rk(dt/2)
 
       if (obj_chemistry%imodel == 2) then
         do b = 1, domain(level) % nb
@@ -68,42 +68,42 @@ contains
 
       rk: do i_rk = 1, obj_time_scheme%n_RK
 
-        call Fill_Ghost_Cell ( domain(level) )               ! riempimento delle celle ghost
-        call Fluxes ( domain(level) )                        ! flussi convettivi e diffusivi
-        call BC_Fluxes ( domain(level) )                     ! flussi al contorno
+        call Fill_Ghost_Cell ( domain(level) )               ! ghost-cell filling
+        call Fluxes ( domain(level) )                        ! convective and diffusive fluxes
+        call BC_Fluxes ( domain(level) )                     ! boundary fluxes
 
-        call External_Function ( domain(level) )             ! funzione esterna (es. termini sorgente)
+        call External_Function ( domain(level) )             ! external function (e.g. source terms)
 
-        ! L'estrapolazione di parete nelle celle ghost DEVE precedere ogni termine
-        ! sorgente: i termini sorgente geometrici (viscosi da variazione d'area) e
-        ! quelli RANS leggono le celle ghost di parete tramite lo stencil dei
-        ! gradienti Prim(i±1,j±1). Il gate include SOURCE_TERM oltre a model==2
-        ! (RANS ⇔ model==2) per coprire anche il caso laminare con sorgenti da
-        ! variazione d'area.
+        ! The wall extrapolation into the ghost cells MUST precede every source
+        ! term: the geometric source terms (viscous, from area variation) and the
+        ! RANS ones read the wall ghost cells through the gradient stencil
+        ! Prim(i±1,j±1). The gate includes SOURCE_TERM in addition to model==2
+        ! (RANS ⇔ model==2) so as to also cover the laminar case with area-
+        ! variation sources.
         if (model==2 .or. SOURCE_TERM) call Ghost_Wall_Extrapolation ( domain(level) )
 
-        ! Dispatch dei termini sorgente geometrici (assialsimmetrico /
-        ! area_variation). Gate SOURCE_TERM: inizializzato da Initialize_Sources,
-        ! invocata in Read_Inifile / Wrap_Setup; default .false. → nessuna
-        ! operazione.
+        ! Dispatch of the geometric source terms (axisymmetric /
+        ! area_variation). SOURCE_TERM gate: initialized by Initialize_Sources,
+        ! invoked in Read_Inifile / Wrap_Setup; default .false. → no
+        ! operation.
         if (SOURCE_TERM) call Compute_Sources ( domain(level) )
 
-        ! Termini sorgente di Coriolis e centrifughi in sistema di riferimento
-        ! rotante (gate obj_rot%enabled — Setup_RotatingFrame applica un doppio
-        ! controllo: asse strettamente [0,0,1] e axisymmetric=.false.).
+        ! Coriolis and centrifugal source terms in the rotating frame of
+        ! reference (gate obj_rot%enabled — Setup_RotatingFrame applies a double
+        ! check: axis strictly [0,0,1] and axisymmetric=.false.).
         if (obj_rot%enabled) call RotatingFrame_Source_Terms ( domain(level) )
 
         if (model==2) then
-          call RANS_Source_Terms ( domain(level) )           ! RHS delle equazioni di turbolenza
+          call RANS_Source_Terms ( domain(level) )           ! RHS of the turbulence equations
         endif
 
         if (obj_soot%enabled) call Soot_Source_Terms ( domain(level) )
 
-        call RK_Newstate ( domain(level), i_rk )             ! aggiornamento dello stato
+        call RK_Newstate ( domain(level), i_rk )             ! state update
 
       enddo rk
 
-      ! Chimica, solo se i_strang=1 e N_strang=2
+      ! Chemistry, only if i_strang=1 and N_strang=2
       if ( i_strang + obj_chemistry%N_strang == 3 ) then
         do b = 1, domain(level) % nb
           if (.not. is_local_block(b)) cycle
@@ -116,7 +116,7 @@ contains
     enddo strang
     !$omp end parallel
 
-    ! Salvataggio dei residui
+    ! Saving of the residuals
     if ( (obj_sim_param%iter_from_call == 1) .or. (mod (domain(level) % iter, obj_io%res_diter) == 0) ) then
       obj_sim_param%residuotot = 0.d0
       do b = 1, domain(level) % nb
@@ -129,16 +129,16 @@ contains
                                 total=obj_sim_param%residuotot )
       enddo
       call mpi_reduce_sum_r8_array(obj_sim_param%residuotot, nres)
-      if (mpi_is_root) obj_sim_param%residuotot = sqrt ( obj_sim_param%residuotot ) ! norma L2 della derivata temporale
+      if (mpi_is_root) obj_sim_param%residuotot = sqrt ( obj_sim_param%residuotot ) ! L2 norm of the time derivative
     endif
 
-    ! Determina i flag di controllo della simulazione sul rank root, poi li
-    ! propaga in broadcast a tutti i rank. endsim/endmg sono variabili locali:
-    ! a ogni chiamata ne viene assegnata una sola (in base a level), ma entrambe
-    ! sono lette più sotto — vanno azzerate qui, altrimenti quella non assegnata
-    ! contiene valori indefiniti dello stack (senza azzeramento, i livelli
-    ! multigrid coarse possono terminare l'intera simulazione dopo 1 iterazione,
-    ! come osservato con build gfortran di tipo TESTING).
+    ! Determine the simulation-control flags on the root rank, then broadcast
+    ! them to all ranks. endsim/endmg are local variables: at each call only one
+    ! of them is assigned (depending on level), but both are read further below —
+    ! they must be zeroed here, otherwise the unassigned one holds undefined
+    ! stack values (without zeroing, the coarse multigrid levels can terminate
+    ! the whole simulation after 1 iteration, as observed with TESTING-type
+    ! gfortran builds).
     endsim = .false.
     endmg  = .false.
     if (mpi_is_root) then
@@ -167,7 +167,7 @@ contains
       endif
     end if
 
-    ! Broadcast del controllo della simulazione dal root a tutti i rank
+    ! Broadcast of the simulation control from the root to all ranks
     call mpi_bcast_integer(obj_sim_param%TODO)
     call mpi_bcast_logical(obj_multigrid%change_MG)
 
@@ -179,7 +179,7 @@ contains
     use Q2D_Mod_MPI,          only: is_local_block
     implicit none
     type(Q2D_domain_type), intent(inout) :: domain
-    ! Variabili locali
+    ! Local variables
     integer :: i, j, b
 
     do b = 1, domain % nb

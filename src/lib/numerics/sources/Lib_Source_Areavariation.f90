@@ -56,7 +56,7 @@ contains
     ! succeeds (graceful degradation for blocks without a file: warning + cycle).
     implicit none
     type(Q2D_domain_type), intent(inout) :: domain
-    ! Variabili locali
+    ! Local variables
     integer  :: i, j, b, ios, unitfile, ni, nj
     character(len=100)    :: filename
     real(R8), allocatable :: A(:,:)
@@ -112,7 +112,7 @@ contains
     real(R8), dimension(1-gc:n(1)+gc, 1-gc:n(2)+gc),        intent(in)    :: sur
     real(R8), dimension(1:n(1),1:n(2)),                     intent(in)    :: geometric_term_x
     real(R8), dimension(1:n(1),1:n(2)),                     intent(in)    :: geometric_term_y
-    ! Variabili locali
+    ! Local variables
     integer  :: i, j
     real(R8) :: rho, Rgas, mod_v, Gx, Gy, V_dot_G
     real(R8) :: Source(nprim)
@@ -297,34 +297,34 @@ contains
       Source(1:nsc) = -( rho*DmGradYi_x(1:nsc) - V_c_x*Prim(1:nsc,i,j) ) * Gx        &
                      -( rho*DmGradYi_y(1:nsc) - V_c_y*Prim(1:nsc,i,j) ) * Gy
 
-      ! Proiezione su G del flusso diffusivo del soot in variazione d'area.
+      ! Projection onto G of the soot diffusive flux in area variation.
       !
-      ! Mod_Soot propaga il flusso completo a Nvol tramite l'assegnazione:
+      ! Mod_Soot propagates the full flux to Nvol via the assignment:
       !   flux(nc) = flux(i_CS) / (rho * Y_s / N) = flux(i_CS) * Prim(nc)/Prim(i_CS)
-      ! dove flux(i_CS) dopo Hirschfelder + termoforesi = (Fick + Hirschfelder + Thermo).
+      ! where flux(i_CS) after Hirschfelder + thermophoresis = (Fick + Hirschfelder + Thermo).
       !
-      ! Convenzione di segno Q2D in variazione d'area: Source(α) specie =
+      ! Q2D sign convention in area variation: species Source(α) =
       !   -(rho·DmGradYi_x - V_c_x·Prim)·Gx - (rho·DmGradYi_y - V_c_y·Prim)·Gy   (Fick+Hirsch)
       !   -0.55·(mil+mie)·Prim/(rho·T)·(Gx·∂_x T + Gy·∂_y T)                      (Thermo)
       !
-      ! Per Nvol propagato, con fattore di scala Prim(nc)/Prim(i_CS):
-      ! - Fick: -rho·(DmGradYi_x·Gx + DmGradYi_y·Gy) · Prim(nc)/Prim(i_CS)        (guardia Y_s>0)
-      ! - Hirschfelder: +V_c_x·Prim(nc)·Gx + V_c_y·Prim(nc)·Gy                    (sempre sicuro)
-      ! - Thermo: -0.55·(mil+mie)·Prim(nc)/(rho·T)·(Gx·∂_x T + Gy·∂_y T)         (sempre sicuro)
+      ! For propagated Nvol, with scale factor Prim(nc)/Prim(i_CS):
+      ! - Fick: -rho·(DmGradYi_x·Gx + DmGradYi_y·Gy) · Prim(nc)/Prim(i_CS)        (guard Y_s>0)
+      ! - Hirschfelder: +V_c_x·Prim(nc)·Gx + V_c_y·Prim(nc)·Gy                    (always safe)
+      ! - Thermo: -0.55·(mil+mie)·Prim(nc)/(rho·T)·(Gx·∂_x T + Gy·∂_y T)         (always safe)
       !
-      ! Salta nsoot=2 (i_CS=-1): la diffusione termoforetica del soot è definita solo
-      ! per nsoot=1 (è agganciata all'indice di specie soot i_CS e propagata a Nvol).
-      ! Il modello heavy-gas nsoot=2 non ha flusso diffusivo di faccia per il soot in
-      ! ALCUN regime, quindi non esiste alcuna sua proiezione d'area da aggiungere qui.
-      ! (Il residuo inviscido di variazione d'area per le equazioni soot nc/nc+1 di
-      ! nsoot=2 è applicato via Source(np+1:nprim) in Source_Area_Eul_Blk.)
+      ! Skip nsoot=2 (i_CS=-1): soot thermophoretic diffusion is defined only
+      ! for nsoot=1 (it is tied to the soot species index i_CS and propagated to Nvol).
+      ! The heavy-gas model nsoot=2 has no face diffusive flux for the soot in
+      ! ANY regime, hence there is no area projection of it to add here.
+      ! (The inviscid area-variation residual for the soot equations nc/nc+1 of
+      ! nsoot=2 is applied via Source(np+1:nprim) in Source_Area_Eul_Blk.)
       if (obj_soot%enabled .and. i_CS > 0) then
-        ! Termoforesi su Y_s + termoforesi propagata a N
+        ! Thermophoresis on Y_s + thermophoresis propagated to N
         Source(i_CS) = Source(i_CS) - 0.55_R8*(mil + mie)*Prim(i_CS,i,j)/(rho*T) * &
                        (Gx*Gradient(np,1) + Gy*Gradient(np,2))
         Source(nc)   = Source(nc)   - 0.55_R8*(mil + mie)*Prim(nc,  i,j)/(rho*T) * &
                        (Gx*Gradient(np,1) + Gy*Gradient(np,2))
-        ! Fick + Hirschfelder propagati a N (estensione del residuo di variazione d'area)
+        ! Fick + Hirschfelder propagated to N (extension of the area-variation residual)
         Source(nc) = Source(nc) + V_c_x * Prim(nc,i,j) * Gx + V_c_y * Prim(nc,i,j) * Gy   ! Hirschfelder
         if (Prim(i_CS,i,j) > 1.0e-10_R8 * rho) then
           Source(nc) = Source(nc) - rho * Prim(nc,i,j) / Prim(i_CS,i,j) * &

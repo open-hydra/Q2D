@@ -1,20 +1,18 @@
 """Rotating-channel 2D plane Euler Coriolis equilibrium regression check.
 
 Mirror MOSE topology pattern: periodic in x (BC 201) + walls in y (BC 300).
-Sess 15.B 2026-05-25 enabled via BC 201 port to Q2D Lib_Ghost.f90:63 +
-Mod_BC_Fluxes.f90:103 (mirror MOSE Lib_Ghost.f90:51 + Mod_BC_Fluxes.f90:72).
+BC 201 periodic port to Q2D Lib_Ghost.f90:63 + Mod_BC_Fluxes.f90:103
+(mirror MOSE Lib_Ghost.f90:51 + Mod_BC_Fluxes.f90:72).
 
-Piano section-5 Fase 8e line 619 criterion C5 fulfillment:
-
-    "test 2D piano canale rotante (Coriolis significativo) confronta con
-     soluzione analitica".
+Verifies the 2D rotating-channel case (significant Coriolis) against the
+analytical solution.
 
 Geometry: 2D channel x in [-L_x/2, L_x/2], y in [-L_y/2, L_y/2]; periodic-x via
 BC 201 (Q2D-Lib_BC_Fluxes_Connection mirror MOSE) + walls-y via BC 300.
 Rotation z-axis omega=10 rad/s; uniform axial flow u=U_inf=100 m/s.
 
-Lib_RotatingFrame.f90:175-242 Coriolis balance in inviscid Euler (peculiarita 1
-No-w, axis=[0,0,1] strict):
+Lib_RotatingFrame.f90:175-242 Coriolis balance in inviscid Euler (2D no-w
+layout, axis=[0,0,1] strict):
 
     Cor_x = +2*omega*v       (=0 for v=0 IC)
     Cor_y = -2*omega*u       (=-2*omega*U_inf, force in -y direction)
@@ -26,7 +24,7 @@ Steady-state isothermal equilibrium:
 
 Gates (all hard):
   - sanity: min(rho), min(p), min(T) > 0 (NaN-safe via q2d_check_lib);
-  - dp/dy vs Coriolis analytic: eps_rel < 5e-2 (piano section-5 tolerance;
+  - dp/dy vs Coriolis analytic: eps_rel < 5e-2 (5% tolerance;
     Coriolis-dominant regime, Cen/Cor < 5% at corner);
   - drift: the IC (u=U_inf, v=0) is an exact fixed point of the equilibrium;
     the solved field must not drift from it:
@@ -83,7 +81,7 @@ v_max = float(np.abs(v).max())
 print(f'u mean = {u.mean():.4f} m/s (target {U_INF}), max |u-U_inf| = {u_drift:.4e}')
 print(f'v mean = {v.mean():.4e} m/s (target 0), max |v| = {v_max:.4e}')
 
-thr = 5.0e-2  # piano section-5 tolerance: 5%
+thr = 5.0e-2  # 5% tolerance
 if eps_rel > thr:
     fail(f'dp/dy mismatch vs Coriolis analytical: {eps_rel:.3e} > {thr}')
 

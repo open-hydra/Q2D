@@ -20,10 +20,10 @@ contains
 
       case ('euler', 'RK2', 'RK3')
 
-        ! 1. Avanza la soluzione sulla griglia del livello corrente
+        ! 1. Advance the solution on the current-level grid
         call Explicit_Step( simulation%domain, External_Function )
 
-        ! 2. Interpola la soluzione sulla griglia più fine (ciclo V multigrid)
+        ! 2. Interpolate the solution onto the finer grid (multigrid V-cycle)
         if (obj_multigrid%change_MG) then
           call Prolongation ( Fine=simulation%domain(obj_multigrid%MG_level-1), &
                               Coarse=simulation%domain(obj_multigrid%MG_level) )

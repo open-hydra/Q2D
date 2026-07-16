@@ -5,11 +5,12 @@
 #
 #         USAGE: run "./Q2D.sh [options] {solve|kill}" in the current shell
 #
-#   DESCRIPTION: Compile/run script for the planar-nozzle-mg2 2D test (Q2D_new).
-#                Same Q2D area-variation C-D nozzle as planar-nozzle (peculiarita'
-#                #2, active=area_variation, Shapiro area-law) but with 2-level
-#                Multigrid ([Q2D-Multigrid] levels=2). Exercises peculiarita' #3
-#                (B-10): Cross_Section is restricted fine->coarse via R1 nodal
+#   DESCRIPTION: Compile/run script for the planar-nozzle-mg2 2D test (Q2D).
+#                Same Q2D area-variation C-D nozzle as planar-nozzle (the
+#                area-variation source, active=area_variation, Shapiro area-law)
+#                but with 2-level Multigrid ([Q2D-Multigrid] levels=2). Exercises
+#                the multigrid restriction of the area-variation geometry:
+#                Cross_Section is restricted fine->coarse via R1 nodal
 #                sub-sampling (Coarse_Cross_Section); the MGL=2 solution must
 #                reproduce the MGL=1 baseline / the analytic area-law. Coarse
 #                bc2.txt generated via tools/gen_coarse_bc.py from fine bc.txt.

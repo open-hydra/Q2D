@@ -139,7 +139,7 @@ for label, (x, cf) in ref_wilcox.items():
 
 # -------------------------------------------------------------
 # Helper: read a wall.tec-style file and return (x_cell, Cf)
-# Q2D 6-CC: y+, tauX, tauY, pw, Tw, qw (peculiarità #1 No-w → no tauZ)
+# Q2D 6-CC: y+, tauX, tauY, pw, Tw, qw (2D no-w layout → no tauZ)
 # the 3D peer's 7-CC: y+, tauX, tauY, tauZ, pw, Tw, qw
 # Name-based dispatch handles both transparently via VARLOCATION-aware ORION.
 # tauX is negative (wall drags fluid in -x), so take abs()

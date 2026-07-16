@@ -5,10 +5,9 @@
 #
 #         USAGE: run "./Q2D.sh [options] {solve|kill}" in the current shell
 #
-#   DESCRIPTION: Compile/run script for the rotating-channel 2D plane Euler test
-#                (Q2D_new piano section-5 Fase 8e line 619 criterion C5). The
-#                3D peer's coriolis-channel reduced to 2D plane with axis=[0,0,1]
-#                (Lib_RotatingFrame piano section-6.3 + peculiarita' No-w).
+#   DESCRIPTION: Compile/run script for the rotating-channel 2D plane Euler test.
+#                The 3D peer's coriolis-channel reduced to 2D plane with
+#                axis=[0,0,1] (Lib_RotatingFrame + 2D no-w layout).
 #                Verifies geostrophic balance dp/dy = -2*omega*rho*U_inf.
 #===============================================================================
 

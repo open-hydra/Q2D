@@ -1,43 +1,43 @@
-!> @brief Termini sorgente Single Rotating Frame (SRF) — 2D-planare e area-variation.
+!> @brief Single Rotating Frame (SRF) source terms — 2D-planar and area-variation.
 !>
-!> Formulazione rigidamente 2D (principio No-w: nessuna componente di velocità
-!> fuori piano, nessun residuo associato, nessuno swirl). Ambito:
+!> Strictly 2D formulation (No-w principle: no out-of-plane velocity
+!> component, no associated residual, no swirl). Scope:
 !>
-!>   * 2D planare (`obj_source%axisymmetric = .false.`, axis = [0,0,1]) — VALIDO.
-!>   * Q2D area-variation (`obj_source%area_variation = .true.`, axis = [0,0,1]) — VALIDO.
-!>   * 2D-axi (`obj_source%axisymmetric = .true.`) — FUORI AMBITO (l'unico asse
-!>     fisicamente sensato è [1,0,0] e richiederebbe una componente di swirl u_phi
-!>     assente dal vettore di stato, fuori ambito sotto No-w).
+!>   * 2D planar (`obj_source%axisymmetric = .false.`, axis = [0,0,1]) — VALID.
+!>   * Q2D area-variation (`obj_source%area_variation = .true.`, axis = [0,0,1]) — VALID.
+!>   * 2D-axi (`obj_source%axisymmetric = .true.`) — OUT OF SCOPE (the only
+!>     physically meaningful axis is [1,0,0] and would require a swirl component u_phi
+!>     absent from the state vector, out of scope under No-w).
 !>
-!> Setup_RotatingFrame applica un doppio controllo a runtime:
-!>   Controllo #1 → error stop se `obj_source%axisymmetric = .true.` (2D-axi fuori ambito).
-!>   Controllo #2 → error stop se `axis ≠ [0, 0, 1]` (tolleranza 1e-12).
+!> Setup_RotatingFrame applies a double check at runtime:
+!>   Check #1 → error stop if `obj_source%axisymmetric = .true.` (2D-axi out of scope).
+!>   Check #2 → error stop if `axis ≠ [0, 0, 1]` (tolerance 1e-12).
 !>
-!> Equazioni aggiunte al residuo:
+!> Equations added to the residual:
 !>
-!>   Quantità di moto (per unità di superficie; sur è l'analogo 2D del volume di cella):
+!>   Momentum (per unit surface; sur is the 2D analogue of the cell volume):
 !>     S_mom = -2 rho (Omega x w)         [Coriolis]
-!>           + rho omega^2 r_perp          [centrifuga]
-!>     con `r_perp = r_vec - (r_vec · axis) axis`.
-!>     Con axis = [0,0,1] e w(3) = 0:
+!>           + rho omega^2 r_perp          [centrifugal]
+!>     with `r_perp = r_vec - (r_vec · axis) axis`.
+!>     With axis = [0,0,1] and w(3) = 0:
 !>       Cor(1) = +2 rho omega w(2)
 !>       Cor(2) = -2 rho omega w(1)
-!>       Cor(3) = 0  (identicamente; non rappresentabile, nessuna riga di residuo associata)
-!>       Cen(3) = 0  (r_vec(3) = 0 nel piano)
+!>       Cor(3) = 0  (identically; not representable, no associated residual row)
+!>       Cen(3) = 0  (r_vec(3) = 0 in the plane)
 !>
-!>   Energia (per unità di superficie):
+!>   Energy (per unit surface):
 !>     S_E = w · (rho omega^2 r_perp) = w(1)*Cen(1) + w(2)*Cen(2)
-!>     [Coriolis non compie lavoro — `w · (Omega x w) = 0` identicamente.]
+!>     [Coriolis does no work — `w · (Omega x w) = 0` identically.]
 !>
-!> BC di parete rotante: `RF_Wall_Velocity(r_face)` produce `w_wall(2)` per faccia,
-!> passato come argomento opzionale a `BC_Wall_Heat / BC_Wall_Temperature`. Le pareti
-!> elencate in `obj_rot%stationary_face` (cassa/mozzo) mantengono `w_wall = 0`. La BC
-!> di simmetria (Eulero) non riceve `w_wall`: la riflessione speculare è invariante
-!> rispetto a una traslazione rigida del sistema con velocità normale nulla.
+!> Rotating-wall BC: `RF_Wall_Velocity(r_face)` yields `w_wall(2)` per face,
+!> passed as an optional argument to `BC_Wall_Heat / BC_Wall_Temperature`. The walls
+!> listed in `obj_rot%stationary_face` (casing/hub) keep `w_wall = 0`. The symmetry
+!> BC (Euler) does not receive `w_wall`: the mirror reflection is invariant
+!> with respect to a rigid translation of the frame with zero normal velocity.
 !>
-!> BC di inflow rotante: `RF_Convert_BC_Inflow` converte `(T0, p0, alpha)` dal
-!> sistema assoluto a quello relativo PRIMA del dispatch a `BC_Inflow_Outflow`.
-!> `beta` è imposto a 0 (No-w: nessuna componente di velocità fuori piano).
+!> Rotating inflow BC: `RF_Convert_BC_Inflow` converts `(T0, p0, alpha)` from the
+!> absolute frame to the relative one BEFORE dispatching to `BC_Inflow_Outflow`.
+!> `beta` is set to 0 (No-w: no out-of-plane velocity component).
 module Q2D_Lib_RotatingFrame
   use iso_fortran_env,      only: I4 => int32, R8 => real64
   use Q2D_Config_Types_m,   only: obj_rot, obj_source
@@ -57,10 +57,10 @@ contains
 
 
   ! ---------------------------------------------------------------------------
-  !> @brief Finalizza la configurazione del sistema rotante.
+  !> @brief Finalizes the rotating-frame configuration.
   !>
-  !> Include il doppio controllo che impone l'ambito
-  !> 2D-planare / Q2D area-variation.
+  !> Includes the double check that enforces the
+  !> 2D-planar / Q2D area-variation scope.
   subroutine Setup_RotatingFrame()
     implicit none
     integer  :: m
@@ -77,11 +77,11 @@ contains
       obj_rot%enabled = .true.
     end if
 
-    ! Legge asse e origine dalle stringhe del registry (str scalari).
+    ! Read axis and origin from the registry strings (scalar str).
     read(obj_rot%axis_str, *)   obj_rot%axis
     read(obj_rot%origin_str, *) obj_rot%origin
 
-    ! Normalizza l'asse a vettore unitario.
+    ! Normalize the axis to a unit vector.
     norm = sqrt( sum(obj_rot%axis**2) )
     if ( norm < 1.0e-14_R8 ) then
       write(*,'(A)') '[ERROR] Rotation axis has zero length'
@@ -89,11 +89,11 @@ contains
     end if
     obj_rot%axis = obj_rot%axis / norm
 
-    ! ─── Doppio controllo Q2D (No-w + ambito) ────────────────────────────────
+    ! ─── Q2D double check (No-w + scope) ─────────────────────────────────────
     !
-    ! Controllo #1: 2D-axi fuori ambito. In geometria assialsimmetrica l'unico
-    ! asse di rotazione fisicamente sensato è [1,0,0] (asse di simmetria) e
-    ! richiederebbe una componente di swirl u_phi, fuori ambito sotto No-w.
+    ! Check #1: 2D-axi out of scope. In axisymmetric geometry the only
+    ! physically meaningful rotation axis is [1,0,0] (symmetry axis) and
+    ! would require a swirl component u_phi, out of scope under No-w.
     if ( obj_source%axisymmetric ) then
       write(*,'(A)') '[ERROR] RotatingFrame OUT-OF-SCOPE in 2D-axi (axisymmetric) configuration.'
       write(*,'(A)') '        2D-axi rotation around axis-of-symmetry [1,0,0] requires swirl velocity'
@@ -102,9 +102,9 @@ contains
       stop
     end if
     !
-    ! Controllo #2: 2D planare + Q2D area-variation richiedono axis = [0,0,1]
-    ! (asse perpendicolare al piano). Coriolis/centrifuga restano nel piano,
-    ! senza componenti fuori piano (Cor(3) ≡ 0, Cen(3) = 0).
+    ! Check #2: 2D planar + Q2D area-variation require axis = [0,0,1]
+    ! (axis perpendicular to the plane). Coriolis/centrifugal stay in-plane,
+    ! with no out-of-plane components (Cor(3) ≡ 0, Cen(3) = 0).
     if ( any( abs(obj_rot%axis - [0d0, 0d0, 1d0]) > 1.0e-12_R8 ) ) then
       write(*,'(A)')           '[ERROR] In Q2D 2D-planar / Q2D area-variation, RotatingFrame axis must be [0, 0, 1].'
       write(*,'(A)')           '        Rationale: an axis perpendicular to the (x,y) plane is the only choice that'
@@ -117,15 +117,15 @@ contains
 
     obj_rot%Omega_vec = obj_rot%omega * obj_rot%axis
 
-    ! Compatibilità Q2D area-variation + RF: entrambi operano nel piano (la
-    ! sezione variabile h(x,y) non interagisce con la cinematica del sistema
-    ! rotante). Avviso informativo, non un error stop.
+    ! Q2D area-variation + RF compatibility: both operate in the plane (the
+    ! variable cross-section h(x,y) does not interact with the rotating-frame
+    ! kinematics). Informational warning, not an error stop.
     if ( obj_source%area_variation ) then
       obj_rot%warning_message = 'RotatingFrame combined with Q2D area-variation: both in-plane (compatible).'
     end if
 
-    ! Legge i patch di parete fissa dalle stringhe del registry.
-    ! Il contatore `m` è un indice logico sui patch RF, non un indice spaziale.
+    ! Read the stationary-wall patches from the registry strings.
+    ! The counter `m` is a logical index over the RF patches, not a spatial index.
     if ( obj_rot%n_stationary > 0 ) then
       allocate( obj_rot%stationary_face(2, obj_rot%n_stationary) )
       do m = 1, obj_rot%n_stationary
@@ -138,8 +138,8 @@ contains
 
 
   ! ---------------------------------------------------------------------------
-  !> @brief Aggiunge i termini sorgente di Coriolis e centrifugo all'array dei
-  !>        residui di ogni blocco in `domain`.
+  !> @brief Adds the Coriolis and centrifugal source terms to the residual
+  !>        array of every block in `domain`.
   subroutine RotatingFrame_Source_Terms ( domain )
     use Q2D_Advanced_Types_m, only: Q2D_domain_type
     use Q2D_Mod_MPI,          only: is_local_block
@@ -160,14 +160,14 @@ contains
 
 
   ! ---------------------------------------------------------------------------
-  !> @brief Kernel a livello di blocco: accumula in Res i termini sorgente del sistema rotante.
+  !> @brief Block-level kernel: accumulates the rotating-frame source terms into Res.
   !>
-  !> Formulazione 2D:
-  !>   * centro cella come media dei 4 nodi d'angolo;
-  !>   * nessuna riga di residuo fuori piano (Cor(3) ≡ 0, Cen(3) = 0 con axis = [0,0,1] stretto);
-  !>   * `sur` (metrica di superficie 2D, analogo del volume di cella) pesa i termini sorgente.
+  !> 2D formulation:
+  !>   * cell center as the average of the 4 corner nodes;
+  !>   * no out-of-plane residual row (Cor(3) ≡ 0, Cen(3) = 0 with strict axis = [0,0,1]);
+  !>   * `sur` (2D surface metric, analogue of the cell volume) weights the source terms.
   !>
-  !> Convenzione di segno: V dU/dt = -R(U), R = CONV - DIFF - SOURCE  ⇒  R -= S * sur.
+  !> Sign convention: V dU/dt = -R(U), R = CONV - DIFF - SOURCE  ⇒  R -= S * sur.
   subroutine RF_Source_Blk ( Prim, Res, node, sur, n )
     use Q2D_Base_Types_m, only: Q2D_vector_2D_type
     use Q2D_Global_m,     only: nprim, nsc, nu, nv, np, gc
@@ -178,16 +178,16 @@ contains
     real(R8), dimension(nprim, 1-gc:n(1)+gc, 1-gc:n(2)+gc), intent(inout) :: Res
     type(Q2D_vector_2D_type), dimension(0:n(1), 0:n(2)),  intent(in) :: node
     real(R8), dimension(1-gc:n(1)+gc, 1-gc:n(2)+gc),      intent(in) :: sur
-    ! Variabili locali
+    ! Local variables
     integer  :: i, j
     real(R8) :: rho, w(2)
     real(R8) :: xc, yc, r_vec(2)
     real(R8) :: Cor(2), Cen(2)
     real(R8) :: omega_z, ox(2), omega2
 
-    ! Copia i dati di modulo in scalari locali per evitare accessi indiretti ripetuti.
-    ! Con axis = [0,0,1] stretto (Controllo #2 di Setup_RotatingFrame): Omega_vec = (0,0,omega_z),
-    ! origine proiettata nel piano (componente z scartata: r_vec è 2D).
+    ! Copy the module data into local scalars to avoid repeated indirect accesses.
+    ! With strict axis = [0,0,1] (Check #2 of Setup_RotatingFrame): Omega_vec = (0,0,omega_z),
+    ! origin projected onto the plane (z component discarded: r_vec is 2D).
     omega_z = obj_rot%Omega_vec(3)
     ox      = obj_rot%origin(1:2)
     omega2  = obj_rot%omega**2
@@ -198,38 +198,38 @@ contains
     do i = 1, n(1)
 
       rho = sum( Prim(1:nsc, i, j) )
-      w   = Prim(nu:nv, i, j)            ! velocità relativa nel sistema rotante (2 componenti)
+      w   = Prim(nu:nv, i, j)            ! relative velocity in the rotating frame (2 components)
 
-      ! ---- Centro cella (media dei 4 nodi d'angolo) ----
-      ! La cella (i,j) occupa il quadrilatero i-1..i, j-1..j nelle coordinate dei nodi.
+      ! ---- Cell center (average of the 4 corner nodes) ----
+      ! Cell (i,j) occupies the quadrilateral i-1..i, j-1..j in node coordinates.
       xc = 0.25_R8 * ( node(i-1,j-1)%c(1) + node(i,j-1)%c(1) &
                      + node(i-1,j  )%c(1) + node(i,j  )%c(1) )
       yc = 0.25_R8 * ( node(i-1,j-1)%c(2) + node(i,j-1)%c(2) &
                      + node(i-1,j  )%c(2) + node(i,j  )%c(2) )
 
-      ! ---- Vettore posizione dall'origine dell'asse (nel piano) ----
+      ! ---- Position vector from the axis origin (in the plane) ----
       r_vec = [ xc - ox(1), yc - ox(2) ]
-      ! r_vec(3) = 0 implicito; r_proj = dot(r_vec, [0,0,1]) = 0; r_perp = r_vec.
+      ! r_vec(3) = 0 implicit; r_proj = dot(r_vec, [0,0,1]) = 0; r_perp = r_vec.
 
-      ! ---- Forza di Coriolis per unità di superficie: -2 rho (Omega x w) --
-      ! Con Omega = (0,0,omega_z), w(3) = 0:
+      ! ---- Coriolis force per unit surface: -2 rho (Omega x w) --
+      ! With Omega = (0,0,omega_z), w(3) = 0:
       !   Cor(1) = -2 rho ( Omega(2) w(3) - Omega(3) w(2) ) = +2 rho omega_z w(2)
       !   Cor(2) = -2 rho ( Omega(3) w(1) - Omega(1) w(3) ) = -2 rho omega_z w(1)
-      !   Cor(3) ≡ 0 (non rappresentabile nel piano; nessuna riga di residuo).
+      !   Cor(3) ≡ 0 (not representable in the plane; no residual row).
       Cor(1) =  2.0_R8 * rho * omega_z * w(2)
       Cor(2) = -2.0_R8 * rho * omega_z * w(1)
 
-      ! ---- Forza centrifuga per unità di superficie: rho omega^2 r_perp --
-      !   Cen(3) = 0 con r_vec(3) = 0.
+      ! ---- Centrifugal force per unit surface: rho omega^2 r_perp --
+      !   Cen(3) = 0 with r_vec(3) = 0.
       Cen(1) = rho * omega2 * r_vec(1)
       Cen(2) = rho * omega2 * r_vec(2)
 
-      ! ---- Accumulo nei residui: R -= sorgente * sur ----
+      ! ---- Accumulate into the residuals: R -= source * sur ----
       Res(nu, i, j) = Res(nu, i, j) - ( Cor(1) + Cen(1) ) * sur(i,j)
       Res(nv, i, j) = Res(nv, i, j) - ( Cor(2) + Cen(2) ) * sur(i,j)
-      ! Nessun residuo fuori piano: Cor(3) + Cen(3) ≡ 0 identicamente (No-w).
+      ! No out-of-plane residual: Cor(3) + Cen(3) ≡ 0 identically (No-w).
 
-      ! Energia: solo la centrifuga compie lavoro su w; w · Coriolis ≡ 0 identicamente.
+      ! Energy: only the centrifugal term does work on w; w · Coriolis ≡ 0 identically.
       Res(np, i, j) = Res(np, i, j) - dot_product( w, Cen ) * sur(i,j)
 
     end do ; end do
@@ -239,15 +239,15 @@ contains
 
 
   ! ---------------------------------------------------------------------------
-  !> @brief Velocità di una parete fissa nel laboratorio vista dal sistema rotante.
+  !> @brief Velocity of a lab-stationary wall as seen from the rotating frame.
   !>
-  !> Con axis = [0,0,1] stretto:
+  !> With strict axis = [0,0,1]:
   !>   w_wall(1) = +omega_z * (r_face(2) - origin(2))
   !>   w_wall(2) = -omega_z * (r_face(1) - origin(1))
-  !>   w_wall(3) ≡ 0 (No-w: non rappresentata).
+  !>   w_wall(3) ≡ 0 (No-w: not represented).
   !>
-  !> @param[in]  r_face  Posizione cartesiana 2D del centro faccia [m].
-  !> @return     w_wall  Velocità relativa della parete fissa nel laboratorio [m/s].
+  !> @param[in]  r_face  2D Cartesian position of the face center [m].
+  !> @return     w_wall  Relative velocity of the lab-stationary wall [m/s].
   function RF_Wall_Velocity(r_face) result(w_wall)
     implicit none
     real(R8), intent(in) :: r_face(2)
@@ -262,10 +262,10 @@ contains
 
 
   ! ---------------------------------------------------------------------------
-  !> @brief Centro faccia 2D come media dei 2 nodi estremi (in 2D la faccia è uno spigolo).
+  !> @brief 2D face center as the average of the 2 end nodes (in 2D a face is an edge).
   !>
-  !> Q2D ha 4 facce per cella; Fm ∈ {1,2,3,4}. Fm = 5 o 6 (facce k) produce un
-  !> error stop esplicito (nessun fallback silenzioso).
+  !> Q2D has 4 faces per cell; Fm ∈ {1,2,3,4}. Fm = 5 or 6 (k-faces) produces an
+  !> explicit error stop (no silent fallback).
   subroutine RF_Face_Center(node, Im, Jm, Fm, r_face)
     use Q2D_Base_Types_m, only: Q2D_vector_2D_type
     implicit none
@@ -289,9 +289,9 @@ contains
 
     do d = 1, 2
       select case (Fm)
-      case(1,2)   ! faccia i: spigolo tra (Fi, Fj-1) e (Fi, Fj)
+      case(1,2)   ! i-face: edge between (Fi, Fj-1) and (Fi, Fj)
         r_face(d) = 0.5_R8 * ( node(Fi,Fj-1)%c(d) + node(Fi,Fj)%c(d) )
-      case(3,4)   ! faccia j: spigolo tra (Fi-1, Fj) e (Fi, Fj)
+      case(3,4)   ! j-face: edge between (Fi-1, Fj) and (Fi, Fj)
         r_face(d) = 0.5_R8 * ( node(Fi-1,Fj)%c(d) + node(Fi,Fj)%c(d) )
       end select
     end do
@@ -300,16 +300,16 @@ contains
 
 
   ! ---------------------------------------------------------------------------
-  !> @brief Converte la BC di inflow `(T0, p0, alpha, Mach_abs) → (T0_rel, p0_rel, alpha_rel, Mach_rel)`.
+  !> @brief Converts the inflow BC `(T0, p0, alpha, Mach_abs) → (T0_rel, p0_rel, alpha_rel, Mach_rel)`.
   !>
-  !> Formulazione 2D:
-  !>   * nessun angolo di elevazione fuori piano: `beta` imposto a 0;
-  !>   * v_frame(3) ≡ 0 con Omega = (0,0,omega_z), r_face(3) = 0.
+  !> 2D formulation:
+  !>   * no out-of-plane elevation angle: `beta` set to 0;
+  !>   * v_frame(3) ≡ 0 with Omega = (0,0,omega_z), r_face(3) = 0.
   !>
-  !> Le condizioni statiche sono invarianti per cambio di sistema; le condizioni
-  !> totali e l'angolo vanno convertiti. La pressione statica di outflow (pAmb) è
-  !> indipendente dal sistema di riferimento — il dispatcher chiamante non invoca
-  !> questa routine per outflow puro.
+  !> The static conditions are invariant under frame change; the total
+  !> conditions and the angle must be converted. The outflow static pressure (pAmb) is
+  !> independent of the reference frame — the calling dispatcher does not invoke
+  !> this routine for pure outflow.
   subroutine RF_Convert_BC_Inflow ( Blk, Fm, Im, Jm, BC_Mach_abs, gamma, Rgas, &
                                     T0_or_Tstat, p0_or_pstat, alpha, Mach_rel )
     use Q2D_Advanced_Types_m, only: Q2D_block_type
@@ -319,13 +319,13 @@ contains
     real(R8), intent(in)    :: BC_Mach_abs, gamma, Rgas
     real(R8), intent(inout) :: T0_or_Tstat, p0_or_pstat, alpha
     real(R8), intent(out)   :: Mach_rel
-    ! Variabili locali
+    ! Local variables
     integer  :: Face_i, Face_j
     real(R8) :: v_frame(2), r(2), r_fc(2)
     real(R8) :: T_stat, p_stat, a_stat, u_abs(2), w_rel(2), w_norm, cp
     real(R8) :: omega_z
 
-    ! Indice di faccia (convenzione Face_Index: Fm=1,2 → faccia i; Fm=3,4 → faccia j).
+    ! Face index (Face_Index convention: Fm=1,2 → i-face; Fm=3,4 → j-face).
     select case (Fm)
     case(1,2) ; Face_i = Im - mod(Fm,2) ; Face_j = Jm
     case(3,4) ; Face_i = Im             ; Face_j = Jm - mod(Fm,2)
@@ -334,56 +334,56 @@ contains
       stop
     end select
 
-    ! Centro faccia (media di 2 nodi, 2D).
+    ! Face center (average of 2 nodes, 2D).
     select case (Fm)
-    case(1,2)   ! faccia i: spigolo tra (Face_i, Face_j-1) e (Face_i, Face_j)
+    case(1,2)   ! i-face: edge between (Face_i, Face_j-1) and (Face_i, Face_j)
       r_fc(1) = 0.5_R8 * ( Blk%node(Face_i,Face_j-1)%c(1) + Blk%node(Face_i,Face_j)%c(1) )
       r_fc(2) = 0.5_R8 * ( Blk%node(Face_i,Face_j-1)%c(2) + Blk%node(Face_i,Face_j)%c(2) )
-    case(3,4)   ! faccia j: spigolo tra (Face_i-1, Face_j) e (Face_i, Face_j)
+    case(3,4)   ! j-face: edge between (Face_i-1, Face_j) and (Face_i, Face_j)
       r_fc(1) = 0.5_R8 * ( Blk%node(Face_i-1,Face_j)%c(1) + Blk%node(Face_i,Face_j)%c(1) )
       r_fc(2) = 0.5_R8 * ( Blk%node(Face_i-1,Face_j)%c(2) + Blk%node(Face_i,Face_j)%c(2) )
     end select
 
-    ! Velocità di trascinamento al centro faccia: v_frame = Omega x (r_fc - origin), Omega = (0,0,omega_z).
+    ! Drag velocity at the face center: v_frame = Omega x (r_fc - origin), Omega = (0,0,omega_z).
     !   v_frame(1) = -omega_z * r(2)
     !   v_frame(2) =  omega_z * r(1)
-    !   v_frame(3) = 0  (non rappresentata).
+    !   v_frame(3) = 0  (not represented).
     r          = r_fc - obj_rot%origin(1:2)
     omega_z    = obj_rot%Omega_vec(3)
     v_frame(1) = -omega_z * r(2)
     v_frame(2) =  omega_z * r(1)
 
-    ! Condizioni statiche (invarianti per cambio di sistema).
+    ! Static conditions (invariant under frame change).
     if ( BC_Mach_abs > 1.0_R8 ) then
-      ! Supersonico: in ingresso T0_or_Tstat = T statica, p0_or_pstat = p statica.
+      ! Supersonic: on input T0_or_Tstat = static T, p0_or_pstat = static p.
       T_stat = T0_or_Tstat
       p_stat = p0_or_pstat
     else
-      ! Subsonico: in ingresso T0_or_Tstat = T0 assoluta, p0_or_pstat = p0 assoluta.
+      ! Subsonic: on input T0_or_Tstat = absolute T0, p0_or_pstat = absolute p0.
       T_stat = T0_or_Tstat / ( 1.0_R8 + 0.5_R8*(gamma-1.0_R8)*BC_Mach_abs**2 )
       p_stat = p0_or_pstat * ( T_stat / T0_or_Tstat )**( gamma/(gamma-1.0_R8) )
     end if
 
-    ! Velocità del suono (invariante per cambio di sistema).
+    ! Speed of sound (invariant under frame change).
     a_stat = sqrt( gamma * Rgas * T_stat )
 
-    ! Velocità assoluta (nessuna componente z, beta imposto a 0).
-    !   u = M*a * [cos(alpha), sin(alpha)]  con beta = 0 ⇒ cos(beta) = 1, sin(beta) = 0.
+    ! Absolute velocity (no z component, beta set to 0).
+    !   u = M*a * [cos(alpha), sin(alpha)]  with beta = 0 ⇒ cos(beta) = 1, sin(beta) = 0.
     u_abs(1) = BC_Mach_abs * a_stat * cos(alpha)
     u_abs(2) = BC_Mach_abs * a_stat * sin(alpha)
 
-    ! Velocità relativa: w = u_abs - v_frame.
+    ! Relative velocity: w = u_abs - v_frame.
     w_rel  = u_abs - v_frame
     w_norm = norm2( w_rel )
 
-    ! Mach relativo e nuovo angolo di flusso (beta resta 0 per costruzione in 2D).
+    ! Relative Mach and new flow angle (beta stays 0 by construction in 2D).
     Mach_rel = w_norm / a_stat
     alpha    = atan2( w_rel(2), w_rel(1) )
 
     if ( BC_Mach_abs > 1.0_R8 ) then
-      ! T statica e p statica invariate (invarianti); Mach_rel e alpha già aggiornati sopra.
+      ! Static T and static p unchanged (invariant); Mach_rel and alpha already updated above.
     else
-      ! Condizioni totali relative dalla velocità relativa.
+      ! Relative total conditions from the relative velocity.
       cp          = gamma * Rgas / ( gamma - 1.0_R8 )
       T0_or_Tstat = T_stat + 0.5_R8 * w_norm**2 / cp
       p0_or_pstat = p_stat * ( T0_or_Tstat / T_stat )**( gamma/(gamma-1.0_R8) )
@@ -393,9 +393,9 @@ contains
 
 
   ! ---------------------------------------------------------------------------
-  !> @brief `.true.` se il patch di parete (blocco b, direzione di faccia f) è fisso nel laboratorio.
+  !> @brief `.true.` if the wall patch (block b, face direction f) is lab-stationary.
   !>
-  !> Funzione puramente logica, indipendente dal regime.
+  !> Purely logical function, independent of the regime.
   logical function RF_Is_Stationary_Face(b, f)
     implicit none
     integer, intent(in) :: b, f
@@ -415,18 +415,18 @@ contains
 
 
   ! ---------------------------------------------------------------------------
-  !> @brief Coppia di pressione sulle pareti rotanti; scrive OUTPUT/torque.dat.
+  !> @brief Pressure torque on the rotating walls; writes OUTPUT/torque.dat.
   !>
-  !> In 2D-planare con axis=[0,0,1]:
+  !> In 2D-planar with axis=[0,0,1]:
   !>   torque_vec(1) = r_rel(2)*F_wall(3) - r_rel(3)*F_wall(2) = 0  (F_wall(3)=r_rel(3)=0)
   !>   torque_vec(2) = r_rel(3)*F_wall(1) - r_rel(1)*F_wall(3) = 0
-  !>   torque_vec(3) = r_rel(1)*F_wall(2) - r_rel(2)*F_wall(1)  = T_axial nel piano
+  !>   torque_vec(3) = r_rel(1)*F_wall(2) - r_rel(2)*F_wall(1)  = T_axial in the plane
   !>   T_axial = axis · torque_vec = torque_vec(3)
   !>
-  !> Q2D usa `int_l` (lunghezza dell'interfaccia) come analogo 2D dell'area di
-  !> faccia (cf. `Q2D_f_metrics_type` in `Base_Types_m.f90`). MPI: la coppia
-  !> parziale scalare è ridotta su root via `mpi_reduce_sum_r8` (no-op a rank
-  !> singolo).
+  !> Q2D uses `int_l` (interface length) as the 2D analogue of the face
+  !> area (cf. `Q2D_f_metrics_type` in `Base_Types_m.f90`). MPI: the scalar
+  !> partial torque is reduced on root via `mpi_reduce_sum_r8` (no-op at single
+  !> rank).
   subroutine RF_Torque_Walls(domain, iter, time)
     use Q2D_Advanced_Types_m, only: Q2D_domain_type
     use Q2D_Global_m,         only: np
@@ -436,7 +436,7 @@ contains
     type(Q2D_domain_type), intent(in) :: domain
     integer,  intent(in) :: iter
     real(R8), intent(in) :: time
-    ! Variabili locali
+    ! Local variables
     integer,  save :: unit_torque = -1
     logical,  save :: first_call  = .true.
     integer  :: i, Bm, Im, Jm, Fm, Dir, Fi, Fj
@@ -455,13 +455,13 @@ contains
 
       Fm = domain%bc(i)%f
 
-      ! Salta le facce fisse nel laboratorio (cassa / mozzo).
+      ! Skip the lab-stationary faces (casing / hub).
       if ( RF_Is_Stationary_Face(Bm, Fm) ) cycle
 
       Im = domain%bc(i)%i
       Jm = domain%bc(i)%j
 
-      ! Indice di direzione: 1 per le facce i (Fm=1,2), 2 per le facce j (3,4).
+      ! Direction index: 1 for the i-faces (Fm=1,2), 2 for the j-faces (3,4).
       Dir = (Fm + 1) / 2
 
       select case (Fm)
@@ -469,29 +469,29 @@ contains
       case (3,4) ; Fi = Im             ; Fj = Jm - mod(Fm,2)
       end select
 
-      ! dir(Dir)%f%N (normale unitaria) + dir(Dir)%f%int_l (lunghezza della faccia 2D).
+      ! dir(Dir)%f%N (unit normal) + dir(Dir)%f%int_l (2D face length).
       N_face     = domain%blk(Bm)%dir(Dir)%f(Fi,Fj)%N
       int_l_face = domain%blk(Bm)%dir(Dir)%f(Fi,Fj)%int_l
 
-      ! Segno uscente dal fluido: -1 per le facce min (Fm dispari), +1 per le facce max (Fm pari).
+      ! Sign outward from the fluid: -1 for the min faces (odd Fm), +1 for the max faces (even Fm).
       sign_fm = real(1 - 2 * mod(Fm, 2), R8)
 
-      ! Pressione nella cella interna adiacente alla parete (estrapolazione di ordine zero).
+      ! Pressure in the interior cell adjacent to the wall (zeroth-order extrapolation).
       p_face = domain%blk(Bm)%P(np, Im, Jm)
 
       call RF_Face_Center(domain%blk(Bm)%node, Im, Jm, Fm, r_face)
 
-      ! Forza di pressione del fluido sulla parete: F_wall = p * (normale uscente) * int_l.
+      ! Fluid pressure force on the wall: F_wall = p * (outward normal) * int_l.
       F_wall = p_face * sign_fm * N_face * int_l_face
 
-      ! Coppia nel piano rispetto all'origine dell'asse di rotazione (scalare, axis=[0,0,1]):
+      ! In-plane torque about the rotation-axis origin (scalar, axis=[0,0,1]):
       r_rel   = r_face - obj_rot%origin(1:2)
       T_axial = T_axial + ( r_rel(1)*F_wall(2) - r_rel(2)*F_wall(1) )
 
     end do
 
-    ! Riduce su root le coppie parziali di tutti i rank (collettiva bloccante;
-    ! no-op a rank singolo).
+    ! Reduce on root the partial torques from all ranks (blocking collective;
+    ! no-op at single rank).
     call mpi_reduce_sum_r8(T_axial)
 
     if ( mpi_is_root ) then

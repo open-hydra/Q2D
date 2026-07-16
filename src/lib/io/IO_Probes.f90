@@ -16,8 +16,8 @@ module Q2D_IO_Probes
   end type real_ptr
 
   type :: obj_probe_t
-    type(Q2D_vector_2D_type)         :: location          ! coordinate (x, y)
-    integer, dimension(3)            :: ilocation         ! indici (b, i, j)
+    type(Q2D_vector_2D_type)         :: location          ! coordinates (x, y)
+    integer, dimension(3)            :: ilocation         ! indices (b, i, j)
     integer                          :: nvar
     character(len=llen), allocatable :: names(:)
     type(real_ptr),      allocatable :: variables(:)
@@ -44,7 +44,7 @@ contains
     implicit none
     type(Q2D_domain_type), intent(in) :: domain
     logical,               intent(in) :: newrun
-    ! Variabili locali
+    ! Local variables
     integer             :: i, ii, error
     character(len=clen) :: string(8)
 
@@ -63,7 +63,7 @@ contains
 
       obj_io_probes(i)%file = 'OUTPUT/'//trim(obj_io_probes(i)%file)//'.txt'
 
-      ! Nomi delle variabili
+      ! Variable names
       string = ''
       probe(i)%nvar = 0
       call parse(obj_io_probes(i)%varnames, ' ', string)
@@ -75,12 +75,12 @@ contains
         probe(i)%names(ii) = trim(string(ii))
       end do
 
-      ! Frequenze di scrittura
+      ! Writing frequencies
       probe(i)%dtime = obj_io_probes(i)%dtime
       probe(i)%diter = obj_io_probes(i)%diter
       probe(i)%ntime = 1
 
-      ! Posizione — 3 componenti per ilocation, 2 per location
+      ! Position — 3 components for ilocation, 2 for location
       probe(i)%location%c = obj_io_probes(i)%loc
       probe(i)%ilocation  = obj_io_probes(i)%iloc
 
@@ -111,12 +111,12 @@ contains
   end subroutine Setup_Probes
 
 
-  !> Determina gli indici di cella della sonda a partire dalle coordinate (x, y).
+  !> Determines the probe cell indices from the (x, y) coordinates.
   subroutine Place ( self, domain )
     implicit none
     class(obj_probe_t)                 :: self
     type(Q2D_domain_type), intent(in)  :: domain
-    ! Variabili locali
+    ! Local variables
     integer  :: i, j, b
     real(R8) :: d0, d
 
@@ -141,7 +141,7 @@ contains
     implicit none
     type(obj_probe_t),     intent(inout), target :: probe_
     type(Q2D_domain_type), intent(in),    target :: domain
-    ! Variabili locali
+    ! Local variables
     integer :: v, s, b, i, j
 
     b = probe_%ilocation(1)
@@ -156,7 +156,7 @@ contains
         if (probe_%names(v) == 'rho('//trim(str(.true.,s))//')') &
           probe_%variables(v)%p => probe_%P(s)
       end do
-      ! Nessuna componente "w".
+      ! No "w" component.
       if (probe_%names(v) == 'u') probe_%variables(v)%p => probe_%P(nu)
       if (probe_%names(v) == 'v') probe_%variables(v)%p => probe_%P(nv)
       if (probe_%names(v) == 'p') probe_%variables(v)%p => probe_%P(np)
@@ -172,13 +172,13 @@ contains
     use FLINT_Lib_Thermodynamic, only: f_Rtot, f_ss, EOS
     implicit none
     class(obj_probe_t), intent(inout) :: self
-    ! Variabili locali
+    ! Local variables
     real(R8) :: Rtot, speed_of_sound
 
     Rtot = f_Rtot(self%P(1:nsc))
     speed_of_sound = f_ss(self%P(1:nsc), self%P(np), sum(self%P(1:nsc)), Rtot)
     self%T = EOS(p=self%P(np), rho=sum(self%P(1:nsc)), R=Rtot)
-    ! Mach dalle sole componenti di velocità (u, v); nessuna componente w.
+    ! Mach from the velocity components (u, v) only; no w component.
     self%M = norm2(self%P(nu:nv)) / speed_of_sound
 
   end subroutine Update
@@ -189,7 +189,7 @@ contains
     implicit none
     integer,  intent(in) :: iter
     real(R8), intent(in) :: time
-    ! Variabili locali
+    ! Local variables
     integer :: i, v
 
     do i = 1, nprobes

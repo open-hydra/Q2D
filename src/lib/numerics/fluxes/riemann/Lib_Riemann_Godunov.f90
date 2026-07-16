@@ -7,10 +7,10 @@ module Q2D_Lib_Riemann_Godunov
 
 contains
 
-  ! Solutore esatto di Godunov (invarianti di Riemann generalizzati, Glaister 1988):
-  ! l'energia del flusso usa H0 con il modulo completo della velocità
-  ! sqrt(uf**2+vf**2) (Glaister 1988 §3) tramite la routine di servizio `fluxes`,
-  ! non con la sola componente normale.
+  ! Exact Godunov solver (generalized Riemann invariants, Glaister 1988):
+  ! the flux energy uses H0 with the full velocity magnitude
+  ! sqrt(uf**2+vf**2) (Glaister 1988 §3) through the helper routine `fluxes`,
+  ! not with the normal component alone.
   subroutine riemann_exact(dl,ul,vl,p1,a1,dltot,dr,ur,vr,p4,a4,drtot,beta,nx,ny,F_r,F_u,F_v,F_E)
     use Q2D_Global_m, only: nsc
     use FLINT_Lib_Thermodynamic, only: f_Rtot, f_gamma
@@ -146,7 +146,7 @@ contains
 
     end if
 
-    ! H0 con modulo completo della velocità: H0(...,sqrt(uf**2+vf**2)) (Glaister 1988)
+    ! H0 with full velocity magnitude: H0(...,sqrt(uf**2+vf**2)) (Glaister 1988)
     call fluxes(pf,df,uf,vf,nx,ny,F_r,F_u,F_v,F_E)
 
   end subroutine riemann_exact

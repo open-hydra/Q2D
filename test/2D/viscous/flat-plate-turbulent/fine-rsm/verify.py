@@ -5,7 +5,7 @@ NASA Turbulence Modeling Resource (TMR) CFL3D solution for the SAME model
 (SSG/LRR-RSM-w2012 baseline), file reference/turb_contours_cfl3d_ssglrrrsm.dat
 (downloaded from the NASA TMR; variables x, z, R11, R22, R33, R13, omega).
 
-  Model identity verified (Sess 26) against the authoritative Eisfeld & Rumsey,
+  Model identity verified against the authoritative Eisfeld & Rumsey,
   "Length-Scale Correction for Reynolds-Stress Modeling", AIAA J. 2020, Appendix A
   Eqs 17-37 + Table 2: the Q2D implementation is the SSG/LRR-omega *baseline*
   (w2012); the w2019 length-scale correction is inactive on attached flows, so the

@@ -252,7 +252,7 @@ $R_{33}$ is **retained in every regime**: it is a non-zero normal stress
 fed by pressure-strain redistribution even where its direct production
 vanishes (hence "four-stress", not three).
 
-All three regimes share one structure (Appendix A; sympy §S2–S6): the
+All three regimes share one structure (Appendix A; sympy audit): the
 **same** SSG+LRR pressure-strain, dissipation and realizability *3×3*
 tensor algebra (§6.3); the **same** exact production (§6.2) fed a
 *block-diagonal* mean-velocity gradient whose only out-of-plane entry is
@@ -297,7 +297,7 @@ $$
 
 evaluated with the block-diagonal regime gradient.  The out-of-plane
 stress therefore acquires the **curvature/dilatation production** (sympy
-§S3)
+audit)
 
 $$
 \boxed{\;P_{33} = -2\rho R_{33}\,(\nabla\mathbf{U})_{33} =
@@ -364,7 +364,7 @@ $\omega_3 = \partial_x V - \partial_y U$ (azimuthal in 2D-axi), exactly the
     $a$, $S$, $W$.  Once those tensors carry the correct $33$-component per
     regime ($S_{33}=(\nabla\mathbf{U})_{33}$, $a_{33}=R_{33}/k-\tfrac23$,
     $W_{3\cdot}=0$), the same code evaluates them in every regime.  The
-    sympy audit (§S2, §S6) confirms this by reducing the full 3D operator
+    the sympy audit confirms this by reducing the full 3D operator
     and matching the plane restriction term-by-term.
 
 **Realizability** (applied after each update, regime-invariant): the
@@ -437,7 +437,7 @@ $$
 Production, pressure-strain and dissipation **never regenerate** the two
 dropped cross-stresses, so the five-equation system is closed.  Proved in
 Appendix A.6 from the regime mirror symmetry, and confirmed symbolically
-(sympy §S2: $\text{Source}_{5}=\text{Source}_{6}=0$ identically).
+(sympy audit: $\text{Source}_{5}=\text{Source}_{6}=0$ identically).
 
 ### 6.7 Wall, axis and symmetry boundary conditions
 
@@ -537,7 +537,7 @@ verified term-by-term by the SymPy reduction audit
     adversarial reviewer (the review arc is recorded in A.8): **(RSM
     theory)** the pressure-strain/$\omega$ closure and realizability;
     **(differential geometry)** the covariant transport of a rank-2 tensor
-    in cylindrical and depth-averaged metrics; **(Q2D peculiarità)** the
+    in cylindrical and depth-averaged metrics; **(Q2D geometry)** the
     No-$w$ reduction, the geometric sources and the $\mathbf{V}\!\cdot\!\mathbf{G}$
     Definition A; **(numerics/V&V)** stiffness, BC and NASA-TMR validation.
     Every contested term is refuted, then confirmed symbolically.
@@ -580,7 +580,7 @@ $$
 
 The lone out-of-plane entry is a *scalar* — exactly what `Strain_Tensor`'s
 $E_{33}$ already carries — so the stored $2\times2$ gradient never needs
-widening (Q2D peculiarità #1/#3).  This is the structural pivot: it makes
+widening.  This is the structural pivot: it makes
 the *production* and *pressure-strain* regime-correct through one scalar,
 and leaves only the *transport* (convection + diffusion) divergence to be
 projected per regime (A.3, A.5).
@@ -632,7 +632,7 @@ $$
 $$
 
 so the apparent source is the **pure scalar** $-\rho u_r R_{ij}/r$ per
-component — with **no inter-component Christoffel coupling** (sympy §S4).
+component — with **no inter-component Christoffel coupling** (sympy audit).
 
 !!! note "Contrast with the momentum equation (the reviewer's objection)"
 
@@ -646,7 +646,7 @@ component — with **no inter-component Christoffel coupling** (sympy §S4).
     $\rho\mathbf{U}\otimes\mathbf{R}$, whose $\theta$-component vanishes
     with $u_\theta$.  The sympy audit reproduces **both**: the RSM
     no-coupling result *and* the momentum $-\sigma_{\theta\theta}/r$
-    contrast (§S4).
+    contrast.
 
 The diffusive flux $\mathsf{D}^{(ij)}$ (a vector per component) divergence
 is identical scalar-type: $\tfrac1r\partial_r(r\,\mathsf{F}^{(ij)}_r)$ gives
@@ -659,7 +659,7 @@ velocity gradient $(\nabla\mathbf{U})_{\theta\theta}=u_r/r$ (the metric
 strain of azimuthal stretching, identical to $S_{\theta\theta}$), the exact
 production gives $P_{\theta\theta} = -2\rho R_{\theta\theta}\,u_r/r$ — the
 curvature production **emerges** from the projected gradient, not bolted on
-(sympy §S3).  At the axis $r\to0$, $u_r/r\to\partial_r u_r$ (de l'Hôpital,
+(sympy audit).  At the axis $r\to0$, $u_r/r\to\partial_r u_r$ (de l'Hôpital,
 $u_r$ odd), exactly the `Strain_Tensor_Axi` branch.
 
 ### A.4 The exact axisymmetric system (per component)
@@ -713,7 +713,7 @@ $$
 P_{33} = -2\rho R_{33}(\nabla\mathbf{U})_{33} = +2\rho R_{33}\,(\mathbf{V}\!\cdot\!\mathbf{G}),
 $$
 
-the depth-compression production of $\langle w'w'\rangle$ (sympy §S3, §S5).
+the depth-compression production of $\langle w'w'\rangle$ (sympy audit).
 
 !!! note "Well-posedness of the depth-averaged $\langle w'w'\rangle$ (honest scope)"
 
@@ -745,7 +745,7 @@ flipping the out-of-plane fluctuation:
 The cross-stresses $R_{13},R_{23}$ therefore vanish.  It remains to show
 they are **never regenerated**: with $R_{13}=R_{23}=0$ and the
 block-diagonal gradient, the source of the $13$ and $23$ equations is
-identically zero.  *Proof (term-by-term, sympy §S2).*  Production:
+identically zero.  *Proof (term-by-term, sympy audit).*  Production:
 $P_{13} = -\rho(R_{1k}G_{3k}+R_{3k}G_{1k})$; $G_{3k}=0$ except $k=3$ (and
 $R_{13}=0$), $R_{3k}=0$ except $k=3$ (and $G_{13}=0$), so $P_{13}=0$.
 Pressure-strain: $a_{13}=R_{13}/k=0$ kills $C_1$; $a_{1k}a_{k3}=0$ kills
@@ -760,7 +760,7 @@ the four-stress $+\,\omega$ system is **closed**. $\square$
 Setting $(\nabla\mathbf{U})_{33}=0$ and dropping the geometric sources, the
 reduced five-equation system is the 3D-Cartesian MOSE model restricted to
 $\partial_z(\cdot)=0$, $w=0$, $R_{13}=R_{23}=0$ — verified term-by-term
-(sympy §S6: the reduced sources equal MOSE's plane restriction).  $R_{33}$
+(sympy audit: the reduced sources equal MOSE's plane restriction).  $R_{33}$
 remains a transported variable: $P_{33}=0$ but the pressure-strain
 redistributes energy into it (it is **not** algebraically slaved).  This
 closes the loop demanded by the methodology — the projected forms reproduce
@@ -774,17 +774,17 @@ the MOSE code in the plane limit, and only there is MOSE used as a check.
    curvature source like the literature axisymmetric RSM."  *Resolution:*
    that term appears in formulations **with swirl or in a rotating frame**;
    for the inertial no-swirl reduction the convective transport has no
-   inter-component coupling (A.3, sympy §S4).  The curvature enters only
+   inter-component coupling (A.3, sympy audit).  The curvature enters only
    $P_{\theta\theta}$ (production) and the pressure-strain (through
    $S_{\theta\theta}$, $a_{\theta\theta}$) — confirmed.
 2. *Reviewer:* "dropping $R_{13},R_{23}$ may break the pressure-strain
    trace $a_{kl}a_{kl}$."  *Resolution:* the traces still run over the full
    $3\times3$; only the off-diagonal $a_{13},a_{23}$ are zero, which is
-   consistent (sympy §S2 keeps the full traces).
+   consistent (sympy audit keeps the full traces).
 3. *Reviewer:* "the depth-averaged $\langle w'w'\rangle$ is not rigorous."
    *Resolution:* conceded as a **leading-order** closure (A.5 note), with
    the same $O(\varepsilon^2)$ status as every Q2D turbulence quantity —
-   stated, not hidden (Legge #4).
+   stated, not hidden.
 4. *Reviewer:* "absolute vorticity in $C_5$ needs the frame term."
    *Resolution:* the in-plane vorticity entering $C_5$ is shifted to
    the absolute frame ($+2\boldsymbol\Omega$) whenever the rotating
@@ -795,11 +795,11 @@ the MOSE code in the plane limit, and only there is MOSE used as a check.
 |---|---|---|---|
 | A1 | $\boldsymbol\Pi,\boldsymbol\varepsilon$, realizability are frame-invariant $3\times3$ algebra | identity | §6.3, A.1 |
 | A2 | $\nabla\mathbf{U}$ block-diagonal; $(\nabla\mathbf{U})_{33}\in\{0,u_r/r,-\mathbf{V}\!\cdot\!\mathbf{G}\}$ | construction | A.1 |
-| A3 | axi convective transport: only $-\rho u_r R_{ij}/r$, no Christoffel coupling | **exact** | A.3, §S4 |
-| A4 | $P_{33} = -2\rho R_{33}(\nabla\mathbf{U})_{33}$ (curvature/dilatation) | identity | A.3–A.5, §S3 |
-| A5 | area-var geometric sources $+\rho R_{ij}(\mathbf{V}\!\cdot\!\mathbf{G})$, $-\mathsf{F}^{(ij)}\!\cdot\!\mathbf{G}$ | asymptotic (LO) | A.5, §S5 |
-| A6 | $R_{13}=R_{23}=0$ never regenerated ($\text{Source}_{13}\equiv\text{Source}_{23}\equiv0$) | **exact** | A.6, §S2 |
-| A7 | plane limit of the reduced system $=$ MOSE plane restriction | identity | A.7, §S6 |
+| A3 | axi convective transport: only $-\rho u_r R_{ij}/r$, no Christoffel coupling | **exact** | A.3 |
+| A4 | $P_{33} = -2\rho R_{33}(\nabla\mathbf{U})_{33}$ (curvature/dilatation) | identity | A.3–A.5 |
+| A5 | area-var geometric sources $+\rho R_{ij}(\mathbf{V}\!\cdot\!\mathbf{G})$, $-\mathsf{F}^{(ij)}\!\cdot\!\mathbf{G}$ | asymptotic (LO) | A.5 |
+| A6 | $R_{13}=R_{23}=0$ never regenerated ($\text{Source}_{13}\equiv\text{Source}_{23}\equiv0$) | **exact** | A.6 |
+| A7 | plane limit of the reduced system $=$ MOSE plane restriction | identity | A.7 |
 
 Assertions A3, A6, A7 are exact identities; A4 follows from the exact
 embedding; A5 is leading-order asymptotic (the only modelled step, A.5

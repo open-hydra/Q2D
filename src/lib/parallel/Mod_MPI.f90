@@ -1,11 +1,11 @@
-!>@brief Modulo di infrastruttura MPI per Q2D.
-!> Fornisce la gestione dell'ambiente MPI, il partizionamento dei blocchi e
-!> i wrapper delle riduzioni globali. Compilato senza USE_MPI, tutte le
-!> routine sono no-op o operazioni identità (fallback seriale).
+!>@brief MPI infrastructure module for Q2D.
+!> Provides MPI environment management, block partitioning and
+!> the global-reduction wrappers. Compiled without USE_MPI, all
+!> routines are no-ops or identity operations (serial fallback).
 !>
-!> L'infrastruttura MPI è indipendente dalla dimensionalità del solutore.
-!> Le procedure pubbliche sono sotto `#ifdef USE_MPI` con fallback identità
-!> nel ramo #else.
+!> The MPI infrastructure is independent of the solver dimensionality.
+!> The public procedures are under `#ifdef USE_MPI` with identity fallback
+!> in the #else branch.
 module Q2D_Mod_MPI
 #ifdef USE_MPI
   use mpi
@@ -16,16 +16,16 @@ module Q2D_Mod_MPI
   private
 
   ! --- Stato pubblico ---
-  integer, public :: mpi_rank_ = 0         !< Rank di questo processo (0 in seriale)
-  integer, public :: mpi_size_ = 1         !< Numero totale di processi MPI
-  logical, public :: mpi_is_root = .true.  !< Vero su rank 0
+  integer, public :: mpi_rank_ = 0         !< Rank of this process (0 in serial)
+  integer, public :: mpi_size_ = 1         !< Total number of MPI processes
+  logical, public :: mpi_is_root = .true.  !< True on rank 0
 
-  ! --- Mappa blocco → rank ---
-  integer, allocatable, public :: block_owner(:)     !< block_owner(b) = rank proprietario del blocco b
-  integer, allocatable, public :: local_block_ids(:) !< ID globali dei blocchi posseduti da questo rank
+  ! --- Block → rank map ---
+  integer, allocatable, public :: block_owner(:)     !< block_owner(b) = owner rank of block b
+  integer, allocatable, public :: local_block_ids(:) !< Global IDs of the blocks owned by this rank
   integer, public :: n_local_blocks = 0
 
-  ! --- Procedure pubbliche ---
+  ! --- Public procedures ---
   public :: mpi_init_env, mpi_finalize_env
   public :: is_local_block
   public :: partition_blocks
@@ -40,8 +40,8 @@ module Q2D_Mod_MPI
 contains
 
 
-  !> Inizializza l'ambiente MPI con supporto ai thread. Da chiamare all'inizio del main.
-  !> Usa MPI_THREAD_FUNNELED: solo il thread master effettua chiamate MPI.
+  !> Initializes the MPI environment with threading support. To be called at the start of main.
+  !> Uses MPI_THREAD_FUNNELED: only the master thread makes MPI calls.
   subroutine mpi_init_env()
 #ifdef USE_MPI
     integer :: ierr, provided
@@ -69,7 +69,7 @@ contains
   end subroutine mpi_init_env
 
 
-  !> Finalizza l'ambiente MPI. Da chiamare alla fine del main.
+  !> Finalizes the MPI environment. To be called at the end of main.
   subroutine mpi_finalize_env()
 #ifdef USE_MPI
     integer :: ierr
@@ -79,24 +79,24 @@ contains
   end subroutine mpi_finalize_env
 
 
-  !> Verifica se il blocco b è posseduto da questo rank.
+  !> Checks whether block b is owned by this rank.
   logical function is_local_block(b)
     integer, intent(in) :: b
 
     if (.not. allocated(block_owner)) then
-      is_local_block = .true.  ! modalità seriale o partizionamento non ancora eseguito
+      is_local_block = .true.  ! serial mode or partitioning not yet performed
       return
     end if
     is_local_block = (block_owner(b) == mpi_rank_)
   end function is_local_block
 
 
-  !> Partiziona nb blocchi tra i rank MPI con bilanciamento di carico greedy.
-  !> blk_ncells(b) = numero totale di celle del blocco b.
+  !> Partitions nb blocks among the MPI ranks with greedy load balancing.
+  !> blk_ncells(b) = total number of cells of block b.
   subroutine partition_blocks(nb, blk_ncells)
     integer, intent(in) :: nb
     integer, intent(in) :: blk_ncells(nb)
-    ! Variabili locali
+    ! Local variables
     integer :: b, r, nloc
     integer, allocatable :: rank_load(:)
 
@@ -106,15 +106,15 @@ contains
     allocate(rank_load(0:mpi_size_-1))
     rank_load = 0
 
-    ! Greedy: assegna ogni blocco al rank con il carico minore
+    ! Greedy: assign each block to the rank with the smallest load
     r = 0
     do b = 1, nb
-      r = minloc(rank_load, dim=1) - 1   ! rank con carico minimo (indicizzato da 0)
+      r = minloc(rank_load, dim=1) - 1   ! rank with minimum load (0-based)
       block_owner(b) = r
       rank_load(r) = rank_load(r) + blk_ncells(b)
     end do
 
-    ! Costruisce la lista dei blocchi locali
+    ! Build the list of local blocks
     nloc = count(block_owner == mpi_rank_)
     n_local_blocks = nloc
     if (allocated(local_block_ids)) deallocate(local_block_ids)
@@ -131,7 +131,7 @@ contains
   end subroutine partition_blocks
 
 
-  !> MPI_ALLREDUCE con MPI_SUM per uno scalare real(R8).
+  !> MPI_ALLREDUCE with MPI_SUM for a real(R8) scalar.
   subroutine mpi_allreduce_sum_r8(local_val, global_val)
     real(R8), intent(in)  :: local_val
     real(R8), intent(out) :: global_val
@@ -145,7 +145,7 @@ contains
   end subroutine mpi_allreduce_sum_r8
 
 
-  !> MPI_ALLREDUCE con MPI_MIN per uno scalare real(R8).
+  !> MPI_ALLREDUCE with MPI_MIN for a real(R8) scalar.
   subroutine mpi_allreduce_min_r8(local_val, global_val)
     real(R8), intent(in)  :: local_val
     real(R8), intent(out) :: global_val
@@ -159,8 +159,8 @@ contains
   end subroutine mpi_allreduce_min_r8
 
 
-  !> MPI_ALLREDUCE con MPI_SUM per un array di real(R8).
-  !> Opera in-place: arr è sovrascritto con il risultato globale.
+  !> MPI_ALLREDUCE with MPI_SUM for a real(R8) array.
+  !> Operates in-place: arr is overwritten with the global result.
   subroutine mpi_allreduce_sum_r8_array(arr, n)
     integer, intent(in)     :: n
     real(R8), intent(inout) :: arr(n)
@@ -172,7 +172,7 @@ contains
   end subroutine mpi_allreduce_sum_r8_array
 
 
-  !> Norma L2 distribuita: somma locale dei quadrati + MPI_ALLREDUCE SUM + sqrt.
+  !> Distributed L2 norm: local sum of squares + MPI_ALLREDUCE SUM + sqrt.
   function mpi_allreduce_norm2(x, n) result(global_norm)
     integer, intent(in) :: n
     real(R8), intent(in) :: x(n)
@@ -189,7 +189,7 @@ contains
   end function mpi_allreduce_norm2
 
 
-  !> MPI_REDUCE con MPI_SUM per uno scalare real(R8) verso il root (rank 0).
+  !> MPI_REDUCE with MPI_SUM for a real(R8) scalar toward the root (rank 0).
   subroutine mpi_reduce_sum_r8(val)
     real(R8), intent(inout) :: val
 #ifdef USE_MPI
@@ -204,9 +204,9 @@ contains
   end subroutine mpi_reduce_sum_r8
 
 
-  !> MPI_REDUCE con MPI_SUM per un array di real(R8) verso il root (rank 0).
-  !> Il risultato è valido solo su root. Più efficiente di ALLREDUCE quando
-  !> solo root necessita del risultato (es. per l'output dei residui).
+  !> MPI_REDUCE with MPI_SUM for a real(R8) array toward the root (rank 0).
+  !> The result is valid only on root. More efficient than ALLREDUCE when
+  !> only root needs the result (e.g. for residual output).
   subroutine mpi_reduce_sum_r8_array(arr, n)
     integer, intent(in)     :: n
     real(R8), intent(inout) :: arr(n)
@@ -222,7 +222,7 @@ contains
   end subroutine mpi_reduce_sum_r8_array
 
 
-  !> Trasmette un valore logico da root (rank 0) a tutti i rank.
+  !> Broadcasts a logical value from root (rank 0) to all ranks.
   subroutine mpi_bcast_logical(val)
     logical, intent(inout) :: val
 #ifdef USE_MPI
@@ -233,7 +233,7 @@ contains
   end subroutine mpi_bcast_logical
 
 
-  !> Trasmette un valore intero da root (rank 0) a tutti i rank.
+  !> Broadcasts an integer value from root (rank 0) to all ranks.
   subroutine mpi_bcast_integer(val)
     integer, intent(inout) :: val
 #ifdef USE_MPI
@@ -244,7 +244,7 @@ contains
   end subroutine mpi_bcast_integer
 
 
-  !> Controlla il codice di ritorno MPI. In caso di errore abortisce tutti i rank.
+  !> Checks the MPI return code. On error, aborts all ranks.
   subroutine check_mpi_error(ierr)
     integer, intent(in) :: ierr
 #ifdef USE_MPI
@@ -257,7 +257,7 @@ contains
   end subroutine check_mpi_error
 
 
-  !> Abort consapevole di MPI: stampa il messaggio, poi abortisce tutti i rank.
+  !> MPI-aware abort: prints the message, then aborts all ranks.
   subroutine mpi_abort_all(message)
     character(len=*), intent(in) :: message
 #ifdef USE_MPI

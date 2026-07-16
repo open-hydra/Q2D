@@ -1,14 +1,14 @@
 module Q2D_Lib_BC_Fluxes_Manifold
-  ! BC 501, connessione manifold a flusso medio:
-  ! integra le proprietà medie (T0, flusso di massa, p_static) di un blocco
-  ! "Slave" connesso a una faccia del blocco "Master" attraverso una superficie
-  ! potenzialmente non conforme (area_M ≠ area_S).
+  ! BC 501, mean-flow manifold connection:
+  ! integrates the mean properties (T0, mass flux, p_static) of a "Slave"
+  ! block connected to a face of the "Master" block through a potentially
+  ! non-conforming surface (area_M ≠ area_S).
   !
-  ! Riduzione 2D rigorosa (nessuna componente fuori piano w):
-  !   * il dispatch sulle facce copre le sole 4 facce 2D (nessuna faccia k).
-  !   * nessun loop sul terzo indice (`dim(3)` non esiste).
-  !   * int_l è la lunghezza della faccia 2D (analogo dell'area 3D).
-  !   * velocità nel solo piano: norm2(meancons_S(nu:nv)).
+  ! Strict 2D reduction (no out-of-plane component w):
+  !   * the face dispatch covers only the 4 2D faces (no k face).
+  !   * no loop over the third index (`dim(3)` does not exist).
+  !   * int_l is the length of the 2D face (analogue of the 3D area).
+  !   * velocity in-plane only: norm2(meancons_S(nu:nv)).
   use iso_fortran_env,            only: I4 => int32, R8 => real64
   use Q2D_Advanced_Types_m,       only: Q2D_block_type
   use Q2D_Global_m,               only: nsc, nu, nv, np, nt, nprim
@@ -29,7 +29,7 @@ contains
     type(Q2D_block_type), intent(in) :: Blkm, Blks
     integer,  intent(in)  :: Fm, Fs
     real(R8), intent(out) :: T0, g, pstat
-    ! Variabili locali
+    ! Local variables
     integer  :: im_min, jm_min, im_max, jm_max, dirm
     integer  :: is_min, js_min, is_max, js_max, dirs
     integer  :: im, jm, is, js, Face_i, Face_j
@@ -38,7 +38,7 @@ contains
     real(R8) :: rho, Rgas, v, T, Tdiff, cp
     integer  :: T_i, Tint(2)
 
-    ! Calcolo della lunghezza della faccia del blocco locale (Master)
+    ! Compute the face length of the local (Master) block
     im_min = 1
     jm_min = 1
     im_max = Blkm % dim(1)
@@ -69,7 +69,7 @@ contains
 
     enddo; enddo
 
-    ! Calcolo delle proprietà medie del blocco connesso (Slave)
+    ! Compute the mean properties of the connected (Slave) block
     is_min = 1
     js_min = 1
     is_max = Blks % dim(1)
@@ -103,7 +103,7 @@ contains
 
       meancons = meancons + cons
 
-      ! Stima iniziale di temperatura per cons2prim
+      ! Initial temperature guess for cons2prim
       call co_rotot_Rtot ( Blks % P(1,is,js), rho, Rgas )
       Trozza = Blks % P(np,is,js) / ( rho * Rgas ) * int_l
       meanTrozza = meanTrozza + Trozza
@@ -114,10 +114,10 @@ contains
     meancons_S   = meancons   / area_S
     meanprim_S   = cons2prim ( meancons_S, meanTrozza_S )
 
-    ! Flusso di massa
+    ! Mass flux
     g = norm2(meancons_S(nu:nv)) * area_S / area_M
 
-    ! Temperatura totale
+    ! Total temperature
     v = norm2(meanprim_S (nu:nv))
     call co_rotot_Rtot ( meanprim_S(1), rho, Rgas )
     T = meanprim_S(np) / (rho * Rgas)
@@ -130,7 +130,7 @@ contains
     cp = f_tabT_expr(1, cp_tab, Tint, Tdiff)
     T0 = T + 0.5d0 * v**2 / cp
 
-    ! Pressione statica
+    ! Static pressure
     pstat = meanprim_S (np)
 
   end subroutine BC_Manifold

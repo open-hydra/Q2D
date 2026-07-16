@@ -101,7 +101,7 @@ contains
 
     Gradient ( nu:nv ) = ( Prim2 ( nu:nv ) - Prim1 ( nu:nv ) + Prim4 ( nu:nv ) - Prim3 ( nu:nv ) ) * 0.25d0
 
-    ! Riempie l'intera banda degli scalari oltre la pressione (soot+passivi+RANS).
+    ! Fills the whole band of transported scalars beyond the pressure (soot+passives+RANS).
     if (nprim>np) then
       Gradient ( np+1:nprim ) = ( Prim2 ( np+1:nprim ) / rho2 - Prim1 ( np+1:nprim ) / rho1 + &
                                   Prim4 ( np+1:nprim ) / rho4 - Prim3 ( np+1:nprim ) / rho3 ) * 0.25d0
@@ -112,10 +112,10 @@ contains
 
   subroutine Compute_Diffusive_Flux ( Prim, Gradient, int_l, normal, waldis, r_ave, Flux, &
                                       Sc, Sct, Prt, soot_enabled, V_dot_G )
-    ! Sc, Sct, Prt, soot_enabled sono passati come parametri espliciti.
-    ! `r_ave`: raggio medio di faccia (assialsimmetria); `V_dot_G` (opzionale):
-    ! termine geometrico mediato sulla faccia.
-    ! `int_l` è la lunghezza dell'interfaccia (analogo 2D dell'area di faccia 3D).
+    ! Sc, Sct, Prt, soot_enabled are passed as explicit parameters.
+    ! `r_ave`: face-average radius (axisymmetry); `V_dot_G` (optional):
+    ! face-averaged geometric term.
+    ! `int_l` is the interface length (2D analogue of the 3D face area).
     use Q2D_Global_m,            only: nu, nv, np, nt, nsc, nprim, model
     use Q2D_Lib_Fluid,           only: Stress_Vector
     use Q2D_Lib_RANS,            only: Eddy_Viscosity, RANS_Diffusive_Flux
@@ -160,9 +160,9 @@ contains
 
     DiffHFlux = 0.d0
     h_mix     = 0.d0
-    Flux      = 0.d0   ! pre-azzeramento completo: la banda soot/passivi np+1:nt-1
-                       ! (e quella RANS quando model/=2) contribuisce 0 a Res,
-                       ! evitando valori indefiniti.
+    Flux      = 0.d0   ! full pre-zeroing: the soot/passives band np+1:nt-1
+                       ! (and the RANS one when model/=2) contributes 0 to Res,
+                       ! avoiding undefined values.
 
     do s = 1, nsc
       DmGradYi(s) = Dm(s) * dot_product ( Gradient(s,:), normal )
@@ -189,8 +189,8 @@ contains
                                  vr=Prim(nv), r_ave=r_ave, dist=waldis, mut=mie )
     end if
 
-    ! Flussi diffusivi del soot (termoforesi) via Q2D_Mod_Soot::Soot_Diffusive_Flux;
-    ! attivazione governata dal parametro `soot_enabled`.
+    ! Soot diffusive fluxes (thermophoresis) via Q2D_Mod_Soot::Soot_Diffusive_Flux;
+    ! activation governed by the `soot_enabled` parameter.
     if (soot_enabled) then
       call Soot_Diffusive_Flux ( flux=Flux, prim=Prim, T_gradient=Gradient(np,:), &
                                  mu=mil+mie, rho=rho, T=T, int_l=int_l, normal=normal )

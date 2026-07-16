@@ -127,16 +127,16 @@ contains
 
 
   subroutine SSGLRR_Blk ( Prim, Res, M, sur, WDist, r, n, geom_x, geom_y )
-    ! Loop di blocco 2D. sur è l'analogo 2D del volume di cella 3D.
-    ! Il gradiente di velocità diagonale a blocchi si costruisce dal gradiente
-    ! 2x2 memorizzato più la deformazione fuori piano di regime S_33 fornita da
-    ! Strain_Tensor_Std/_Axi (0 / u_r/r con de l'Hopital / -V·G Definizione A).
-    ! Produzione, pressure-strain, dissipazione e sorgente di omega sono
-    ! l'algebra 3x3 completa del modello valutata sulle 5 variabili mantenute;
-    ! gli sforzi incrociati R13,R23 sono identicamente nulli e mai rigenerati
-    ! (riduzione 7->5, Appendice A.6), quindi si assemblano solo 5 residui.
-    ! Le sorgenti geometriche convettive/diffusive sono aggiunte a parte dal
-    ! cablaggio Source_Axi/Area_{Eul,Visc}_Blk (teoria §6.1).
+    ! 2D block loop. sur is the 2D analogue of the 3D cell volume.
+    ! The block-diagonal velocity gradient is built from the stored 2x2
+    ! gradient plus the regime out-of-plane strain S_33 supplied by
+    ! Strain_Tensor_Std/_Axi (0 / u_r/r with de l'Hopital / -V·G Definition A).
+    ! Production, pressure-strain, dissipation and the omega source are
+    ! the full 3x3 model algebra evaluated on the 5 retained variables;
+    ! the cross stresses R13,R23 are identically zero and never regenerated
+    ! (7->5 reduction, Appendix A.6), so only 5 residuals are assembled.
+    ! The convective/diffusive geometric sources are added separately by the
+    ! Source_Axi/Area_{Eul,Visc}_Blk wiring (theory §6.1).
     use Q2D_Base_Types_m,        only: Q2D_tensor_2D_type, Q2D_vector_2D_type
     use Q2D_Global_m,            only: nprim, nsc, nu, nv, np, nt, gc
     use Q2D_Config_Types_m,      only: obj_rot
@@ -172,7 +172,7 @@ contains
 
       r_ave = 0.25d0 * ( r(i,j)%c(2) + r(i-1,j)%c(2) + r(i,j-1)%c(2) + r(i-1,j-1)%c(2) )
 
-      ! Variabili locali (var(1:4)=rho*Rij, var(5)=rho*omega; R13=R23 eliminati)
+      ! Local variables (var(1:4)=rho*Rij, var(5)=rho*omega; R13=R23 eliminated)
       call Co_rotot_Rtot ( Prim(1:nsc,i,j), rho, Rgas )
       mil = f_laminarViscosity ( Prim(1:nsc,i,j), Prim(np,i,j), rho, Rgas )
       rhoRij(1,1) = Prim(nt  ,i,j)
@@ -180,22 +180,22 @@ contains
       rhoRij(3,3) = Prim(nt+2,i,j)
       rhoRij(1,2) = Prim(nt+3,i,j)
       rhoRij(2,1) = rhoRij(1,2)
-      rhoRij(1,3) = 0d0 ; rhoRij(3,1) = 0d0   ! R13 eliminato (simmetria speculare di regime)
-      rhoRij(2,3) = 0d0 ; rhoRij(3,2) = 0d0   ! R23 eliminato
+      rhoRij(1,3) = 0d0 ; rhoRij(3,1) = 0d0   ! R13 eliminated (regime mirror symmetry)
+      rhoRij(2,3) = 0d0 ; rhoRij(3,2) = 0d0   ! R23 eliminated
       omega = Prim(nt+4,i,j) / rho
       kappa = 0.5d0 * ( rhoRij(1,1) + rhoRij(2,2) + rhoRij(3,3) ) / rho
       rhoe = rho * C_mu * kappa * omega
       dist = WDist(i,j)
 
-      ! Gradiente di velocità nel piano d u_a / d x_b (a,b in {1,2})
+      ! In-plane velocity gradient d u_a / d x_b (a,b in {1,2})
       Gradvel(:,1) = ( Prim(nu:nv,i+1,j) - Prim(nu:nv,i-1,j) ) * 0.5d0
       Gradvel(:,2) = ( Prim(nu:nv,i,j+1) - Prim(nu:nv,i,j-1) ) * 0.5d0
       Gradvel = Matmul ( Gradvel, M(i,j) % c )
 
-      ! Definizione A di Q2D: V·G al centro cella -> Strain_Tensor S_33 = -V·G (variazione d'area).
+      ! Q2D Definition A: V·G at cell center -> Strain_Tensor S_33 = -V·G (area variation).
       V_dot_G = Prim(nu,i,j)*geom_x(i,j) + Prim(nv,i,j)*geom_y(i,j)
 
-      ! Gradiente di (R11,R22,R33,R12,omega) e di k = 0.5(R11+R22+R33).
+      ! Gradient of (R11,R22,R33,R12,omega) and of k = 0.5(R11+R22+R33).
       Grad(:,1) = ( Prim(nt:nt+4,i+1,j) / sum( Prim(1:nsc,i+1,j) ) - &
                     Prim(nt:nt+4,i-1,j) / sum( Prim(1:nsc,i-1,j) ) ) * 0.5d0
       Grad(:,2) = ( Prim(nt:nt+4,i,j+1) / sum( Prim(1:nsc,i,j+1) ) - &
@@ -203,8 +203,8 @@ contains
       Grad = Matmul ( Grad, M(i,j) % c )
       gradk = 0.5d0 * ( Grad(1,:) + Grad(2,:) + Grad(3,:) )
 
-      ! Gradiente di velocità media diagonale a blocchi (Appendice A.1):
-      ! (grad U)_33 = S_33 da Strain_Tensor (procedure pointer _Std/_Axi -> 0 / vr/r / -V·G).
+      ! Block-diagonal mean velocity gradient (Appendix A.1):
+      ! (grad U)_33 = S_33 from Strain_Tensor (procedure pointer _Std/_Axi -> 0 / vr/r / -V·G).
       Sij = Strain_Tensor ( Gradvel, Prim(nv,i,j), r_ave, V_dot_G=V_dot_G )
       Gradvel3 = 0d0
       Gradvel3(1:2,1:2) = Gradvel
@@ -212,12 +212,12 @@ contains
       Divel = Gradvel3(1,1) + Gradvel3(2,2) + Gradvel3(3,3)
       Sij_star = Sij - 1d0/3d0 * Divel * deltaij
 
-      ! Vorticità nel piano (sopravvive solo omega_3 = dv/dx - du/dy), assi assoluti.
+      ! In-plane vorticity (only omega_3 = dv/dx - du/dy survives), absolute axes.
       omega_w = Vorticity_Vector ( Gradvel )
       if (obj_rot%enabled) omega_w = omega_w + 2.0_R8 * obj_rot%Omega_vec
       Wij = Vorticity_Tensor ( omega_w )
 
-      ! Blending dei coefficienti (F1 -> 1 a parete, -> 0 in corrente libera)
+      ! Coefficient blending (F1 -> 1 at the wall, -> 0 in the free stream)
       F1 = compute_F1 ( rho=rho, w=omega, k=kappa, mil=mil, gradw=Grad(5,:), gradk=gradk, d=dist )
       F2 = 1d0 - F1
       alphaw = F1*alphaw_w + F2*alphaw_e
@@ -231,7 +231,7 @@ contains
       C1star = F1*C1star_w + F2*C1star_e
       C3star = F1*C3star_w + F2*C3star_e
 
-      ! Produzione rho*P_ij = -rho(R_ik d_k U_j + R_jk d_k U_i), gradiente diagonale a blocchi.
+      ! Production rho*P_ij = -rho(R_ik d_k U_j + R_jk d_k U_i), block-diagonal gradient.
       rhoP = 0d0
       do ii = 1, 3
       do jj = 1, 3
@@ -249,18 +249,18 @@ contains
       enddo
       rhoP = -rhoP
 
-      ! Dissipazione (isotropa)
+      ! Dissipation (isotropic)
       rhoeij = 2d0/3d0 * rhoe * deltaij
 
-      ! Correlazione pressure-strain (parte lenta SSG + parte rapida LRR). Tracce complete 3x3.
+      ! Pressure-strain correlation (SSG slow part + LRR rapid part). Full 3x3 traces.
       aij = rhoRij/(rho*kappa) - 2d0/3d0 * deltaij
       aklakl = Sum (aij*aij)
 
-      ! Termine C1
+      ! C1 term
       rhoPkk = rhoP(1,1) + rhoP(2,2) + rhoP(3,3)
       C1_term = -( C1*rhoe + 0.5d0*C1star*rhoPkk )*aij
 
-      ! Termine C2
+      ! C2 term
       aikakj = 0d0
       do ii = 1, 3
       do jj = 1, 3
@@ -271,10 +271,10 @@ contains
       enddo
       C2_term = C2*rhoe * ( aikakj - 1d0/3d0*aklakl*deltaij )
 
-      ! Termine C3
+      ! C3 term
       C3_term = ( C3 - C3star * Sqrt( aklakl ) ) * rho*kappa*Sij_star
 
-      ! Termine C4
+      ! C4 term
       C4_term = 0d0
       aklSkl = Sum ( aij*Sij )
       do ii = 1, 3
@@ -294,7 +294,7 @@ contains
       C4_term = C4_term - 2d0/3d0*aklSkl*deltaij
       C4_term = C4*rho*kappa * C4_term
 
-      ! Termine C5
+      ! C5 term
       C5_term = 0d0
       do ii = 1, 3
       do jj = 1, 3
@@ -314,36 +314,36 @@ contains
 
       rhoPI = C1_term + C2_term + C3_term + C4_term + C5_term
 
-      ! Diffusione incrociata di omega
+      ! Cross-diffusion of omega
       Diff = sigmad * rho/omega * Max( Dot_Product ( gradk, Grad(5,:) ), 0d0 )
 
-      ! Termini sorgente (5 mantenuti: R11,R22,R33,R12,omega). Source(13)=Source(23)=0
-      ! identicamente (riduzione 7->5, Appendice A.6), quindi non vengono assemblati.
+      ! Source terms (5 retained: R11,R22,R33,R12,omega). Source(13)=Source(23)=0
+      ! identically (7->5 reduction, Appendix A.6), so they are not assembled.
       Source(1) = rhoP(1,1) + rhoPI(1,1) - rhoeij(1,1)
       Source(2) = rhoP(2,2) + rhoPI(2,2) - rhoeij(2,2)
       Source(3) = rhoP(3,3) + rhoPI(3,3) - rhoeij(3,3)
       Source(4) = rhoP(1,2) + rhoPI(1,2) - rhoeij(1,2)
       Source(5) = alphaw*omega/kappa*0.5d0*rhoPkk - betaw*rho*omega**2 + Diff
 
-      ! ── Sistema rotante: produzione di Coriolis (rotazionale) esatta ───────
-      ! In un sistema rotante a Omega = (0,0,Oz) costante l'equazione di
-      ! trasporto dei momenti secondi contiene il termine ESATTO (senza chiusura)
+      ! ── Rotating frame: exact Coriolis (rotational) production ─────────────
+      ! In a frame rotating at constant Omega = (0,0,Oz) the second-moment
+      ! transport equation contains the EXACT term (no closure)
       !   G_ij = -2 Omega_k ( eps_ikl R_lj + eps_jkl R_li ),
-      ! ottenuto prendendo i momenti dell'equazione della quantità di moto
-      ! fluttuante, la cui accelerazione di Coriolis è -2 eps_ikl Omega_k u'_l.
-      ! È a traccia nulla (G_kk = 0: il contenuto di k e la riga di omega non
-      ! sono toccati) e NON è assorbibile nella produzione costruita dai
-      ! gradienti relativi: P(grad_abs) - P(grad_rel) = G/2 esattamente, quindi
-      ! G va aggiunto in forma esplicita. Coesiste senza doppi conteggi con la
-      ! traslazione W_abs nel pressure-strain rapido C5 qui sopra (forma non
-      ! inerziale di Speziale-Sarkar-Gatski 1991).
-      ! Con asse [0,0,1] (vincolo imposto da Setup_RotatingFrame) e R13 = R23 = 0:
+      ! obtained by taking the moments of the fluctuating-momentum equation,
+      ! whose Coriolis acceleration is -2 eps_ikl Omega_k u'_l.
+      ! It is traceless (G_kk = 0: the k content and the omega row are not
+      ! touched) and is NOT absorbable into the production built from the
+      ! relative gradients: P(grad_abs) - P(grad_rel) = G/2 exactly, so
+      ! G must be added explicitly. It coexists without double counting with the
+      ! W_abs shift in the rapid pressure-strain C5 above (non-inertial
+      ! form of Speziale-Sarkar-Gatski 1991).
+      ! With axis [0,0,1] (constraint imposed by Setup_RotatingFrame) and R13 = R23 = 0:
       !   G11 = +4 Oz R12,  G22 = -4 Oz R12,  G33 = 0,  G12 = 2 Oz (R22 - R11),
-      !   G13 = G23 = 0  -> la riduzione 7->5 resta chiusa anche in rotazione.
-      ! Invarianza di sistema: con G la soluzione in assi rotanti coincide con
-      ! la soluzione inerziale ruotata; senza G resta un errore O(1)
-      ! indipendente dal passo temporale. Regressione a livello solutore:
-      ! il caso V&V rotating-channel-rsm.
+      !   G13 = G23 = 0  -> the 7->5 reduction stays closed also under rotation.
+      ! Frame invariance: with G the solution in rotating axes coincides with
+      ! the rotated inertial solution; without G an O(1) error remains,
+      ! independent of the time step. Solver-level regression:
+      ! the V&V case rotating-channel-rsm.
       if (obj_rot%enabled) then
         Source(1) = Source(1) + 4d0*obj_rot%Omega_vec(3)*rhoRij(1,2)
         Source(2) = Source(2) - 4d0*obj_rot%Omega_vec(3)*rhoRij(1,2)
@@ -465,7 +465,7 @@ contains
 
 
   subroutine SSGLRR_Source_Diffusive_Q2D ( source, var, mi_l, mut, Gradvel, Grad, rho, dist )
-    ! Q2D-extra: GGDH diffusive flux components projected onto the geometry by
+    ! GGDH diffusive flux components projected onto the geometry by
     ! Source_Axi_Visc_Blk (+F_r/r) and Source_Area_Visc_Blk (-F·G). Returns
     ! source(i,d) = F^(i)_d (flux of variable i in direction d, no normal/int_l).
     ! Mirrors SSGLRR_RANS_Diffusive_Flux (std GGDH); the "-SD" geometric variant

@@ -5,7 +5,7 @@
 #
 #         USAGE: run "./Q2D.sh [options] {solve|test|kill}" in the current shell
 #
-#   DESCRIPTION: Compile/run script for the Sod79 1D test case (Q2D_new).
+#   DESCRIPTION: Compile/run script for the Ein91 1D test case.
 #===============================================================================
 
 function print_usage {

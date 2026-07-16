@@ -1,8 +1,8 @@
-!>@brief Driver multigrid 2D:
-!>       Setup_Multigrid alloca i blocchi coarse simulation%domain(2..MGL),
-!>       chiama Coarse_Grid/Coarse_IOfield e popola la mesh IOfield con un
-!>       doppio ciclo (i, j);
-!>       Restriction/Prolongation iterano sui blocchi con gating MPI
+!>@brief 2D multigrid driver:
+!>       Setup_Multigrid allocates the coarse blocks simulation%domain(2..MGL),
+!>       calls Coarse_Grid/Coarse_IOfield and populates the IOfield mesh with a
+!>       double loop (i, j);
+!>       Restriction/Prolongation iterate over the blocks with MPI gating
 !>       (is_local_block).
 module Q2D_Mod_Multigrid
   use Q2D_Advanced_Types_m, only: Q2D_domain_type, Q2D_simulation_type
@@ -23,7 +23,7 @@ contains
     use Q2D_Mod_Allocate_Data, only: Allocate_Block
     implicit none
     type(Q2D_simulation_type), intent(inout) :: simulation
-    ! Variabili locali
+    ! Local variables
     integer :: b, m, i, j, nb, rap
 
     call Check_Multigrid(simulation%domain(1))
@@ -44,17 +44,17 @@ contains
 
       call Coarse_Grid(simulation%domain(m-1), simulation%domain(m))
 
-      ! Restrizione di Cross_Section fine→coarse (sotto-campionamento nodale,
-      ! speculare a Coarse_Grid_Blk per node%c). Necessaria per MGL>1: senza,
-      ! la Cross_Section dei livelli coarse resterebbe non inizializzata.
+      ! Fine→coarse restriction of Cross_Section (nodal sub-sampling,
+      ! mirrors Coarse_Grid_Blk for node%c). Required for MGL>1: without it,
+      ! the Cross_Section of the coarse levels would stay uninitialized.
       if (obj_source%area_variation) &
         call Coarse_Cross_Section(simulation%domain(m-1), simulation%domain(m))
 
       call Coarse_IOfield(simulation%IOfield(m-1), simulation%IOfield(m))
 
-      ! Popola la mesh IOfield dai Node%c coarse (ciclo 2D, nessun indice k).
-      ! Mesh ORION mesh(coord, i, j, k) rank-4 con placeholder k=0; Q2D_vector_2D_type%c
-      ! ha 2 componenti (1:2), la terza coordinata mesh(3,...) resta 0.
+      ! Populate the IOfield mesh from the coarse Node%c (2D loop, no k index).
+      ! ORION mesh mesh(coord, i, j, k) rank-4 with placeholder k=0; Q2D_vector_2D_type%c
+      ! has 2 components (1:2), the third coordinate mesh(3,...) stays 0.
       do b = 1, nb
         do j = 0, simulation%domain(m)%blk(b)%dim(2)
         do i = 0, simulation%domain(m)%blk(b)%dim(1)
@@ -65,7 +65,7 @@ contains
 
     end do
 
-    ! Legge il numero di iterazioni per ciascun dominio.
+    ! Reads the number of iterations for each domain.
     do m = 1, obj_multigrid%MGL
       simulation%domain(m)%itermax = obj_multigrid%iter_threshold(m)
     end do
@@ -78,13 +78,13 @@ contains
     use Q2D_Mod_MPI,       only: is_local_block
     implicit none
     type(Q2D_domain_type), intent(inout) :: Fine, Coarse
-    ! Variabili locali
+    ! Local variables
     integer :: b
 
-    do b = 1, Coarse%nb ! Ciclo sui blocchi
+    do b = 1, Coarse%nb ! Loop over the blocks
       if (.not. is_local_block(b)) cycle
-      ! Restrizione pesata sulla superficie di cella 'sur' (in 2D svolge il ruolo
-      ! del volume).
+      ! Restriction weighted by the cell surface 'sur' (in 2D it plays the role
+      ! of the volume).
       call fine2coarse_prim(Fine%blk(b)%P,   Coarse%blk(b)%P,   &
                             Fine%blk(b)%sur, Coarse%blk(b)%sur, &
                             Fine%blk(b)%dim, Coarse%blk(b)%dim)
@@ -98,10 +98,10 @@ contains
     use Q2D_Mod_MPI,       only: is_local_block
     implicit none
     type(Q2D_domain_type), intent(inout) :: Fine, Coarse
-    ! Variabili locali
+    ! Local variables
     integer :: b
 
-    do b = 1, Coarse%nb ! Ciclo sui blocchi
+    do b = 1, Coarse%nb ! Loop over the blocks
       if (.not. is_local_block(b)) cycle
       call coarse2fine_prim(Fine%blk(b)%P, Coarse%blk(b)%P, &
                             Fine%blk(b)%dim, Coarse%blk(b)%dim)

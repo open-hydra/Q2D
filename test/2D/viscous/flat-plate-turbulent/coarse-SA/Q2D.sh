@@ -4,7 +4,7 @@
 #          FILE: Q2D.sh
 #         USAGE: run "./Q2D.sh [options] {solve|kill}" in the current shell
 #   DESCRIPTION: Compile/run script for flat-plate-turbulent (NASA TMR ref)
-#                2D RANS test (Q2D_new).
+#                2D RANS test (Q2D).
 #
 #===============================================================================
 

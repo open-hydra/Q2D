@@ -1,5 +1,5 @@
-! Solutori di Riemann della famiglia AUSM (formulazione 2D)
-! Riferimenti:
+! Riemann solvers of the AUSM family (2D formulation)
+! References:
 !   Liou, M.-S., and Steffen, C. J. Jr. (1993), JCP, 107, 23-39.
 !   Liou, M.-S. (1996), JCP, 129, 364-382.
 !   Liou, M.-S. (2006), JCP, 214, 137-170.

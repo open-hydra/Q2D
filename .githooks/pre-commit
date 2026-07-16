@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# Git pre-commit hook — runs Q2D peculiarity invariants check on staged sources.
+# Git pre-commit hook — runs the 2D no-w invariant check on staged sources.
 # Activate with:  git config core.hooksPath .githooks
 #
 # Light-weight grep-based checks:
-#   * peculiarity #1 No-w principle: `do k =` / `nu:nw` / `Normal(3)` violations
-#     in src/lib/ Q2D-form sources.
-#   * Orphan TODO markers without phase reference.
+#   * 2D no-w invariants: reject `do k =`, `Normal(3)`, `nu:nw` in src/lib/
+#     Q2D-form sources.
+#   * Orphan TODO markers (a TODO must carry a description).
 #
 
 set -euo pipefail
@@ -20,27 +20,27 @@ if [[ -z "${staged}" ]]; then
 fi
 
 errors=0
-echo "[pre-commit] Checking peculiarità invariants on staged sources..."
+echo "[pre-commit] Checking 2D no-w invariants on staged sources..."
 
-# Peculiarity #1 violations (No-w principle): `do k =` patterns in Q2D-form Fortran.
-# Excludes commented lines and explicit "k=1, 1" trivial loops (audit_q2d_peculiarities pattern).
+# No-w violations: `do k =` patterns in Q2D-form Fortran.
+# Excludes commented lines (the no-w invariant check).
 for f in ${staged}; do
     if grep -nE '^\s*do\s+k\s*=' "${REPO_ROOT}/${f}" 2>/dev/null | grep -vE '!.*do\s+k' >/dev/null; then
-        echo "[pre-commit]   ${f}: peculiarità #1 violation — found 'do k =' pattern"
+        echo "[pre-commit]   ${f}: 2D no-w violation — found 'do k =' pattern"
         grep -nE '^\s*do\s+k\s*=' "${REPO_ROOT}/${f}" | grep -vE '!.*do\s+k' | head -3
         errors=$((errors + 1))
     fi
     if grep -nE 'Normal\(3\)' "${REPO_ROOT}/${f}" 2>/dev/null | grep -vE '!.*Normal\(3\)' >/dev/null; then
-        echo "[pre-commit]   ${f}: peculiarità #1 violation — found 'Normal(3)' (use Normal(2))"
+        echo "[pre-commit]   ${f}: 2D no-w violation — found 'Normal(3)' (use Normal(2))"
         errors=$((errors + 1))
     fi
 done
 
-# Orphan TODO markers (TODO must reference a phase).
+# Orphan TODO markers (a TODO must be followed by ': <description>').
 for f in ${staged}; do
     orphans="$(grep -nE '^\s*!\s*TODO[^:]*$' "${REPO_ROOT}/${f}" 2>/dev/null || true)"
     if [[ -n "${orphans}" ]]; then
-        echo "[pre-commit]   ${f}: orphan TODO without phase reference"
+        echo "[pre-commit]   ${f}: orphan TODO without a description"
         echo "${orphans}" | head -3
         errors=$((errors + 1))
     fi

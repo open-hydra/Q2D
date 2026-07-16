@@ -1,12 +1,12 @@
-!>@brief: Dispatcher del soot — Setup_Soot, Soot_Source_Terms, Soot_Diffusive_Flux.
+!>@brief: Soot dispatcher — Setup_Soot, Soot_Source_Terms, Soot_Diffusive_Flux.
 !
-! 3 routine pubbliche. Convenzioni 2D:
-!   - loop di blocco sui soli indici (i, j), dimensioni n(1), n(2);
-!   - `blk%sur(i,j)` è l'elemento d'area 2D che pesa i termini sorgente;
-!   - Soot_Diffusive_Flux: T_gradient(2) e normal(2) al centro faccia; `int_l`
-!     è la lunghezza dell'interfaccia 2D.
+! 3 public routines. 2D conventions:
+!   - block loop over the indices (i, j) only, sizes n(1), n(2);
+!   - `blk%sur(i,j)` is the 2D area element that weights the source terms;
+!   - Soot_Diffusive_Flux: T_gradient(2) and normal(2) at the face center; `int_l`
+!     is the 2D interface length.
 !
-! Setup_Soot è il dispatcher logico (LL91/LIN/none) più il conteggio nsoot.
+! Setup_Soot is the logical dispatcher (LL91/LIN/none) plus the nsoot count.
 module Q2D_Mod_Soot
   use iso_fortran_env, only: I4 => int32, R8 => real64
 
@@ -14,17 +14,17 @@ module Q2D_Mod_Soot
   private
 
   public :: Setup_Soot, Soot_Source_Terms, Soot_Diffusive_Flux
-  public :: i_CS  ! esposto per i residui soot dei termini sorgente assialsimmetrici/area-variation
+  public :: i_CS  ! exposed for the axisymmetric/area-variation source-term soot residuals
 
   integer, private :: i_C2H2, i_CO2, i_CO, i_H2, i_O2, i_C6H6
-  integer          :: i_CS  ! indice della massa di soot in 1:nsc (nsoot=1) oppure -1 (nsoot=2)
+  integer          :: i_CS  ! index of the soot mass in 1:nsc (nsoot=1) or -1 (nsoot=2)
 
 contains
 
   subroutine Setup_Soot()
-    ! Dispatcher logico + ricerca degli indici in species_names da FLINT_Lib_Thermodynamic.
-    ! nsoot impostato a 1 se C(gr) è presente nel set di specie (soot come "gas
-    ! pesante"), 2 altrimenti (scalari soot separati).
+    ! Logical dispatcher + index lookup in species_names from FLINT_Lib_Thermodynamic.
+    ! nsoot set to 1 if C(gr) is present in the species set (soot as "heavy
+    ! gas"), 2 otherwise (separate soot scalars).
     use Q2D_Config_Types_m,      only: obj_soot
     use Q2D_Global_m,            only: nsc, nsoot
     use FLINT_Lib_Thermodynamic, only: species_names
@@ -51,7 +51,7 @@ contains
     nsoot = 0
     if (.not. obj_soot%enabled) return
 
-    ! Inizializza gli indici di specie
+    ! Initialize the species indices
     i_O2   = -1
     i_C2H2 = -1
     i_CO2  = -1
@@ -88,13 +88,13 @@ contains
 
 
   subroutine Soot_Source_Terms ( domain )
-    ! Driver con loop sui blocchi e gating MPI (elabora solo i blocchi locali).
+    ! Driver with block loop and MPI gating (processes only the local blocks).
     use Q2D_Advanced_Types_m, only: Q2D_domain_type
     use Q2D_Config_Types_m,   only: obj_soot
     use Q2D_Mod_MPI,          only: is_local_block
     implicit none
     type(Q2D_domain_type), intent(inout) :: domain
-    ! Variabili locali
+    ! Local variables
     integer :: b
     logical :: LL91, LIN
 
@@ -114,9 +114,9 @@ contains
   contains
 
     subroutine Soot_Source_blk ( prim, res, sur, n, LL91, LIN )
-      ! Kernel di blocco: prim/res di forma (1:nprim, 1-gc:n(1)+gc, 1-gc:n(2)+gc),
-      ! sur di forma (1-gc:n(1)+gc, 1-gc:n(2)+gc); sur è l'elemento d'area 2D
-      ! che pesa i termini sorgente.
+      ! Block kernel: prim/res of shape (1:nprim, 1-gc:n(1)+gc, 1-gc:n(2)+gc),
+      ! sur of shape (1-gc:n(1)+gc, 1-gc:n(2)+gc); sur is the 2D area element
+      ! that weights the source terms.
       use Q2D_Global_m,            only: nsc, np, nc, nsoot, nprim, gc
       use Q2D_Lib_Soot,            only: Mc, LL91_soot_rates, LIN_soot_rates
       use FLINT_Lib_Thermodynamic, only: Co_rotot_Rtot, Wm_tab, f_tabT, h_tab
@@ -126,7 +126,7 @@ contains
       real(R8), dimension(nprim, 1-gc:n(1)+gc, 1-gc:n(2)+gc), intent(in)    :: prim
       real(R8), dimension(nprim, 1-gc:n(1)+gc, 1-gc:n(2)+gc), intent(inout) :: res
       real(R8), dimension(       1-gc:n(1)+gc, 1-gc:n(2)+gc), intent(in)    :: sur
-      ! Variabili locali
+      ! Local variables
       integer  :: i, j, s
       real(R8) :: rho, Rgas, T
       real(R8) :: Yc2h2, Yo2, C_c2h2, C_o2, Y_soot, Nvol
@@ -140,51 +140,51 @@ contains
         call Co_rotot_Rtot ( Prim(1:nsc, i, j), rho, Rgas )
         T = prim(np, i, j) / (rho * Rgas)
 
-        ! --- dati specie / soot ---
+        ! --- species / soot data ---
         Yc2h2 = prim(i_C2H2, i, j) / rho
         Yo2   = prim(i_O2,   i, j) / rho
         if (nsoot == 1) then
-          Y_soot = prim(i_CS, i, j) / rho      ! frazione di massa del soot
-          Nvol   = prim(nc,   i, j)            ! densità numerica [#/m^3]
+          Y_soot = prim(i_CS, i, j) / rho      ! soot mass fraction
+          Nvol   = prim(nc,   i, j)            ! number density [#/m^3]
         else
-          Y_soot = prim(nc,   i, j) / rho      ! frazione di massa del soot
-          Nvol   = prim(nc+1, i, j)            ! densità numerica [#/m^3]
+          Y_soot = prim(nc,   i, j) / rho      ! soot mass fraction
+          Nvol   = prim(nc+1, i, j)            ! number density [#/m^3]
         end if
 
-        ! concentrazioni molari (kmol/m^3)
+        ! molar concentrations (kmol/m^3)
         C_c2h2 = rho * Yc2h2 / Wm_tab(i_C2H2)
         C_o2   = rho * Yo2   / Wm_tab(i_O2)
 
-        ! --- tassi di reazione (LL91 / LIN) ---
+        ! --- reaction rates (LL91 / LIN) ---
         if (LL91) then
           call LL91_soot_rates ( rho, T, C_c2h2, C_o2, Y_soot, Nvol, R1, R2, R3, R4 )
         elseif (LIN) then
           call LIN_soot_rates  ( rho, T, C_c2h2, C_o2, Y_soot, Nvol, R1, R2, R3, R4 )
         endif
 
-        ! --- sorgenti per i residui ---
-        ! massa soot: d(rho*Ys)/dt = Mc*(2R1 + R2 - R3)  [kg/m^3/s]
+        ! --- sources for the residuals ---
+        ! soot mass: d(rho*Ys)/dt = Mc*(2R1 + R2 - R3)  [kg/m^3/s]
         S_rhoYs = Mc * ( 2.0d0*R1 + R2 - R3 )
-        ! densità numerica di particelle: d(rhoN)/dt = R4  [#/m^3/s]
+        ! particle number density: d(rhoN)/dt = R4  [#/m^3/s]
         S_rhoN  = R4
 
-        ! Accumulo nei residui (sur = elemento d'area 2D)
+        ! Accumulate into the residuals (sur = 2D area element)
         if (nsoot == 2) then
           res(nc,   i, j) = res(nc,   i, j) - S_rhoYs * sur(i, j)
           res(nc+1, i, j) = res(nc+1, i, j) - S_rhoN  * sur(i, j)
         else
           omega = 0.0_R8
-          ! sorgenti di massa, scritte come produzione (negative per consumo)
+          ! mass sources, written as production (negative for consumption)
           omega(i_C2H2) = -(R1+R2) * Wm_tab(i_C2H2)
           omega(i_O2)   = -0.5d0*R3 * Wm_tab(i_O2)
           omega(i_H2)   = +(R1+R2) * Wm_tab(i_H2)
           omega(i_CO)   = +R3      * Wm_tab(i_CO)
-          omega(i_CS)   = -sum(omega)  ! impone la conservazione della massa
-          ! aggiornamento dei residui delle specie
+          omega(i_CS)   = -sum(omega)  ! enforces mass conservation
+          ! species residual update
           res(1:nsc, i, j) = res(1:nsc, i, j) - omega(1:nsc) * sur(i, j)
-          ! aggiornamento del residuo della densità numerica
+          ! number-density residual update
           res(nc,    i, j) = res(nc,    i, j) - S_rhoN * sur(i, j)
-          ! Termine sorgente di energia
+          ! Energy source term
           energy = 0.0_R8
           do s = 1, nsc
             energy = energy + omega(s) * f_tabT(T, s, h_tab)
@@ -199,31 +199,31 @@ contains
 
 
   subroutine Soot_Diffusive_Flux ( flux, prim, T_gradient, mu, rho, T, int_l, normal )
-    ! Flusso termoforetico del soot attraverso una faccia: T_gradient(2) e
-    ! normal(2) al centro faccia, int_l lunghezza dell'interfaccia 2D.
+    ! Thermophoretic soot flux across a face: T_gradient(2) and
+    ! normal(2) at the face center, int_l 2D interface length.
     use Q2D_Global_m, only: nc, nprim
     implicit none
-    ! Ingressi
+    ! Inputs
     real(R8), intent(in)    :: prim(nprim)
     real(R8), intent(in)    :: T_gradient(2)
     real(R8), intent(in)    :: mu, rho, T, int_l
     real(R8), intent(in)    :: normal(2)
-    ! Uscite
+    ! Outputs
     real(R8), intent(inout) :: flux(nprim)
-    ! Costanti / parametri del modello
-    real(R8), parameter :: CT = 0.55_R8        ! coefficiente termoforetico
-    ! Variabili locali
+    ! Constants / model parameters
+    real(R8), parameter :: CT = 0.55_R8        ! thermophoretic coefficient
+    ! Local variables
     real(R8) :: Ys, Nvol, Thermo
 
-    ! Estrazione degli scalari del soot
-    Ys   = prim(i_CS) / rho     ! adimensionale
+    ! Extract the soot scalars
+    Ys   = prim(i_CS) / rho     ! dimensionless
     Nvol = prim(nc)             ! [#/m^3]
 
-    ! Flusso di massa termoforetico (la diffusione molecolare è già calcolata a monte)
+    ! Thermophoretic mass flux (molecular diffusion is already computed upstream)
     Thermo = -CT * (mu * Ys) * dot_product(T_gradient, normal) / T * int_l   ! [kg/s]
     flux(i_CS) = flux(i_CS) + Thermo
 
-    ! Flusso equivalente su Nvol
+    ! Equivalent flux on Nvol
     if (Ys > 1.0e-10_R8) flux(nc) = flux(i_CS) / (rho * Ys / Nvol)
   end subroutine Soot_Diffusive_Flux
 

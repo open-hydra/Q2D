@@ -2,9 +2,9 @@
 
 Validates the converged solution of the Chang 1996 axisymmetric nozzle (cf.
 Chang 1996 J. Spacecraft Rockets). Mirror MOSE/test/2D/euler/chang-nozzle/
-verify.py adapted to Q2D 2D peculiarita' #1 (j-direction is radial in
-axisymmetric mode; K=1 collapsed) + peculiarita' #2 (axisymmetric source
-active in input.ini [Q2D-Sources]).
+verify.py adapted to the Q2D 2D no-w layout (j is the radial direction in
+axisymmetric mode; single collapsed K strip) with the axisymmetric source
+active in input.ini [Q2D-Sources].
 
 Tolerances per ``docs/vv/regression_tolerance.md`` Section 3.2:
 - ``min(rho), min(p), min(T) > 0`` (hard, NaN-safe via q2d_check_lib).
@@ -69,8 +69,8 @@ M_ref_axis = np.interp(x_axis, ref1[:, 0], ref1[:, 1])
 # Max eps_rel checked vs separate threshold 1e-1, because Q2D 2D axisym source
 # (1/r with eps=1e-12 floor) and MOSE 3D wedge slab (dz→0 at axis) are two
 # distinct approximations of axisymmetric physics that differ ~4% at axis-row
-# cells. Inherent to Q2D-2D-axisym vs MOSE-3D-wedge discretization (cf.
-# Fase 9-B closure 2026-05-13 note T-1.2D.axis-discrepancy).
+# cells. Inherent to the Q2D 2D axisymmetric vs MOSE 3D wedge
+# discretization.
 def report_eps(label, sim, ref):
     denom = np.maximum(np.abs(ref), 1e-3)
     eps_rel = np.abs(sim - ref) / denom
