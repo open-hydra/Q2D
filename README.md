@@ -4,6 +4,7 @@
 </p>
 
 <p align="center">
+  <a href="https://doi.org/10.5281/zenodo.21394015"><img src="https://zenodo.org/badge/DOI/10.5281/zenodo.21394015.svg" alt="DOI"></a>
   <a href="https://github.com/open-hydra/Q2D/actions/workflows/ctest.yml"><img src="https://github.com/open-hydra/Q2D/actions/workflows/ctest.yml/badge.svg" alt="CTest"></a>
   <a href="https://github.com/open-hydra/Q2D/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-GPLv3-blue.svg" alt="License: GPLv3"></a>
   <a href="https://open-hydra.github.io/Q2D/"><img src="https://img.shields.io/badge/docs-online-brightgreen.svg" alt="Documentation"></a>
