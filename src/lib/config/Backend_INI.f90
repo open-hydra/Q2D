@@ -44,7 +44,7 @@ contains
     implicit none
     type(file_ini), intent(in) :: fini
     integer, intent(out) :: nprobes, nlineprobes, nmgl
-    character(len=16),   allocatable, intent(out) :: probes_name(:)
+    character(len=llen), allocatable, intent(out) :: probes_name(:)
     character(len=llen), allocatable, intent(out) :: lineprobes_names(:)
     ! Local variables
     character(len=llen) :: wholestring

@@ -72,7 +72,7 @@ module Q2D_Config_Types_m
     ! USER INPUT
     real(R8)            :: dtime
     integer             :: diter
-    character(len=clen) :: file
+    character(len=llen) :: file
     character(len=hlen) :: varnames
     integer             :: iloc(3)                 ! 2D indices (b, i, j)
     real(R8)            :: loc(2)                  ! 2D coordinates (x, y)
@@ -91,7 +91,7 @@ module Q2D_Config_Types_m
     ! USER INPUT
     real(R8)            :: dtime
     integer             :: diter
-    character(len=clen) :: name                    ! line-probe section name (= base of the output file name)
+    character(len=llen) :: name                    ! line-probe section name (= base of the output file name)
     character(len=hlen) :: varnames                ! whitespace-separated list of variables
     integer             :: iloc(2)                 ! [block, direction] (direction=1 i fixed, 2 j fixed)
     integer             :: fixed_index             ! sampling index on the fixed axis of the line

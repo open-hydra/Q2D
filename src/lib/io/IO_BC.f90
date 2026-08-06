@@ -172,8 +172,8 @@ contains
     ! Local variables
     integer :: cc, i, s
     integer :: unitfile, ios
-    character(len=32) :: p0file
-    character(len=32) :: alpha_tok, beta_tok
+    character(len=256) :: p0file
+    character(len=32)  :: alpha_tok, beta_tok
 
     ! Open the file
     if (level == 1) then

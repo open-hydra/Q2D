@@ -22,7 +22,7 @@ contains
     ! Local variables
     type(file_ini) :: fini
     integer :: nprobes, nlineprobes, nmgl
-    character(len=16),   allocatable :: probes_name(:)
+    character(len=llen), allocatable :: probes_name(:)
     character(len=llen), allocatable :: lineprobes_names(:)
     logical :: have_ini
 
