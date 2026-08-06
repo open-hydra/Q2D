@@ -12,3 +12,5 @@
 
 Automatically sourced from git history.
 
+- Alemontanari97
+- Marco Grossi
