@@ -7,7 +7,7 @@ module Q2D_IO_BC
   public :: Print_BC_Summary
 
   ! Counters per BC type — populated by Read_BCfile, consumed by Print_BC_Summary
-  integer :: nconnect, nwall, ngsi, nSRM, nio, nsym, nper, nchimera, ncoupled, next, nmanifold, nstate
+  integer :: nconnect, nwall, ngsi, nSRM, nSRMin, nio, nsym, nper, nchimera, ncoupled, next, nmanifold, nstate
   logical :: has_tdep_bc
 
 contains
@@ -174,6 +174,8 @@ contains
     integer :: unitfile, ios
     character(len=256) :: p0file
     character(len=32)  :: alpha_tok, beta_tok
+    character(len=4096) :: pline                ! the property line of a 502, read whole
+    real(R8)           :: srm_head(5)           ! mdot_ref, n, p_ref, T_af, mode: the head of the line of a 502
 
     ! Open the file
     if (level == 1) then
@@ -190,7 +192,7 @@ contains
 
     ! Counters (reset only at grid level 1)
     if (level == 1) then
-      nconnect = 0; nwall = 0; ngsi = 0; nSRM = 0
+      nconnect = 0; nwall = 0; ngsi = 0; nSRM = 0; nSRMin = 0
       nio = 0; nsym = 0; nper = 0; nchimera = 0
       ncoupled = 0; nmanifold = 0; next = 0; nstate = 0
       has_tdep_bc = .false.
@@ -402,15 +404,40 @@ contains
           read(unitfile, *, iostat=ios) bc(i)%bs, bc(i)%fs
 
         ! ─────────────────────────────────────────────────────────────────────
-        ! SRM grain combustion (BC 502).
-        ! Reads Taf, aCoeff, n, pRef, rhoGrain, SF_geo, massf(1:nsc);
-        ! haf forced to 0 — not present in the ATLAS output format.
+        ! SRM grain combustion (BC 502): the line of the boundary-condition builder of ATLAS, as MOSE reads it,
+        !   mdot_ref, n, p_ref, T_af, mode, massf(1:nsc) [, turb(1:nrans) in mode 2]
+        ! mdot_ref is the mass flux of the propellant gas at p_ref [kg/(m^2 s)]: mdot = mdot_ref (p/p_ref)^n at the
+        ! pressure of the boundary cell (Saint-Robert's law). T_af is the total temperature of the products: they enter
+        ! with the total enthalpy h(T_af) of the tables of the gas (SRM_Static_Temperature), not read here (the former
+        ! line carried no enthalpy, and the grain injected the products with h = 0). mode 1: a wall that blows the
+        ! products in (BC_SRM). mode 2: an inflow, the record applied as the inflow 404 at the static temperature of
+        ! total T_af along the face normal, with the mass flux of the law and the turbulence values of the line, never
+        ! closed by the gas of the boundary cell (Mod_BC_Fluxes): from here on the record is of type 404, srm_inflow.
+        ! Check_SRM_Head stops the run on a mode other than 1 and 2, on p_ref <= 0, on mdot_ref < 0 (0 in mode 2) and
+        ! on T_af outside the tables of the gas.
         case (502)
-          if (level == 1) nSRM = nSRM + 1
-          allocate( bc(i)%ci(1 : nsc) )
-          bc(i)%haf = 0.0_R8   ! haf absent in ATLAS output; set to zero
-          read(unitfile, *, iostat=ios) bc(i)%Taf, bc(i)%aCoeff, bc(i)%n, bc(i)%pRef, &
-            bc(i)%rhoGrain, bc(i)%SF_geo, (bc(i)%ci(s), s = 1, nsc)
+          srm_head = 0.0_R8
+          read(unitfile, '(A)', iostat=ios) pline
+          if (ios == 0) read(pline, *, iostat=ios) srm_head
+          if (ios /= 0) call SRM_Line_Error(i, level, pline)
+          call Check_SRM_Head(i, level, srm_head)
+          bc(i)%aCoeff = srm_head(1) ; bc(i)%n = srm_head(2) ; bc(i)%pRef = srm_head(3) ; bc(i)%Taf = srm_head(4)
+          if (srm_head(5) == 1.0_R8) then
+            if (level == 1) nSRM = nSRM + 1
+            allocate( bc(i)%ci(1 : nsc) )
+            read(pline, *, iostat=ios) srm_head, (bc(i)%ci(s), s = 1, nsc)
+          else
+            if (level == 1) nSRMin = nSRMin + 1
+            allocate( bc(i)%ci(1 : nsc+nrans) )
+            read(pline, *, iostat=ios) srm_head, (bc(i)%ci(s), s = nrans+1, nrans+nsc), (bc(i)%ci(s), s = 1, nrans)
+          end if
+          if (ios /= 0) call SRM_Line_Error(i, level, pline)
+          if (any(Not_Finite(bc(i)%ci))) call SRM_Line_Error(i, level, pline)
+          if (srm_head(5) == 2.0_R8) then
+            bc(i)%type = 404 ; bc(i)%srm_inflow = .true.
+            bc(i)%T0 = bc(i)%Taf ; bc(i)%mdot = bc(i)%aCoeff ; bc(i)%rel_fac = 1.0_R8
+            bc(i)%alpha = huge(1.0_R8) ; bc(i)%beta = huge(1.0_R8)      ! along the face normal (parse_dir_tok)
+          end if
 
         ! ─────────────────────────────────────────────────────────────────────
         ! Multi-solver coupled wall
@@ -456,10 +483,123 @@ contains
     if (ncoupled  > 0) write(*,'(A,T35,I0)') '   Coupled wall',       ncoupled
     if (nmanifold > 0) write(*,'(A,T35,I0)') '   Manifold',           nmanifold
     if (nSRM      > 0) write(*,'(A,T35,I0)') '   SRM grain',          nSRM
+    if (nSRMin    > 0) write(*,'(A,T35,I0)') '   SRM inflow (as 404)', nSRMin
     if (nstate    > 0) write(*,'(A,T35,I0)') '   Q2D mapped (410)',   nstate
     if (has_tdep_bc)   write(*,'(A)')        '   Time-dependent BC detected'
 
   end subroutine Print_BC_Summary
+
+  ! ---------------------------------------------------------------------------
+  ! SRM_Line_Error: the property line of the SRM grain of record n (type 502) is short of a value or holds a value that
+  !   is not a finite number: the run stops at set-up, with the record and the line.
+  ! ---------------------------------------------------------------------------
+  subroutine SRM_Line_Error ( n, level, line )
+    use IR_Precision, only: str
+    implicit none
+    integer,          intent(in) :: n, level
+    character(len=*), intent(in) :: line
+
+    write(*,'(A)') '[ERROR] '//trim(bc_file_name(level))//' (record '//trim(str(.true.,n))//', type 502): the line is '// &
+                   'short or holds a value that is not a finite number: "'//trim(line(1:min(len(line),200)))//'"'
+    error stop 1
+
+  end subroutine SRM_Line_Error
+
+
+  ! ---------------------------------------------------------------------------
+  ! Check_SRM_Head: the head of the property line of the SRM grain of record n (type 502), mdot_ref, n, p_ref, T_af and
+  !   mode, as MOSE checks it. The run stops at set-up when a value is not finite; when the mode is neither 1 (a wall that
+  !   blows the products in) nor 2 (an inflow); when p_ref is not positive, the reference pressure of the law
+  !   mdot_ref (p/p_ref)^n; when mdot_ref is negative (a grain blows gas into the domain; 0 is a surface that does not
+  !   burn, a wall at T_af, which an inflow cannot be: mode 2 needs mdot_ref > 0); and when T_af does not lie on the tables
+  !   of the gas, at or above their lowest temperature above 0 K and at or below Tmax - 1, one kelvin below their last
+  !   row, where their interpolation ends (above it f_tabT holds the values of Tmax - 1). T_af = 0 is what the
+  !   boundary-condition builder of ATLAS writes for a grain without eq-CEA-file.
+  ! ---------------------------------------------------------------------------
+  subroutine Check_SRM_Head ( n, level, head5 )
+    use IR_Precision,            only: str
+    use FLINT_Lib_Thermodynamic, only: Tmin, Tmax
+    implicit none
+    integer,  intent(in) :: n, level
+    real(R8), intent(in) :: head5(5)        ! mdot_ref, n, p_ref, T_af, mode
+    ! Local
+    character(len=160) :: head
+    character(len=24)  :: txt
+
+    head = '[ERROR] '//trim(bc_file_name(level))//' (record '//trim(str(.true.,n))//', type 502)'
+    if ( any(Not_Finite(head5)) ) then
+      write(*,'(A)') trim(head)//': mdot_ref, n, p_ref, T_af and mode must be finite numbers'
+      error stop 1
+    end if
+    if ( head5(5) /= 1.0_R8 .and. head5(5) /= 2.0_R8 ) then
+      write(txt,'(ES23.16)') head5(5)
+      write(*,'(A)') trim(head)//': mode = '//trim(adjustl(txt))//' is neither 1 (a wall that blows the gas in) '// &
+                     'nor 2 (an inflow)'
+      error stop 1
+    end if
+    if ( .not. ( head5(3) > 0.0_R8 ) ) then
+      write(txt,'(ES23.16)') head5(3)
+      write(*,'(A)') trim(head)//': p_ref = '//trim(adjustl(txt))//' is not positive: the reference pressure of the '// &
+                     'burn rate law mdot_ref (p/p_ref)^n'
+      error stop 1
+    end if
+    if ( head5(1) < 0.0_R8 ) then
+      write(txt,'(ES23.16)') head5(1)
+      write(*,'(A)') trim(head)//': mdot_ref = '//trim(adjustl(txt))//' is negative: a grain blows gas into the '// &
+                     'domain (mdot_ref > 0; 0 for a surface that does not burn, a wall in mode 1)'
+      error stop 1
+    end if
+    if ( head5(5) == 2.0_R8 .and. head5(1) == 0.0_R8 ) then
+      write(*,'(A)') trim(head)//': mdot_ref = 0 in mode 2: an inflow needs a mass flux (a surface that does not '// &
+                     'burn is a wall, mode 1)'
+      error stop 1
+    end if
+    write(txt,'(ES23.16)') head5(4)
+    if ( .not. ( head5(4) > 0.0_R8 ) ) then
+      write(*,'(A)') trim(head)//': T_af = '//trim(adjustl(txt))//' is not positive: no flame temperature (the '// &
+                     'boundary-condition builder of ATLAS writes 0 for a grain without eq-CEA-file)'
+      error stop 1
+    else if ( head5(4) < real(max(Tmin, 1), R8) ) then
+      write(*,'(A)') trim(head)//': T_af = '//trim(adjustl(txt))//' is below the lowest temperature of the tables '// &
+                     'of the gas above 0 K, '//trim(str(.true.,max(Tmin, 1)))//' K: extend the tables to lower temperatures'
+      error stop 1
+    else if ( head5(4) > real(Tmax - 1, R8) ) then
+      write(*,'(A)') trim(head)//': T_af = '//trim(adjustl(txt))//' is above '//trim(str(.true.,Tmax - 1))// &
+                     ' K, one kelvin below the last row of the tables of the gas, where their interpolation ends: '// &
+                     'extend the tables to higher temperatures'
+      error stop 1
+    end if
+
+  end subroutine Check_SRM_Head
+
+
+  !> .true. for NaN and infinities, the values with all the exponent bits set, as MOSE tests them (MOSE_Finite_m): the
+  !> test reads the bits, since -ffast-math, an option of the RELEASE build, lets gfortran fold ieee_is_finite to .true.
+  elemental logical function Not_Finite ( x )
+    use iso_fortran_env, only: int64
+    implicit none
+    real(R8), intent(in) :: x
+    integer(int64), parameter :: expo = int(z'7FF', int64)
+    Not_Finite = iand ( shiftr ( transfer ( x, 0_int64 ), 52 ), expo ) == expo
+  end function Not_Finite
+
+
+  !> The name of the boundary file of grid level `level`, after the phase prefix, for the messages.
+  function bc_file_name ( level ) result ( name )
+    use Q2D_Global_m, only: Q2D_phase_prefix
+    use IR_Precision, only: str
+    implicit none
+    integer, intent(in)           :: level
+    character(len=:), allocatable :: name
+
+    if (level == 1) then
+      name = trim(Q2D_phase_prefix)//'bc.txt'
+    else
+      name = trim(Q2D_phase_prefix)//'bc'//trim(str(.true.,level))//'.txt'
+    end if
+
+  end function bc_file_name
+
 
 
   ! ---------------------------------------------------------------------------

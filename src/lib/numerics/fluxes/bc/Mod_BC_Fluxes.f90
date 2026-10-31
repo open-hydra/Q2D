@@ -34,7 +34,7 @@ module Q2D_Mod_BC_Fluxes
   use Q2D_Lib_BC_Fluxes_FarField,      only: BC_FarField
   use Q2D_Lib_BC_Fluxes_Manifold,      only: BC_Manifold
   use Q2D_Lib_BC_Fluxes_Rotational,    only: BC_Rotational_Periodic_Eul
-  use Q2D_Lib_BC_Fluxes_SRM,           only: BC_SRM
+  use Q2D_Lib_BC_Fluxes_SRM,           only: BC_SRM, SRM_Static_Temperature
   use Q2D_Lib_RotatingFrame,           only: RF_Wall_Velocity, RF_Face_Center, &
                                               RF_Is_Stationary_Face
 
@@ -63,6 +63,7 @@ contains
     ! Wall velocity in the rotating frame: buffer for the iteration in cases 301/302.
     real(R8) :: r_fc(2), w_wall_rf(2)
     logical  :: rf_enabled
+    logical  :: ablating                             ! SRM grain (502): does the surface burn?
 
     RSM          = obj_rans%RSM
     SD_limiter   = obj_space_scheme%SD
@@ -82,7 +83,8 @@ contains
         lower = upper + 1                   ! Update the lower bound
         upper = upper + domain % n_bf(b,f)  ! Upper bound: add the number of cells on face f of block b
 
-        !$omp do schedule(dynamic) private(i, Bm, Im, Jm, Fm, error, Bs, Fs, T0, g, pstat, BC_mdot, r_fc, w_wall_rf)
+        !$omp do schedule(dynamic) private(i, Bm, Im, Jm, Fm, error, Bs, Fs, T0, g, pstat, BC_mdot, r_fc, w_wall_rf, &
+        !$omp   ablating)
         do i = lower, upper
           Bm = domain % bc(i) % b
           if (.not. is_local_block(Bm)) cycle  ! MPI: skip non-local blocks
@@ -200,13 +202,30 @@ contains
               if (error == 1) call BC_Symmetry_Eul ( Bm, Im, Jm, Fm, domain % blk(Bm) )
 
             case (404) ! inflow: static temperature T + imposed mass flux
-              ! As for case 403: `domain%bc(i)%mdot` is input only, never output.
-              call BC_Inlet_MassFlux_T ( Bm, Im, Jm, Fm, domain % blk(Bm), &
-                                          domain % bc(i) % T0, domain % bc(i) % mdot, &
-                                          domain % bc(i) % rel_fac, &
-                                          domain % bc(i) % alpha, &
-                                          domain % bc(i) % ci(nrans+1:nrans+nsc), &
-                                          domain % bc(i) % ci(1:nrans), error )
+              if ( domain % bc(i) % srm_inflow ) then
+                ! An SRM grain in its inflow mode (502, mode 2; IO_BC), as in MOSE: the products enter along the
+                ! normal with the mass flux of Saint-Robert's law at the pressure of the boundary cell and the total
+                ! temperature Taf (the record's T0): the inflow takes the static temperature of h(T) + u^2/2 = h(Taf)
+                ! at that pressure and mass flux, with u = g/rho, rho = p/(R T) as it builds its face (T0, a scratch
+                ! here, holds it). The grain burns whatever the gas of the cell does: the face is never closed by
+                ! that gas moving out (or at rest, as in a chamber before the ignition).
+                g  = domain % bc(i) % aCoeff * &
+                     ( domain % blk(Bm) % P(np,Im,Jm) / domain % bc(i) % pRef ) ** domain % bc(i) % n
+                T0 = SRM_Static_Temperature ( domain % bc(i) % T0, g, domain % blk(Bm) % P(np,Im,Jm), &
+                                              domain % bc(i) % ci(nrans+1:nrans+nsc) )
+                call BC_Inlet_MassFlux_T ( Bm, Im, Jm, Fm, domain % blk(Bm), T0, g, 1d0, &
+                                            domain % bc(i) % alpha, &
+                                            domain % bc(i) % ci(nrans+1:nrans+nsc), &
+                                            domain % bc(i) % ci(1:nrans), error, always_in = .true. )
+              else
+                ! As for case 403: `domain%bc(i)%mdot` is input only, never output.
+                call BC_Inlet_MassFlux_T ( Bm, Im, Jm, Fm, domain % blk(Bm), &
+                                            domain % bc(i) % T0, domain % bc(i) % mdot, &
+                                            domain % bc(i) % rel_fac, &
+                                            domain % bc(i) % alpha, &
+                                            domain % bc(i) % ci(nrans+1:nrans+nsc), &
+                                            domain % bc(i) % ci(1:nrans), error )
+              end if
               if (error == 1) call BC_Symmetry_Eul ( Bm, Im, Jm, Fm, domain % blk(Bm) )
 
             case (405) ! supersonic inflow: Mach + static temperature + static pressure
@@ -253,14 +272,19 @@ contains
               Fs = domain % bc(i) % fs
               call BC_Manifold ( domain % blk(Bm), Fm, domain % blk(Bs), Fs, T0, g, pstat )
 
-            case (502) ! SRM grain combustion (bc_type extended with
-                        ! aCoeff/n/pRef/Taf/haf).
-              call BC_Symmetry_Eul ( Bm, Im, Jm, Fm, domain % blk(Bm) )
+            case (502) ! SRM grain combustion, mode 1 (a wall that blows the products in), as in MOSE: while it
+                        ! burns the grain lays down the complete flux of the face, wall pressure included, so no
+                        ! reflective flux is applied alongside it; a surface that does not burn (aCoeff = 0) is an
+                        ! impermeable wall at the flame temperature.
+              ablating = .false.
               call BC_SRM ( Im, Jm, Fm, domain % blk(Bm),                       &
                             domain % bc(i) % aCoeff, domain % bc(i) % n,         &
                             domain % bc(i) % pRef,   domain % bc(i) % Taf,       &
-                            domain % bc(i) % haf,                                &
-                            domain % bc(i) % ci(1:nsc) )
+                            domain % bc(i) % ci(1:nsc), burning = ablating )
+              if (.not. ablating) then
+                call BC_Symmetry_Eul ( Bm, Im, Jm, Fm, domain % blk(Bm) )
+                if (model > 0) call BC_Wall_Temperature ( Im, Jm, Fm, domain % blk(Bm), domain % bc(i) % Taf )
+              end if
 
           end select
         enddo

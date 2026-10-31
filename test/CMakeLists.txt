@@ -240,11 +240,34 @@ q2d_add_case(rocket-nozzle-finite-rate
   LABELS "2D;chemistry;validation;fast")
 
 # SRM rocket motor, BC 502 Vieille burn-rate: steady chamber pressure vs
-# analytical Vieille balance.
+# analytical Vieille balance, and the total temperature Taf of the products in
+# every cell (8000 iterations at CFL 0.5, the steady state of the grain).
 q2d_add_case(SRM-rocket-motor
   DIRECTORY 2D/euler/SRM-rocket-motor
   TIMEOUT 900
   LABELS "2D;chemistry;validation;fast")
+# The same chamber with the grain in mode 2 (an inflow, the inflow 404 at the
+# static temperature of total Taf with the mass flux of the burn law), in
+# SRM-rocket-motor/inflow/: the same gates.
+q2d_add_case(SRM-rocket-motor-inflow
+  DIRECTORY 2D/euler/SRM-rocket-motor
+  COMMAND "./run-inflow.sh"
+  TIMEOUT 900
+  LABELS "2D;chemistry;validation;fast")
+# The gas a grain (BC 502) lets in over one step from rest, CH4 blown into N2,
+# from the changes of the cells next to it: the gas constant of the face state
+# that of CH4 at the static temperature of total Taf, the energy the total
+# enthalpy h(Taf), the same in mode 2 as in mode 1, on face 1 (a low face) and
+# on face 4 (a high face, along the contour of the nozzle: the gas enters along
+# the inward normal); with the gas of the duct moving away from the grain, the
+# pressure on its face, that of the cell (the complete flux, no reflective flux
+# alongside it); and nine property lines of a grain refused at set-up (mode,
+# p_ref, mdot_ref, T_af, NaN, short).
+q2d_add_case(SRM-grain-state
+  DIRECTORY 2D/euler/SRM-grain-state
+  COMMAND "./run.sh"
+  TIMEOUT 300
+  LABELS "2D;validation;fast")
 
 # Coriolis geostrophic balance (mirror of MOSE 3D coriolis-channel reduced to
 # the 2D plane, axis=[0,0,1]); dp/dy = -2*omega*rho*U_inf verification.

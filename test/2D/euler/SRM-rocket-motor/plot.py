@@ -1,12 +1,12 @@
 """SRM-rocket-motor V&V figure -> docs/vv/images/SRM-pressure.svg.
 
-Left: axial pressure profile (j-averaged) of the quasi-steady SRM field
+Left: axial pressure profile (j-averaged) of the steady SRM field
 (OUTPUT/field.tec), the chamber-average pressure gated by check.py, and the
 analytic Vieille equilibrium level from reference/P_eq_vieille.dat with the
 15% acceptance band shaded. Throat located from MESH/profile.dat (as in
 check.py). The solver writes no pressure-vs-iteration history, so the
-time-side evidence (right) is the density-residual history: the slow
-monotonic decay of the chamber-pressurisation transient toward the Vieille
+time-side evidence (right) is the density-residual history: the decay of
+the chamber-pressurisation transient toward the Vieille
 equilibrium, with the check.py convergence sentinel.
 
 Run './Q2D.sh solve' first, then 'python3 plot.py'.
@@ -90,7 +90,7 @@ ax.axhline(RESID_THR, color="k", ls="--", lw=1,
            label="convergence sentinel (check.py)")
 ax.set_xlabel("iteration")
 ax.set_ylabel("density residual")
-ax.set_title("Pressurisation transient (quasi-steady)")
+ax.set_title("Pressurisation transient (to the steady state)")
 ax.grid(True, which="both", alpha=0.3)
 ax.legend(fontsize=8, loc="lower right")
 

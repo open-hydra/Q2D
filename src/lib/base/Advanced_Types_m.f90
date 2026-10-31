@@ -65,9 +65,8 @@ module Q2D_Advanced_Types_m
     real(R8)              :: rel_fac                           ! BC 4 relaxation factor (inflow/outflow)
     real(R8), allocatable :: ci(:)                             ! Species mass fractions, BC 4 (inflow/outflow)
     real(R8)              :: SF                                ! Unused placeholder for BC specifications
-    real(R8)              :: aCoeff, n, pRef, Taf, haf         ! Vieille combustion law of the SRM grain (BC 502)
-    real(R8)              :: rhoGrain = 0.0_R8                 ! SRM grain density [kg/m3]
-    real(R8)              :: SF_geo   = 1.0_R8                 ! SRM geometric scale factor
+    real(R8)              :: aCoeff, n, pRef, Taf              ! SRM grain (BC 502): mdot_ref, n, p_ref, T_af (total)
+    logical               :: srm_inflow = .false.              ! SRM grain of mode 2: applied as 404 (IO_BC)
     type(time_series_type) :: p0time                           ! Time-dependent BC total pressure
   end type Q2D_bc_type
 

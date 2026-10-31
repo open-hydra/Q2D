@@ -204,7 +204,9 @@ contains
     nwall = 0
 
     do l = 1, nbound
-      if ( Is_Wall(bc(l)%type) ) then
+      ! the walls of Is_Wall and the SRM grain of mode 1 (502: a wall that blows the products in), as in MOSE; a grain of
+      ! mode 2 is an inflow (404). Is_Wall itself also chooses the no-slip ghost cells, which the grain does not take
+      if ( Is_Wall(bc(l)%type) .or. bc(l)%type == 502 ) then
         Bm = bc(l)%b
         Im = bc(l)%i
         Jm = bc(l)%j

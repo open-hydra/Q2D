@@ -205,7 +205,7 @@ contains
   ! for case 404 — contextual interpretation via case code; Mod_BC_Fluxes
   ! passes bc%T0 as BC_T for case 404).
   subroutine BC_Inlet_MassFlux_T ( Bm, Im, Jm, Fm, Blk, BC_T, BC_g, BC_rel_fac, &
-                                    BC_alpha, BC_ci, BC_RANS, error )
+                                    BC_alpha, BC_ci, BC_RANS, error, always_in )
     ! Same convention as BC_Inlet_MassFlux_T0: mass flux in the local variable
     ! `fmass`, no BC_mdot output argument (cf. the aliasing note there).
     implicit none
@@ -214,6 +214,9 @@ contains
     real(R8), intent(in)    :: BC_T, BC_g, BC_rel_fac, BC_alpha
     real(R8), intent(in)    :: BC_ci(nsc), BC_RANS(1:)
     integer,  intent(inout) :: error
+    logical,  intent(in), optional :: always_in   ! an SRM grain in its inflow mode (502, mode 2): BC_g is the magnitude
+                                                  ! of the mass flux into the domain, and the face is not closed when
+                                                  ! the gas of the cell is at rest or moves out
     ! Local variables
     integer  :: modfm, modfm1, modfm2, modfm3, Int_i, Int_j, s
     real(R8) :: Normal(2), int_l, t_Vec(2), BC_Sign, fmass
@@ -231,8 +234,13 @@ contains
                                   Bound_Sound, Bound_Gamma, Riem )
 
     if (BC_Sign * Un >= 0d0) then
-      error = 1
-      return
+      if ( .not. present(always_in) ) then
+        error = 1
+        return
+      else if ( .not. always_in ) then
+        error = 1
+        return
+      end if
     end if
 
     call Compute_Inflow_Direction ( Normal, BC_alpha, alpha_loc )
@@ -249,6 +257,9 @@ contains
     p3   = Bound_Prim(np)   ! pressure extrapolated from the interior
     rho3 = p3 / (Rgas3 * BC_T)
     Un3  = BC_g / rho3
+    if ( present(always_in) ) then
+      if ( always_in ) Un3 = - BC_Sign * abs(BC_g) / rho3   ! into the domain on every face
+    end if
     Ut3  = Un3 * E1
 
     Face_Rgas        = Rgas3

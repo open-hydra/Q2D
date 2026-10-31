@@ -50,7 +50,7 @@ run locally: `ctest -L heavy`).
 | [rocket-nozzle-frozen](2D-nozzle.md) | 2D axi | 13-species frozen chemistry | committed reference field (Linf_rel < 5e-2, L2_rel < 1e-2) + gas-law consistency | multi-species frozen mode | CEA / NASA |
 | [rocket-nozzle-equilibrium](2D-nozzle.md) | 2D axi | 13-species CEA equilibrium | same committed-reference gates | per-cell **CEA equilibrium** | CEA / NASA |
 | [rocket-nozzle-finite-rate](2D-nozzle.md) | 2D axi | 19-species finite-rate (CORIA) | same committed-reference gates | **finite-rate kinetics** (sdirk4b) | CEA / CORIA |
-| [SRM-rocket-motor](2D-srm-rocket-motor.md) | 2D axi | solid-motor chamber pressure | analytic Vieille balance (15 %) | **BC 502 SRM** Vieille burn rate | Vieille law |
+| [SRM-rocket-motor](2D-srm-rocket-motor.md) | 2D axi | solid-motor chamber pressure, the total temperature of the products | analytic Vieille balance (15 %) | **BC 502 SRM** Vieille burn rate, both modes | Vieille law |
 | [rotating-channel](2D-rotating-channel.md) | 2D plane | Coriolis geostrophic balance | analytic dp/dy = −2ωρU∞ (5 %) + drift gates | **rotating frame** (Coriolis); **BC 201 periodic** | MOSE coriolis-channel mirror |
 | [rotating-channel-rsm](2D-rotating-channel-rsm.md) | 2D plane | frame-invariance of the SSGLRR rotating-frame closures | homogeneous ODE (RK4 reference, per-cell) 2 % + no-G_ij discriminance ×5 | **rotating frame + SSGLRR** (exact Coriolis production G_ij, W_abs C5); time-accurate RK3 | Q2D-original (frame-invariance ODE) |
 | [multi-solver-103](2D-multi-solver.md) | 2D plane | quiescent equilibrium (smoke) | bounded drift from IC | **BC 103** coupling dispatcher (smoke test) | — |

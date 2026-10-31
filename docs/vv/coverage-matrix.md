@@ -50,7 +50,9 @@ Tier `fast` runs in CI (`ctest -LE heavy`); `heavy` runs locally
 | rocket-nozzle-frozen | fast | axisymmetric, 13-species frozen chemistry, SLAU | committed reference field | Linf/L2 field gates + gas-law consistency |
 | rocket-nozzle-equilibrium | fast | CEA equilibrium chemistry, RK2 | committed reference field | same |
 | rocket-nozzle-finite-rate | fast | finite-rate chemistry, sdirk4b ODE, 19 species | committed reference field | same |
-| SRM-rocket-motor | fast | BC 502 Vieille burn-rate | analytic (Vieille balance) | 15% + convergence sentinel |
+| SRM-rocket-motor | fast | BC 502 Vieille burn-rate, the products at total Taf | analytic (Vieille balance) | 15% (3.9%) + total temperature 5e-3 + convergence sentinel |
+| SRM-rocket-motor-inflow | fast | BC 502 in mode 2 (an inflow) | analytic (Vieille balance) | as SRM-rocket-motor |
+| SRM-grain-state | fast | BC 502: the gas let in over one step, both modes, on a low and a high face; the pressure of the grain face, the gas moving away from it; the refused lines | the face state and total enthalpy from the tables | 1e-9; nine refusals |
 | rotating-channel | fast | rotating frame (rigid-body), BC 201 periodic | analytic (geostrophic balance) | dp/dy + drift gates |
 | rotating-channel-rsm | fast | rotating frame + SSGLRR (exact Coriolis production G_ij, W_abs C5), time-accurate RK3 | homogeneous ODE (RK4 reference) | per-cell tracking 2 % + no-G_ij discriminance |
 | multi-solver-103 | fast | BC 103 dispatcher | smoke (quiescent equilibrium) | explicit smoke-only scope |
@@ -89,7 +91,7 @@ data).
 | Rotating frame | `rotational-frame = rigid-body` | rotating-channel / rotating-channel-rsm | analytic (geostrophic) + homogeneous-ODE (SSGLRR G_ij, W_abs) | stationary-face path untested; SA-RC/SST-RC r-tilde frame term covered analytically only (the frame-invariance vortex analysis) |
 | BC 300 (symmetry), 400 (extrapolation) | bc.txt | nearly all tests | mixed | — |
 | BC 101 (connection) | bc.txt | oblique-shock, supersonic-forward-step, swbli | analytic | — |
-| BC 103 (multi-solver), 201 (periodic), 420 (Borda), 502 (SRM Vieille) | bc.txt | multi-solver-103 / rotating-channel / borda-channel / SRM-rocket-motor | smoke / analytic | — |
+| BC 103 (multi-solver), 201 (periodic), 420 (Borda), 502 (SRM Vieille) | bc.txt | multi-solver-103 / rotating-channel / borda-channel / SRM-rocket-motor, SRM-rocket-motor-inflow, SRM-grain-state | smoke / analytic | — |
 | BC 401 (stagnation inlet) | bc.txt | chang x2, planar-nozzle family, rocket x3 | published/analytic | — |
 | BC 405 (supersonic inlet) | bc.txt | hypersonic-cylinder, oblique-shock, prandtl-meyer x2, ramp-channel, forward-step, swbli | analytic | — |
 | BC 301 (wall heat flux), 403 (mass-flux inlet), 407 (far-field) | bc.txt | flat-plate family only | published | heavy/unregistered tier only |

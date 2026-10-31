@@ -21,18 +21,25 @@ Vieille steady-state balance with choked throat:
 Gates (all hard):
   (1) Vieille chamber pressure: |P_chamber_avg - P_eq_analytical| /
       P_eq_analytical < 0.15. Acceptance tolerance
-      (analogous chang-nozzle pattern ±5% avg, ±15% max relaxed for
-      spatial-vs-lumped discretization residual AND for the residual
-      pressurization transient: at the 5000-iteration ctest budget the
-      chamber is still slowly filling toward the asymptote -- measured
-      eps_rel = 9.4e-2 on 2026-07-15, gfortran TESTING build).
+      (analogous chang-nozzle pattern ±5% avg, ±15% max relaxed for the
+      spatial-vs-lumped discretization residual: the mean over the chamber
+      cells takes the lower pressure of the converging part -- measured
+      eps_rel = 3.9e-2 at the steady state, gfortran RELEASE build).
       Reads reference/P_eq_vieille.dat for the analytical reference value.
   (2) Convergence sentinel: final density residual < 0.5 (L2 norm of the
-      per-iteration density change, residual-history.dat column 2; NaN-safe).
-      The run is quasi-steady, not deep-converged: the measured final value
-      is 2.6e-1 (slow monotonic chamber pressurization). The threshold is
-      ~2x the measured final and catches divergence/NaN blow-up.
+      per-iteration density change, residual-history.dat column 2; NaN-safe):
+      measured 3.7e-5 at the steady state; the threshold catches
+      divergence/NaN blow-up.
   (3) NaN-safe positivity: rho, p, T, g, R > 0; u, v finite.
+  (4) The total temperature of the products: the grain lets the gas in with the total enthalpy h(Taf) of the
+      tables (h = cp T for this gas, cp = 1004.5 J/(kg K)), and the steady Euler flow keeps it, so that
+      T + |u|^2/(2 cp) = Taf in every cell: largest |T0 - Taf| / Taf < 5e-3 (1.8e-3 measured). The former BC 502,
+      which injected the products with h = 0, gave 15 K next to the grain.
+
+The run is the steady state of the grain at total Taf: 8000 iterations at CFL 0.5 give the field of 40000 at CFL
+0.1 (P_chamber 0.5314 MPa, 3.9 % below P_eq, the mean over the chamber cells taking the lower pressure of the
+converging part). The former 5000 iterations at CFL 0.1 showed a quasi-steady chamber only because the cold, dense
+gas of the former injection barely moved.
 """
 import sys
 from pathlib import Path
@@ -98,5 +105,13 @@ print("  P_eq Vieille analytical: %.4e Pa = %.4f MPa" % (P_eq_ref, P_eq_ref / 1e
 
 gate("Vieille rel error |P_chamber - P_eq| / P_eq",
      abs(p_chamber - P_eq_ref) / P_eq_ref, 0.15)
+
+# (4) total temperature of the products
+print("(4) total temperature:")
+T = field("T")
+T0 = T + (field("u") ** 2 + field("v") ** 2) / (2.0 * 1004.5)
+print("  T0 = T + |u|^2/(2 cp): min %.3f K, max %.3f K, next to the grain %.3f K (Taf = 3000 K)"
+      % (T0.min(), T0.max(), T0[0, :].mean()))
+gate("total temperature largest |T0 - Taf| / Taf", float(np.abs(T0 - 3000.0).max()) / 3000.0, 5e-3)
 
 print("Correct!")

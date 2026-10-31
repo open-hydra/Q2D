@@ -403,7 +403,34 @@ matrix mapping source to target indices.
 | Type | Name | Data line |
 |:----:|------|-----------|
 | `501` | Manifold connection | `bs  fs` |
-| `502` | SRM grain boundary | `T_af,  a,  n,  p_ref,  rho_grain,  SF_geo,  [massf_1 … massf_ns]` |
+| `502` | SRM grain boundary | `mdot_ref,  n,  p_ref,  T_af,  mode,  [massf_1 … massf_ns]`, in mode 2 then `[turb_1 … turb_nrans]` |
+
+The line of a `502` is the one the boundary-condition builder of ATLAS writes and MOSE reads, and Q2D applies the
+grain as MOSE does:
+
+| Field | Description |
+|---|---|
+| `mdot_ref` | Mass flux of the propellant gas at `p_ref` [kg/(m²·s)]: the grain injects \(\dot m = \dot m_\mathrm{ref}\,(p/p_\mathrm{ref})^n\) at the pressure \(p\) of the boundary cell (Saint-Robert/Vieille's law in mass-flux form). ATLAS writes \(a\,\rho_\mathrm{grain}\,SF\,(1-k_\rho)\), the linear burn rate times the grain density and its scale factor, less the share of the dispersed phases. 0: a surface that does not burn (mode 1) |
+| `n` | Pressure exponent of the law |
+| `p_ref` | Reference pressure of the law [Pa], positive |
+| `T_af` | Adiabatic flame temperature [K], the **total** temperature of the products: they enter with the total enthalpy \(h(T_\mathrm{af})\) of the tables of the gas, at the static temperature \(T\) of \(h(T) + u^2/2 = h(T_\mathrm{af})\); it must lie on the tables, from their lowest temperature above 0 K to one kelvin below their last row |
+| `mode` | `1`: a wall that blows the products in; `2`: an inflow, the face applied as the inflow `404` at the static temperature of total `T_af` along the face normal, with the mass flux of the law |
+| `massf_s` | Composition of the products, imposed on the face |
+| `turb_k` | Mode 2: the turbulence values of the injected gas, specific, as on the line of an inflow |
+
+- Mode 1: the face carries the complete flux of the grain, the pressure of the boundary cell on it, the momentum and
+  the enthalpy of the blown products and the viscous terms, with no reflective flux alongside it (it would return the
+  impermeable-wall pressure, below the pressure of the cell since the gas moves away from the face: by about
+  \(\rho c u_b\) in the exact reflective Riemann problem). The wall state is that of the products,
+  their composition and gas constant, at the static temperature of total `T_af`. A surface that does not burn
+  (`mdot_ref = 0`) is an impermeable wall at `T_af`. The grain is a wall for the wall distance of the turbulence
+  models.
+- Mode 2: the grain is an inflow `404` from set-up on (zero-gradient ghost cells, no wall for the wall distance), but
+  it is never closed by the gas of the boundary cell at rest or moving out: the grain burns whatever that gas does.
+- The run stops at set-up, with the record and the value, on a line whose values are not finite numbers, whose
+  `mode` is neither 1 nor 2, whose `p_ref` is not positive, whose `mdot_ref` is negative (or 0 in mode 2), whose
+  `T_af` is not positive (ATLAS writes 0 for a grain without `eq-CEA-file`) or does not lie on the tables, and on a
+  line short of a value.
 
 !!! tip
     More details on these BC may be found in the [Theory Guide](../theory/index.md)
